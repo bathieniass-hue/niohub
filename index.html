@@ -29,7 +29,28 @@
 <div class="desc" id="fdesc"></div>
 <div class="boutique"><b>Boutique Aminata</b><br><span style="font-size:12px;color:#6B6254">Dakar, Médina · Vérifiée</span></div>
 </div>
-<div class="bar"><button class="btn" onclick="alert('Bientôt disponible')">Commander</button></div>
+<div class="bar"><button class="btn" onclick="voirCommande()">Commander</button></div>
+</div>
+
+<div id="commande" class="page">
+<header><button class="retour" onclick="retourFiche()">←</button><span style="font-weight:bold">Commander</span><span></span></header>
+<div class="liste" style="margin-top:0"><b id="cmd-produit"></b></div>
+<label>Votre nom</label>
+<input id="cmd-nom" placeholder="Ex. Fatou Diop">
+<label>Téléphone</label>
+<input id="cmd-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
+<label>Adresse de livraison</label>
+<input id="cmd-adresse" placeholder="Quartier, repère">
+<label>Quantité</label>
+<input id="cmd-quantite" type="number" inputmode="numeric" value="1" min="1">
+<label>Paiement</label>
+<select id="cmd-paiement" style="width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px">
+<option>À la livraison</option>
+<option>Wave</option>
+<option>Orange Money</option>
+</select>
+<div id="cmd-msg" style="color:#B4291A;font-size:14px;margin-top:10px;min-height:20px"></div>
+<button class="btn" style="margin-top:14px" onclick="envoyerCommande()">Confirmer la commande</button>
 </div>
 
 <div id="ajout" class="page">
@@ -85,5 +106,6 @@
 </div>
 
 <script src="app.js"></script>
+<script src="commande.js"></script>
 </body>
 </html>
