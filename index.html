@@ -9,6 +9,7 @@
 body{margin:0 auto;max-width:430px;min-height:100vh;font-family:sans-serif;background:#FBF7EE;color:#1E1A14}
 header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
 h1{margin:0;color:#0E6B47;font-size:26px}
+.plus{width:44px;height:44px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:24px}
 .search{margin:0 20px;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;color:#6B6254}
 .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 20px}
 .cat{height:64px;border-radius:14px;display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:bold}
@@ -30,13 +31,19 @@ nav button.on{color:#0E6B47;font-weight:bold}
 .boutique{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:12px;margin-top:16px}
 .bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 20px;background:#fff;border-top:1px solid #E6DECB}
 .btn{width:100%;height:52px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold}
-.retour{border:0;background:none;font-size:24px;padding:0 4px;cursor:pointer}
+.retour{border:0;background:none;font-size:24px;padding:0 4px}
+.ajout{display:none;padding:0 20px 40px}
+.ajout header{padding:16px 0}
+.ajout label{display:block;font-size:13px;font-weight:bold;margin:14px 0 6px}
+.ajout input,.ajout textarea{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
+.ajout textarea{height:90px}
+.apercu{width:100%;height:200px;border-radius:14px;border:2px dashed #0E6B47;background:#fff;display:flex;align-items:center;justify-content:center;color:#0E6B47;font-weight:bold;margin-top:6px}
 </style>
 </head>
 <body>
 
 <div id="accueil">
-<header><h1>NioHub</h1><span>🔔</span></header>
+<header><h1>NioHub</h1><button class="plus" onclick="voirAjout()">+</button></header>
 <div class="search">Rechercher un produit</div>
 <div class="cats" id="cats"></div>
 <div class="grid" id="grid"></div>
@@ -48,7 +55,7 @@ nav button.on{color:#0E6B47;font-weight:bold}
 </div>
 
 <div id="fiche" class="fiche">
-<header><button class="retour" onclick="retour()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
+<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
 <div class="photo" id="fphoto"></div>
 <div class="corps">
 <div class="prix" id="fprix"></div>
@@ -59,30 +66,92 @@ nav button.on{color:#0E6B47;font-weight:bold}
 <div class="bar"><button class="btn" onclick="alert('Bientôt disponible')">Commander</button></div>
 </div>
 
+<div id="ajout" class="ajout">
+<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold">Ajouter un produit</span><span></span></header>
+<div class="apercu" id="apercu" onclick="document.getElementById('photo').click()">+ Choisir une photo</div>
+<input type="file" id="photo" accept="image/*" style="display:none" onchange="choisirPhoto(event)">
+<label>Nom du produit</label>
+<input id="nom" placeholder="Ex. Boubou brodé">
+<label>Prix (FCFA)</label>
+<input id="prix" type="number" inputmode="numeric" placeholder="Ex. 25000">
+<label>Description</label>
+<textarea id="desc" placeholder="Décrivez le produit"></textarea>
+<button class="btn" style="margin-top:20px" onclick="publier()">Publier</button>
+</div>
+
 <script>
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
-const produits=[
+
+const defauts=[
 {nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
 {nom:"Sac en cuir",prix:"18 000 FCFA",couleur:"#C98B6B",desc:"Sac en cuir véritable, fait à la main."},
 {nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
 {nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
 ];
-document.getElementById('grid').innerHTML=produits.map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${p.couleur}"></div><div class="info"><div class="name">${p.nom}</div><div class="price">${p.prix}</div></div></div>`).join('');
+let photoChoisie="";
+function sauvegarde(){return JSON.parse(localStorage.getItem('niohub_produits')||'[]');}
+function tous(){return defauts.concat(sauvegarde());}
+function fond(p){return p.photo?`url(${p.photo}) center/cover no-repeat`:p.couleur;}
+
+function afficherGrille(){
+document.getElementById('grid').innerHTML=tous().map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${fond(p)}"></div><div class="info"><div class="name">${p.nom}</div><div class="price">${p.prix}</div></div></div>`).join('');
+}
 function ouvrir(i){
-const p=produits[i];
-document.getElementById('fphoto').style.background=p.couleur;
+const p=tous()[i];
+document.getElementById('fphoto').style.background=fond(p);
 document.getElementById('fprix').textContent=p.prix;
 document.getElementById('fnom').textContent=p.nom;
 document.getElementById('fdesc').textContent=p.desc;
-document.getElementById('accueil').style.display='none';
-document.getElementById('fiche').style.display='block';
+montrer('fiche');
+}
+function montrer(vue){
+['accueil','fiche','ajout'].forEach(v=>document.getElementById(v).style.display=v===vue?'block':'none');
 window.scrollTo(0,0);
 }
-function retour(){
-document.getElementById('fiche').style.display='none';
-document.getElementById('accueil').style.display='block';
+function voirAccueil(){montrer('accueil');}
+function voirAjout(){
+photoChoisie="";
+['nom','prix','desc'].forEach(id=>document.getElementById(id).value="");
+const ap=document.getElementById('apercu');
+ap.style.background="#fff";
+ap.textContent="+ Choisir une photo";
+montrer('ajout');
 }
+function choisirPhoto(e){
+const f=e.target.files[0];
+if(!f)return;
+const lecteur=new FileReader();
+lecteur.onload=()=>{
+const img=new Image();
+img.onload=()=>{
+const echelle=Math.min(1,600/img.width);
+const c=document.createElement('canvas');
+c.width=img.width*echelle;
+c.height=img.height*echelle;
+c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+photoChoisie=c.toDataURL('image/jpeg',0.7);
+const ap=document.getElementById('apercu');
+ap.textContent="";
+ap.style.background=`url(${photoChoisie}) center/cover no-repeat`;
+};
+img.src=lecteur.result;
+};
+lecteur.readAsDataURL(f);
+}
+function publier(){
+const nom=document.getElementById('nom').value.trim();
+const prix=document.getElementById('prix').value.trim();
+const desc=document.getElementById('desc').value.trim();
+if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
+const liste=sauvegarde();
+liste.push({nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',couleur:'#D9B26F',desc:desc||'Pas de description.',photo:photoChoisie});
+localStorage.setItem('niohub_produits',JSON.stringify(liste));
+afficherGrille();
+voirAccueil();
+}
+
+afficherGrille();
 </script>
 </body>
 </html>
