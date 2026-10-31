@@ -4,47 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NioHub</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0 auto;max-width:430px;min-height:100vh;font-family:sans-serif;background:#FBF7EE;color:#1E1A14}
-header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
-h1{margin:0;color:#0E6B47;font-size:26px}
-.plus{width:44px;height:44px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:24px}
-.search{margin:0 20px;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;color:#6B6254}
-.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 20px}
-.cat{height:64px;border-radius:14px;display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:bold}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 20px 90px}
-.card{background:#fff;border:1px solid #EDE5D3;border-radius:14px;overflow:hidden;cursor:pointer}
-.img{height:120px}
-.info{padding:10px}
-.name{font-size:14px;font-weight:bold}
-.price{color:#0E6B47;font-weight:bold;margin-top:4px}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:#fff;border-top:1px solid #E6DECB}
-nav button{flex:1;height:60px;border:0;background:none;color:#6B6254;font-size:12px}
-nav button.on{color:#0E6B47;font-weight:bold}
-.fiche{display:none;padding:0 0 100px}
-.fiche .photo{height:280px}
-.fiche .corps{padding:18px 20px}
-.fiche .prix{color:#0E6B47;font-size:22px;font-weight:bold}
-.fiche .titre{font-size:18px;font-weight:bold;margin-top:4px}
-.fiche .desc{font-size:14px;color:#6B6254;line-height:1.5;margin-top:10px}
-.boutique{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:12px;margin-top:16px}
-.bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 20px;background:#fff;border-top:1px solid #E6DECB}
-.btn{width:100%;height:52px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold}
-.retour{border:0;background:none;font-size:24px;padding:0 4px}
-.page{display:none;padding:0 20px 110px}
-.page header{padding:16px 0}
-.page label{display:block;font-size:13px;font-weight:bold;margin:14px 0 6px}
-.page input,.page textarea{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
-.page textarea{height:90px}
-.apercu{width:100%;height:200px;border-radius:14px;border:2px dashed #0E6B47;background:#fff;display:flex;align-items:center;justify-content:center;color:#0E6B47;font-weight:bold;margin-top:6px}
-.nomboutique{font-size:20px;font-weight:bold;color:#0E6B47}
-.liste{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:6px 14px;font-size:14px;color:#6B6254;margin-bottom:12px}
-.ligne{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EDE5D3;color:#1E1A14;font-size:14px;cursor:pointer}
-.ligne:last-child{border-bottom:0}
-.vignette{width:56px;height:56px;border-radius:12px;flex-shrink:0;background:#D9B26F}
-.avatar{width:64px;height:64px;border-radius:32px;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;flex-shrink:0}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -54,7 +14,7 @@ nav button.on{color:#0E6B47;font-weight:bold}
 <div class="cats" id="cats"></div>
 <div class="grid" id="grid"></div>
 <nav>
-<button class="on">Accueil</button>
+<button class="on" onclick="voirAccueil()">Accueil</button>
 <button onclick="voirBoutique()">Boutique</button>
 <button onclick="voirProfil()">Profil</button>
 </nav>
@@ -98,7 +58,7 @@ nav button.on{color:#0E6B47;font-weight:bold}
 <div class="liste">Aucune commande pour l'instant.</div>
 <nav>
 <button onclick="voirAccueil()">Accueil</button>
-<button class="on">Boutique</button>
+<button class="on" onclick="voirBoutique()">Boutique</button>
 <button onclick="voirProfil()">Profil</button>
 </nav>
 </div>
@@ -120,120 +80,10 @@ nav button.on{color:#0E6B47;font-weight:bold}
 <nav>
 <button onclick="voirAccueil()">Accueil</button>
 <button onclick="voirBoutique()">Boutique</button>
-<button class="on">Profil</button>
+<button class="on" onclick="voirProfil()">Profil</button>
 </nav>
 </div>
 
-<script>
-const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
-const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
-
-const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
-document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
-
-const defauts=[
-{nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
-{nom:"Sac en cuir",prix:"18 000 FCFA",couleur:"#C98B6B",desc:"Sac en cuir véritable, fait à la main."},
-{nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
-{nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
-];
-let distants=[];
-let photoChoisie="";
-
-function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function tous(){return defauts.concat(distants);}
-function fond(p){return p.photo?`url(${p.photo}) center/cover no-repeat`:p.couleur;}
-
-async function chargerProduits(){
-try{
-const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
-distants=lignes.map(l=>({nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
-}catch(e){
-console.log(e);
-}
-afficherGrille();
-}
-
-function afficherGrille(){
-document.getElementById('grid').innerHTML=tous().map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${fond(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div></div></div>`).join('');
-}
-function ouvrir(i){
-const p=tous()[i];
-document.getElementById('fphoto').style.background=fond(p);
-document.getElementById('fprix').textContent=p.prix;
-document.getElementById('fnom').textContent=p.nom;
-document.getElementById('fdesc').textContent=p.desc;
-montrer('fiche');
-}
-function montrer(vue){
-['accueil','fiche','ajout','boutique','profil'].forEach(v=>document.getElementById(v).style.display=v===vue?'block':'none');
-window.scrollTo(0,0);
-}
-function voirAccueil(){montrer('accueil');}
-function voirProfil(){montrer('profil');}
-
-function voirBoutique(){
-montrer('boutique');
-document.getElementById('bmes').textContent='Chargement…';
-chargerProduits().then(()=>{
-const zone=document.getElementById('bmes');
-zone.innerHTML=distants.length
-?distants.map(l=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div></div>`).join('')
-:"Aucun produit publié pour l'instant.";
-});
-}
-
-function voirAjout(){
-photoChoisie="";
-['nom','prix','desc'].forEach(id=>document.getElementById(id).value="");
-const ap=document.getElementById('apercu');
-ap.style.background="#fff";
-ap.textContent="+ Choisir une photo";
-montrer('ajout');
-}
-
-function choisirPhoto(e){
-const f=e.target.files[0];
-if(!f)return;
-const lecteur=new FileReader();
-lecteur.onload=()=>{
-const img=new Image();
-img.onload=()=>{
-const echelle=Math.min(1,600/img.width);
-const c=document.createElement('canvas');
-c.width=img.width*echelle;
-c.height=img.height*echelle;
-c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-photoChoisie=c.toDataURL('image/jpeg',0.7);
-const ap=document.getElementById('apercu');
-ap.textContent="";
-ap.style.background=`url(${photoChoisie}) center/cover no-repeat`;
-};
-img.src=lecteur.result;
-};
-lecteur.readAsDataURL(f);
-}
-
-async function publier(){
-const nom=document.getElementById('nom').value.trim();
-const prix=document.getElementById('prix').value.trim();
-const desc=document.getElementById('desc').value.trim();
-if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
-const corps={nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',description:desc||null,photo:photoChoisie||null};
-try{
-const r=await fetch(SUPABASE_URL+"/rest/v1/produits",{method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
-if(!r.ok) throw new Error(r.status);
-}catch(e){
-alert('Erreur, produit non enregistré. Réessayez.');
-return;
-}
-await chargerProduits();
-voirAccueil();
-}
-
-chargerProduits();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
