@@ -13,7 +13,7 @@ h1{margin:0;color:#0E6B47;font-size:26px}
 .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 20px}
 .cat{height:64px;border-radius:14px;display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:bold}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 20px 90px}
-.card{background:#fff;border:1px solid #EDE5D3;border-radius:14px;overflow:hidden}
+.card{background:#fff;border:1px solid #EDE5D3;border-radius:14px;overflow:hidden;cursor:pointer}
 .img{height:120px}
 .info{padding:10px}
 .name{font-size:14px;font-weight:bold}
@@ -21,9 +21,21 @@ h1{margin:0;color:#0E6B47;font-size:26px}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:#fff;border-top:1px solid #E6DECB}
 nav button{flex:1;height:60px;border:0;background:none;color:#6B6254;font-size:12px}
 nav button.on{color:#0E6B47;font-weight:bold}
+.fiche{display:none;padding:0 0 100px}
+.fiche .photo{height:280px}
+.fiche .corps{padding:18px 20px}
+.fiche .prix{color:#0E6B47;font-size:22px;font-weight:bold}
+.fiche .titre{font-size:18px;font-weight:bold;margin-top:4px}
+.fiche .desc{font-size:14px;color:#6B6254;line-height:1.5;margin-top:10px}
+.boutique{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:12px;margin-top:16px}
+.bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 20px;background:#fff;border-top:1px solid #E6DECB}
+.btn{width:100%;height:52px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold}
+.retour{border:0;background:none;font-size:24px;padding:0 4px;cursor:pointer}
 </style>
 </head>
 <body>
+
+<div id="accueil">
 <header><h1>NioHub</h1><span>🔔</span></header>
 <div class="search">Rechercher un produit</div>
 <div class="cats" id="cats"></div>
@@ -33,11 +45,44 @@ nav button.on{color:#0E6B47;font-weight:bold}
 <button onclick="alert('Bientôt disponible')">Boutique</button>
 <button onclick="alert('Bientôt disponible')">Profil</button>
 </nav>
+</div>
+
+<div id="fiche" class="fiche">
+<header><button class="retour" onclick="retour()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
+<div class="photo" id="fphoto"></div>
+<div class="corps">
+<div class="prix" id="fprix"></div>
+<div class="titre" id="fnom"></div>
+<div class="desc" id="fdesc"></div>
+<div class="boutique"><b>Boutique Aminata</b><br><span style="font-size:12px;color:#6B6254">Dakar, Médina · Vérifiée</span></div>
+</div>
+<div class="bar"><button class="btn" onclick="alert('Bientôt disponible')">Commander</button></div>
+</div>
+
 <script>
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
-const produits=[["Boubou brodé","25 000 FCFA","#D9B26F"],["Sac en cuir","18 000 FCFA","#C98B6B"],["Écouteurs","12 500 FCFA","#8FB7C9"],["Huile de baobab","4 500 FCFA","#A8C59A"]];
-document.getElementById('grid').innerHTML=produits.map(([n,p,c])=>`<div class="card"><div class="img" style="background:${c}"></div><div class="info"><div class="name">${n}</div><div class="price">${p}</div></div></div>`).join('');
+const produits=[
+{nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
+{nom:"Sac en cuir",prix:"18 000 FCFA",couleur:"#C98B6B",desc:"Sac en cuir véritable, fait à la main."},
+{nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
+{nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
+];
+document.getElementById('grid').innerHTML=produits.map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${p.couleur}"></div><div class="info"><div class="name">${p.nom}</div><div class="price">${p.prix}</div></div></div>`).join('');
+function ouvrir(i){
+const p=produits[i];
+document.getElementById('fphoto').style.background=p.couleur;
+document.getElementById('fprix').textContent=p.prix;
+document.getElementById('fnom').textContent=p.nom;
+document.getElementById('fdesc').textContent=p.desc;
+document.getElementById('accueil').style.display='none';
+document.getElementById('fiche').style.display='block';
+window.scrollTo(0,0);
+}
+function retour(){
+document.getElementById('fiche').style.display='none';
+document.getElementById('accueil').style.display='block';
+}
 </script>
 </body>
 </html>
