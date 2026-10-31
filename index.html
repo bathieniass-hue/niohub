@@ -80,6 +80,9 @@ nav button.on{color:#0E6B47;font-weight:bold}
 </div>
 
 <script>
+const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
+const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
+
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
 
@@ -89,10 +92,23 @@ const defauts=[
 {nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
 {nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
 ];
+let distants=[];
 let photoChoisie="";
-function sauvegarde(){return JSON.parse(localStorage.getItem('niohub_produits')||'[]');}
-function tous(){return defauts.concat(sauvegarde());}
+
+function tous(){return defauts.concat(distants);}
 function fond(p){return p.photo?`url(${p.photo}) center/cover no-repeat`:p.couleur;}
+
+async function chargerProduits(){
+try{
+const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok) throw new Error(r.status);
+const lignes=await r.json();
+distants=lignes.map(l=>({nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
+}catch(e){
+console.log(e);
+}
+afficherGrille();
+}
 
 function afficherGrille(){
 document.getElementById('grid').innerHTML=tous().map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${fond(p)}"></div><div class="info"><div class="name">${p.nom}</div><div class="price">${p.prix}</div></div></div>`).join('');
@@ -139,19 +155,25 @@ img.src=lecteur.result;
 };
 lecteur.readAsDataURL(f);
 }
-function publier(){
+
+async function publier(){
 const nom=document.getElementById('nom').value.trim();
 const prix=document.getElementById('prix').value.trim();
 const desc=document.getElementById('desc').value.trim();
 if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
-const liste=sauvegarde();
-liste.push({nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',couleur:'#D9B26F',desc:desc||'Pas de description.',photo:photoChoisie});
-localStorage.setItem('niohub_produits',JSON.stringify(liste));
-afficherGrille();
+const corps={nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',description:desc||null,photo:photoChoisie||null};
+try{
+const r=await fetch(SUPABASE_URL+"/rest/v1/produits",{method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+alert('Erreur, produit non enregistré. Réessayez.');
+return;
+}
+await chargerProduits();
 voirAccueil();
 }
 
-afficherGrille();
+chargerProduits();
 </script>
 </body>
 </html>
