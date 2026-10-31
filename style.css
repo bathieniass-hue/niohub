@@ -1,0 +1,39 @@
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:430px;min-height:100vh;font-family:sans-serif;background:#FBF7EE;color:#1E1A14}
+header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;color:#0E6B47;font-size:26px}
+.plus{width:44px;height:44px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:24px}
+.search{margin:0 20px;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;color:#6B6254}
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 20px}
+.cat{height:64px;border-radius:14px;display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 20px 90px}
+.card{background:#fff;border:1px solid #EDE5D3;border-radius:14px;overflow:hidden;cursor:pointer}
+.img{height:120px}
+.info{padding:10px}
+.name{font-size:14px;font-weight:bold}
+.price{color:#0E6B47;font-weight:bold;margin-top:4px}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:#fff;border-top:1px solid #E6DECB}
+nav button{flex:1;height:60px;border:0;background:none;color:#6B6254;font-size:12px}
+nav button.on{color:#0E6B47;font-weight:bold}
+.fiche{display:none;padding:0 0 100px}
+.fiche .photo{height:280px}
+.fiche .corps{padding:18px 20px}
+.fiche .prix{color:#0E6B47;font-size:22px;font-weight:bold}
+.fiche .titre{font-size:18px;font-weight:bold;margin-top:4px}
+.fiche .desc{font-size:14px;color:#6B6254;line-height:1.5;margin-top:10px}
+.boutique{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:12px;margin-top:16px}
+.bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 20px;background:#fff;border-top:1px solid #E6DECB}
+.btn{width:100%;height:52px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold}
+.retour{border:0;background:none;font-size:24px;padding:0 4px}
+.page{display:none;padding:0 20px 110px}
+.page header{padding:16px 0}
+.page label{display:block;font-size:13px;font-weight:bold;margin:14px 0 6px}
+.page input,.page textarea{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
+.page textarea{height:90px}
+.apercu{width:100%;height:200px;border-radius:14px;border:2px dashed #0E6B47;background:#fff;display:flex;align-items:center;justify-content:center;color:#0E6B47;font-weight:bold;margin-top:6px}
+.nomboutique{font-size:20px;font-weight:bold;color:#0E6B47}
+.liste{background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:6px 14px;font-size:14px;color:#6B6254;margin-bottom:12px}
+.ligne{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EDE5D3;color:#1E1A14;font-size:14px;cursor:pointer}
+.ligne:last-child{border-bottom:0}
+.vignette{width:56px;height:56px;border-radius:12px;flex-shrink:0;background:#D9B26F}
+.avatar{width:64px;height:64px;border-radius:32px;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;flex-shrink:0}
