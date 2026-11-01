@@ -1,6 +1,19 @@
 let boutiqueActuelle=null;
 let logoBoutique="";
 
+function telephonesBoutique(b){
+return [b.telephone,b.telephone2].filter(Boolean).map(esc).join(' · ');
+}
+
+function ajouterChampTel2(){
+const tel=document.getElementById('bt-tel');
+if(!tel||document.getElementById('bt-tel2')) return;
+const bloc=document.createElement('div');
+bloc.innerHTML='<label>Autre numéro (facultatif)</label><input id="bt-tel2" type="tel" inputmode="tel">';
+tel.insertAdjacentElement('afterend',bloc);
+}
+ajouterChampTel2();
+
 async function chargerBoutique(){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc&limit=1',{headers:{apikey:SUPABASE_KEY}});
@@ -20,7 +33,7 @@ zone.innerHTML='<div class="liste" style="margin-top:0">Votre boutique n\'est pa
 return;
 }
 bouton.textContent='Modifier';
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(b.telephone)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
 }
 
 async function voirBoutique(){
@@ -34,8 +47,12 @@ chargerCommandes();
 function ouvrirFormBoutique(){
 const b=boutiqueActuelle||{};
 logoBoutique=b.logo||"";
-document.getElementById('bt-nom').value=b.nom||"";
+const champNom=document.getElementById('bt-nom');
+const suggestion=nomComplet();
+champNom.placeholder=suggestion?'Chez '+suggestion:'Nom de la boutique';
+champNom.value=b.nom||"";
 document.getElementById('bt-tel').value=b.telephone||"";
+document.getElementById('bt-tel2').value=b.telephone2||"";
 document.getElementById('bt-adresse').value=b.adresse||"";
 document.getElementById('bt-desc').value=b.description||"";
 document.getElementById('bt-msg').textContent="";
@@ -70,13 +87,16 @@ lecteur.readAsDataURL(f);
 }
 
 async function enregistrerBoutique(){
-const nom=document.getElementById('bt-nom').value.trim();
+const saisi=document.getElementById('bt-nom').value.trim();
+const suggestion=nomComplet();
+const nom=saisi||(!boutiqueActuelle&&suggestion?'Chez '+suggestion:'');
 const tel=document.getElementById('bt-tel').value.trim();
 const msg=document.getElementById('bt-msg');
 if(!nom||!tel){msg.textContent='Indiquez le nom et le téléphone.';return;}
 const corps={
 nom:nom,
 telephone:tel,
+telephone2:document.getElementById('bt-tel2').value.trim()||null,
 adresse:document.getElementById('bt-adresse').value.trim()||null,
 description:document.getElementById('bt-desc').value.trim()||null,
 logo:logoBoutique||null
@@ -117,7 +137,7 @@ const b=await chargerBoutique();
 const zone=document.querySelector('#fiche .boutique');
 if(!zone) return;
 zone.innerHTML=b
-?`<b>${esc(b.nom)}</b><br><span style="font-size:12px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')} · Tél : ${esc(b.telephone)}</span>`
+?`<b>${esc(b.nom)}</b><br><span style="font-size:12px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')} · Tél : ${telephonesBoutique(b)}</span>`
 :`<b>Boutique non ouverte</b>`;
 }
 afficherBoutiqueFiche();
