@@ -140,3 +140,12 @@ voirBoutiqueAvantBoutique();
 fermerFormBoutique();
 rafraichirBoutique();
 };
+async function afficherBoutiqueFiche(){
+const b=await chargerBoutique();
+const zone=document.querySelector('#fiche .boutique');
+if(!zone) return;
+zone.innerHTML=b
+?`<b>${esc(b.nom)}</b><br><span style="font-size:12px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')} · Tél : ${esc(b.telephone)}</span>`
+:`<b>Boutique non ouverte</b>`;
+}
+afficherBoutiqueFiche();
