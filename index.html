@@ -24,7 +24,21 @@
 <div class="desc" id="fdesc"></div>
 <div class="boutique"><b>Boutique</b></div>
 </div>
-<div class="bar"><button class="btn" onclick="voirCommande()">Commander</button></div>
+<div class="bar" style="display:flex;gap:10px">
+<button class="btn2" style="margin-top:0;flex:1" onclick="voirMessage()">Message</button>
+<button class="btn" style="flex:1.4" onclick="voirCommande()">Commander</button>
+</div>
+</div>
+
+<div id="message" class="page">
+<header><button class="retour" onclick="retourFicheMessage()">←</button><span style="font-weight:bold">Message au vendeur</span><span></span></header>
+<div class="liste" style="margin-top:0"><b id="msg-produit"></b></div>
+<label>Votre nom</label>
+<input id="msg-nom" placeholder="Ex. Fatou Diop">
+<label>Votre message</label>
+<textarea id="msg-texte" placeholder="Ex. Est-il disponible en taille L ?"></textarea>
+<div id="msg-msg" class="msg"></div>
+<button class="btn" style="margin-top:14px" onclick="envoyerMessage()">Envoyer</button>
 </div>
 
 <div id="commande" class="page">
@@ -68,6 +82,8 @@
 <button class="btn2" onclick="voirAjout('boutique')">Ajouter un produit</button>
 <label>Commandes</label>
 <div id="commandes-liste" class="liste">Chargement…</div>
+<label>Messages des clients</label>
+<div id="messages-liste" class="liste">Chargement…</div>
 </div>
 
 <div id="boutique-form" class="page">
@@ -120,5 +136,6 @@
 <script src="commande.js"></script>
 <script src="boutique.js"></script>
 <script src="compte.js"></script>
+<script src="messages.js"></script>
 </body>
 </html>
