@@ -12,6 +12,8 @@ const defauts=[
 ];
 let distants=[];
 let photoChoisie="";
+let editId=null;
+let photoExistante="";
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return defauts.concat(distants);}
@@ -22,7 +24,7 @@ try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
-distants=lignes.map(l=>({nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
+distants=lignes.map(l=>({id:l.id,nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
 }catch(e){
 console.log(e);
 }
@@ -53,18 +55,53 @@ document.getElementById('bmes').textContent='Chargement…';
 chargerProduits().then(()=>{
 const zone=document.getElementById('bmes');
 zone.innerHTML=distants.length
-?distants.map(l=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div></div>`).join('')
+?distants.map((l,i)=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${i})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${i})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
 :"Aucun produit publié pour l'instant.";
 });
 }
 
-function voirAjout(){
-photoChoisie="";
-['nom','prix','desc'].forEach(id=>document.getElementById(id).value="");
+function remettreApercu(photo){
 const ap=document.getElementById('apercu');
-ap.style.background="#fff";
-ap.textContent="+ Choisir une photo";
+if(photo){ap.textContent="";ap.style.background=`url(${photo}) center/cover no-repeat`;}
+else{ap.textContent="+ Choisir une photo";ap.style.background="#fff";}
+}
+
+function voirAjout(){
+editId=null;
+photoChoisie="";
+photoExistante="";
+document.querySelector('#ajout header span').textContent='Ajouter un produit';
+document.querySelector('#ajout .btn').textContent='Publier';
+['nom','prix','desc'].forEach(id=>document.getElementById(id).value="");
+remettreApercu("");
 montrer('ajout');
+}
+
+function modifierProduit(i){
+const p=distants[i];
+editId=p.id;
+photoChoisie="";
+photoExistante=p.photo||"";
+document.querySelector('#ajout header span').textContent='Modifier le produit';
+document.querySelector('#ajout .btn').textContent='Enregistrer les modifications';
+document.getElementById('nom').value=p.nom;
+document.getElementById('prix').value=p.prix.replace(/\D/g,'');
+document.getElementById('desc').value=p.desc==='Pas de description.'?'':p.desc;
+remettreApercu(photoExistante);
+montrer('ajout');
+}
+
+async function supprimerProduit(i){
+const p=distants[i];
+if(!confirm('Supprimer « '+p.nom+' » ?')) return;
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+p.id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Prefer:'return=minimal'}});
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+alert('Suppression impossible. Réessayez.');
+return;
+}
+voirBoutique();
 }
 
 function choisirPhoto(e){
@@ -80,9 +117,7 @@ c.width=img.width*echelle;
 c.height=img.height*echelle;
 c.getContext('2d').drawImage(img,0,0,c.width,c.height);
 photoChoisie=c.toDataURL('image/jpeg',0.7);
-const ap=document.getElementById('apercu');
-ap.textContent="";
-ap.style.background=`url(${photoChoisie}) center/cover no-repeat`;
+remettreApercu(photoChoisie);
 };
 img.src=lecteur.result;
 };
@@ -94,16 +129,27 @@ const nom=document.getElementById('nom').value.trim();
 const prix=document.getElementById('prix').value.trim();
 const desc=document.getElementById('desc').value.trim();
 if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
-const corps={nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',description:desc||null,photo:photoChoisie||null};
+const corps={nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',description:desc||null};
+const etaitModification=editId!==null;
+let url=SUPABASE_URL+"/rest/v1/produits";
+let methode="POST";
+if(etaitModification){
+url+='?id=eq.'+editId;
+methode="PATCH";
+if(photoChoisie) corps.photo=photoChoisie;
+}else{
+corps.photo=photoChoisie||null;
+}
 try{
-const r=await fetch(SUPABASE_URL+"/rest/v1/produits",{method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
+const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
 if(!r.ok) throw new Error(r.status);
 }catch(e){
-alert('Erreur, produit non enregistré. Réessayez.');
+alert('Erreur, enregistrement impossible. Réessayez.');
 return;
 }
+editId=null;
 await chargerProduits();
-voirAccueil();
+if(etaitModification){voirBoutique();}else{voirAccueil();}
 }
 
 chargerProduits();
