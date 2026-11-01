@@ -9,15 +9,10 @@
 <body>
 
 <div id="accueil">
-<header><h1>NioHub</h1><button class="plus" onclick="voirAjout()">+</button></header>
+<header><h1>NioHub</h1><button class="plus" onclick="voirAjout('accueil')">+</button></header>
 <div class="search">Rechercher un produit</div>
 <div class="cats" id="cats"></div>
 <div class="grid" id="grid"></div>
-<nav>
-<button class="on" onclick="voirAccueil()">Accueil</button>
-<button onclick="voirBoutique()">Boutique</button>
-<button onclick="voirProfil()">Profil</button>
-</nav>
 </div>
 
 <div id="fiche" class="fiche">
@@ -27,7 +22,7 @@
 <div class="prix" id="fprix"></div>
 <div class="titre" id="fnom"></div>
 <div class="desc" id="fdesc"></div>
-<div class="boutique"><b>Boutique Aminata</b><br><span style="font-size:12px;color:#6B6254">Dakar, Médina · Vérifiée</span></div>
+<div class="boutique"><b>Boutique</b></div>
 </div>
 <div class="bar"><button class="btn" onclick="voirCommande()">Commander</button></div>
 </div>
@@ -49,12 +44,12 @@
 <option>Wave</option>
 <option>Orange Money</option>
 </select>
-<div id="cmd-msg" style="color:#B4291A;font-size:14px;margin-top:10px;min-height:20px"></div>
+<div id="cmd-msg" class="msg"></div>
 <button class="btn" style="margin-top:14px" onclick="envoyerCommande()">Confirmer la commande</button>
 </div>
 
 <div id="ajout" class="page">
-<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold">Ajouter un produit</span><span></span></header>
+<header><button class="retour" onclick="retourAjout()">←</button><span id="ajout-titre" style="font-weight:bold">Ajouter un produit</span><span></span></header>
 <div class="apercu" id="apercu" onclick="document.getElementById('photo').click()">+ Choisir une photo</div>
 <input type="file" id="photo" accept="image/*" style="display:none" onchange="choisirPhoto(event)">
 <label>Nom du produit</label>
@@ -63,25 +58,40 @@
 <input id="prix" type="number" inputmode="numeric" placeholder="Ex. 25000">
 <label>Description</label>
 <textarea id="desc" placeholder="Décrivez le produit"></textarea>
-<button class="btn" style="margin-top:20px" onclick="publier()">Publier</button>
+<button id="ajout-publier" class="btn" style="margin-top:20px" onclick="publier()">Publier</button>
 </div>
 
 <div id="boutique" class="page">
-<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><span></span></header>
-<div class="boutique" style="margin-top:0">
-<div class="nomboutique">Boutique de test</div>
-<div style="font-size:13px;color:#6B6254;margin-top:4px">Dakar, Médina</div>
+<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="petit" onclick="ouvrirFormBoutique()">Modifier</button></header>
+<div id="infos-boutique"></div>
+<button class="btn" style="margin-top:14px" onclick="montrer('mesproduits');voirMesProduits()">Mes produits</button>
+<button class="btn2" onclick="voirAjout('boutique')">Ajouter un produit</button>
+<label>Commandes</label>
+<div id="commandes-liste" class="liste">Chargement…</div>
 </div>
-<button class="btn" style="margin-top:14px" onclick="voirAjout()">+ Ajouter un produit</button>
+
+<div id="boutique-form" class="page">
+<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Ma boutique</span><span></span></header>
+<label>Logo (photo)</label>
+<div class="apercu" id="bt-logo" style="width:120px;height:120px;border-radius:60px;margin:0 auto" onclick="document.getElementById('bt-photo').click()">+ Logo</div>
+<input type="file" id="bt-photo" accept="image/*" style="display:none" onchange="choisirLogo(event)">
+<label>Nom de la boutique</label>
+<input id="bt-nom">
+<label>Téléphone</label>
+<input id="bt-tel" type="tel" inputmode="tel">
+<label>Adresse</label>
+<input id="bt-adresse" placeholder="Quartier, repère">
+<label>Description</label>
+<textarea id="bt-desc"></textarea>
+<div id="bt-msg" class="msg"></div>
+<button class="btn" style="margin-top:14px" onclick="enregistrerBoutique()">Enregistrer ma boutique</button>
+</div>
+
+<div id="mesproduits" class="page">
+<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Mes produits</span><span></span></header>
+<button class="btn" onclick="voirAjout('mesproduits')">+ Ajouter un produit</button>
 <label>Produits publiés</label>
 <div id="bmes" class="liste">Chargement…</div>
-<label>Commandes</label>
-<div class="liste">Aucune commande pour l'instant.</div>
-<nav>
-<button onclick="voirAccueil()">Accueil</button>
-<button class="on" onclick="voirBoutique()">Boutique</button>
-<button onclick="voirProfil()">Profil</button>
-</nav>
 </div>
 
 <div id="profil" class="page">
@@ -98,15 +108,16 @@
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Paiements</b><span>›</span></div>
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Aide</b><span>›</span></div>
 </div>
-<nav>
-<button onclick="voirAccueil()">Accueil</button>
-<button onclick="voirBoutique()">Boutique</button>
-<button class="on" onclick="voirProfil()">Profil</button>
-</nav>
 </div>
 
+<nav id="menu">
+<button onclick="voirAccueil()">Accueil</button>
+<button onclick="voirBoutique()">Boutique</button>
+<button onclick="voirProfil()">Profil</button>
+</nav>
+
 <script src="app.js"></script>
-<script src="commande.js"></script> 
+<script src="commande.js"></script>
 <script src="boutique.js"></script>
 <script src="compte.js"></script>
 </body>
