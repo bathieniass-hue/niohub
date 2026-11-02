@@ -14,7 +14,18 @@ tel.insertAdjacentElement('afterend',bloc);
 }
 ajouterChampTel2();
 
-async function chargerBoutique(){
+async function chargerMaBoutique(){
+const s=await sessionValide();
+if(!s||!s.user_id) return null;
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+if(!r.ok) throw new Error(r.status);
+const lignes=await r.json();
+return lignes[0]||null;
+}catch(e){return null;}
+}
+
+async function chargerBoutiqueVitrine(){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc&limit=1',{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
@@ -23,10 +34,16 @@ return lignes[0]||null;
 }catch(e){return null;}
 }
 
-function afficherInfosBoutique(){
+function afficherInfosBoutique(connecte){
 const zone=document.getElementById('infos-boutique');
 const bouton=document.getElementById('bt-action');
 const b=boutiqueActuelle;
+if(!connecte){
+bouton.style.display='none';
+zone.innerHTML='<div class="liste" style="margin-top:0">Connectez-vous dans Profil pour gérer votre boutique.</div>';
+return;
+}
+bouton.style.display='';
 if(!b){
 bouton.textContent='Ouvrir';
 zone.innerHTML='<div class="liste" style="margin-top:0">Votre boutique n\'est pas encore ouverte.</div>';
@@ -39,12 +56,16 @@ zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;
 async function voirBoutique(){
 montrer('boutique');
 document.getElementById('infos-boutique').textContent='Chargement…';
-boutiqueActuelle=await chargerBoutique();
-afficherInfosBoutique();
+const s=await sessionValide();
+const connecte=!!(s&&s.user_id);
+boutiqueActuelle=connecte?await chargerMaBoutique():null;
+afficherInfosBoutique(connecte);
 chargerCommandes();
 }
 
-function ouvrirFormBoutique(){
+async function ouvrirFormBoutique(){
+const s=await sessionValide();
+if(!s||!s.user_id){alert('Connectez-vous d\'abord dans Profil.');montrer('profil');return;}
 const b=boutiqueActuelle||{};
 logoBoutique=b.logo||"";
 const champNom=document.getElementById('bt-nom');
@@ -87,13 +108,17 @@ lecteur.readAsDataURL(f);
 }
 
 async function enregistrerBoutique(){
+const msg=document.getElementById('bt-msg');
+msg.textContent='';
+const s=await sessionValide();
+if(!s||!s.user_id){msg.textContent='Connectez-vous dans Profil avant d\'enregistrer.';return;}
 const saisi=document.getElementById('bt-nom').value.trim();
 const suggestion=nomComplet();
 const nom=saisi||(!boutiqueActuelle&&suggestion?'Chez '+suggestion:'');
 const tel=document.getElementById('bt-tel').value.trim();
-const msg=document.getElementById('bt-msg');
 if(!nom||!tel){msg.textContent='Indiquez le nom et le téléphone.';return;}
 const corps={
+user_id:s.user_id,
 nom:nom,
 telephone:tel,
 telephone2:document.getElementById('bt-tel2').value.trim()||null,
@@ -101,7 +126,7 @@ adresse:document.getElementById('bt-adresse').value.trim()||null,
 description:document.getElementById('bt-desc').value.trim()||null,
 logo:logoBoutique||null
 };
-const entetes={apikey:SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'};
+const entetes={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'};
 try{
 let r;
 if(boutiqueActuelle){
@@ -133,7 +158,7 @@ zone.textContent='Erreur de chargement.';
 }
 
 async function afficherBoutiqueFiche(){
-const b=await chargerBoutique();
+const b=await chargerBoutiqueVitrine();
 const zone=document.querySelector('#fiche .boutique');
 if(!zone) return;
 zone.innerHTML=b
