@@ -1,4 +1,4 @@
-const CLE_SESSION='niohub_session';
+const CLE_SESSION='niohub_session_v2';
 const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.googleusercontent.com';
 
 function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
@@ -7,93 +7,68 @@ function oublierSession(){localStorage.removeItem(CLE_SESSION);}
 
 function nomComplet(){
 const s=lireSession();
-if(!s||!s.prenom) return '';
-return (s.prenom+' '+(s.nom||'')).trim();
+return (s&&s.nom)||'';
 }
 
-function appliquerUtilisateur(s,u){
-if(!u) return s;
-const m=u.user_metadata||{};
-const nomGoogle=(m.full_name||m.name||'').split(' ');
-if(u.email) s.email=u.email;
-s.prenom=m.prenom||m.given_name||nomGoogle[0]||s.prenom||'';
-s.nom=m.nom||m.family_name||nomGoogle.slice(1).join(' ')||s.nom||'';
-return s;
-}
-
-function sauverReponse(j,email){
+function sauverTokens(j){
+const anc=lireSession()||{};
+const meme=!j.user||anc.user_id===j.user.id;
 const s={
 access_token:j.access_token,
-refresh_token:j.refresh_token,
+refresh_token:j.refresh_token||anc.refresh_token,
 expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600),
-email:email||''
+user_id:(j.user&&j.user.id)||anc.user_id||null,
+email:(j.user&&j.user.email)||anc.email||'',
+nom:meme?(anc.nom||null):null,
+telephone:meme?(anc.telephone||null):null,
+quartier:meme?(anc.quartier||null):null
 };
-appliquerUtilisateur(s,j.user);
 enregistrerSession(s);
 return s;
 }
 
 function traduire(j){
-const t=String(j.msg||j.error_description||j.error||'');
-if(t.includes('Invalid login')) return 'E-mail ou mot de passe incorrect.';
-if(t.includes('already')) return 'Cet e-mail a déjà un compte. Connectez-vous.';
-return t||'Erreur, réessayez.';
+return String(j.msg||j.error_description||j.error||'Connexion impossible. Réessayez.');
+}
+
+async function chargerUtilisateur(token){
+try{
+const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+token}});
+if(!r.ok) return null;
+return await r.json();
+}catch(e){return null;}
 }
 
 async function sessionValide(){
 const s=lireSession();
-if(!s) return null;
+if(!s||!s.access_token) return null;
 if(s.expires_at-60>Date.now()/1000) return s;
 try{
 const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
 if(!r.ok){oublierSession();return null;}
-return sauverReponse(await r.json(),s.email);
+return sauverTokens(await r.json());
 }catch(e){return s;}
 }
 
-let modeInscription=false;
+async function chargerProfil(s){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+if(!r.ok) return null;
+const lignes=await r.json();
+return lignes[0]||null;
+}catch(e){return null;}
+}
+
 let googleInitialise=false;
 
 function construireCompte(){
 const profil=document.getElementById('profil');
 const avatar=profil.querySelector(':scope > .boutique');
 if(avatar) avatar.style.display='none';
-const bloc=document.createElement('div');
-bloc.innerHTML=`
-<div id="compte-infos" style="display:none"></div>
-<div id="compte-form" style="display:none">
-<div id="c-inscription" style="display:none">
-<label>Prénom</label>
-<input id="c-prenom" placeholder="Ex. Fatou">
-<label>Nom</label>
-<input id="c-nom" placeholder="Ex. Diop">
-<label>Téléphone (facultatif)</label>
-<input id="c-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
-<label>Adresse (facultatif)</label>
-<input id="c-adresse" placeholder="Quartier, repère">
-</div>
-<label>E-mail</label>
-<input id="c-email" type="email" inputmode="email" placeholder="vous@exemple.com">
-<label>Mot de passe (6 caractères minimum)</label>
-<input id="c-mdp" type="password">
-<div id="c-msg" class="msg"></div>
-<button id="c-action" class="btn" style="margin-top:14px" onclick="validerFormulaire()">Se connecter</button>
-<button id="c-bascule" class="btn2" onclick="basculerMode()">Pas encore de compte ? Créer un compte</button>
-<div style="text-align:center;color:#6B6254;font-size:13px;margin-top:14px">ou</div>
-<div id="g-bouton" style="display:flex;justify-content:center;margin-top:10px"></div>
-</div>`;
-profil.querySelector('header').insertAdjacentElement('afterend',bloc);
+const zone=document.createElement('div');
+zone.id='compte-zone';
+profil.querySelector('header').insertAdjacentElement('afterend',zone);
 }
-
-function basculerMode(){
-modeInscription=!modeInscription;
-document.getElementById('c-inscription').style.display=modeInscription?'block':'none';
-document.getElementById('c-action').textContent=modeInscription?'Créer mon compte':'Se connecter';
-document.getElementById('c-bascule').textContent=modeInscription?'Déjà un compte ? Se connecter':'Pas encore de compte ? Créer un compte';
-document.getElementById('c-msg').textContent='';
-}
-
-function validerFormulaire(){return modeInscription?creerCompte():seConnecter();}
 
 function chargerGoogle(){
 return new Promise((ok,ko)=>{
@@ -122,74 +97,90 @@ zone.textContent='Connexion Google indisponible pour le moment.';
 }
 }
 
-async function connexionGoogle(reponse){
-const msg=document.getElementById('c-msg');
-msg.textContent='';
-try{
-const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({provider:'google',id_token:reponse.credential})});
-const j=await r.json();
-if(!r.ok){msg.textContent=traduire(j);return;}
-sauverReponse(j,'');
-await afficherCompte();
-}catch(e){
-msg.textContent='Connexion Google impossible. Réessayez.';
+function afficherConnexion(){
+const zone=document.getElementById('compte-zone');
+zone.innerHTML=`<div class="liste" style="margin-top:0">Connectez-vous avec Google. Si vous avez déjà un profil NioHub, il s'affichera automatiquement.</div><div id="g-bouton" style="display:flex;justify-content:center;margin-top:10px"></div><div id="c-msg" class="msg"></div>`;
+rendrerBoutonGoogle();
 }
+
+function afficherInscription(){
+const zone=document.getElementById('compte-zone');
+zone.innerHTML=`<div class="liste" style="margin-top:0">Créez votre profil NioHub pour continuer.</div>
+<label>Nom</label>
+<input id="p-nom" placeholder="Ex. Fatou Diop">
+<label>Téléphone</label>
+<input id="p-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
+<label>Quartier</label>
+<input id="p-quartier" placeholder="Ex. Médina">
+<div id="c-msg" class="msg"></div>
+<button class="btn" style="margin-top:14px" onclick="creerProfil()">Créer mon profil</button>
+<button class="btn2" onclick="seDeconnecter()">Annuler</button>`;
+}
+
+function afficherProfil(s){
+const zone=document.getElementById('compte-zone');
+const initiale=(s.nom||'N').trim().charAt(0).toUpperCase();
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone||'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.quartier||'Quartier non indiqué')}</div></div></div><button class="btn" style="margin-top:12px" onclick="seDeconnecter()">Se déconnecter</button>`;
 }
 
 async function afficherCompte(){
 const s=await sessionValide();
-const infos=document.getElementById('compte-infos');
-const form=document.getElementById('compte-form');
-if(s){
-form.style.display='none';
-infos.style.display='block';
-infos.innerHTML=`<div class="liste" style="margin-top:0"><b>${esc(nomComplet()||'Compte connecté')}</b><br><span style="font-size:13px;color:#6B6254">${esc(s.email||'')}</span></div><button class="btn" onclick="seDeconnecter()">Se déconnecter</button>`;
-}else{
-infos.style.display='none';
-form.style.display='block';
-document.getElementById('c-msg').textContent='';
-rendrerBoutonGoogle();
+if(!s||!s.user_id){afficherConnexion();return;}
+if(!s.nom){
+const p=await chargerProfil(s);
+if(!p){afficherInscription();return;}
+s.nom=p.nom;
+s.telephone=p.telephone;
+s.quartier=p.quartier||null;
+enregistrerSession(s);
 }
+afficherProfil(s);
 }
 
-async function seConnecter(){
-const email=document.getElementById('c-email').value.trim();
-const mdp=document.getElementById('c-mdp').value;
+async function connexionGoogle(reponse){
 const msg=document.getElementById('c-msg');
-msg.textContent='';
-if(!email||mdp.length<6){msg.textContent='Entrez un e-mail et un mot de passe de 6 caractères minimum.';return;}
+if(msg) msg.textContent='';
 try{
-const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email,password:mdp})});
+const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({provider:'google',id_token:reponse.credential})});
 const j=await r.json();
-if(!r.ok){msg.textContent=traduire(j);return;}
-sauverReponse(j,email);
+if(!r.ok){if(msg) msg.textContent=traduire(j);return;}
+const s=sauverTokens(j);
+if(!s.user_id){
+const u=await chargerUtilisateur(s.access_token);
+if(u){s.user_id=u.id;s.email=u.email||'';enregistrerSession(s);}
+}
 await afficherCompte();
-}catch(e){msg.textContent='Erreur réseau, réessayez.';}
+}catch(e){
+if(msg) msg.textContent='Connexion Google impossible. Réessayez.';
+}
 }
 
-async function creerCompte(){
-const prenom=document.getElementById('c-prenom').value.trim();
-const nom=document.getElementById('c-nom').value.trim();
-const tel=document.getElementById('c-tel').value.trim();
-const adresse=document.getElementById('c-adresse').value.trim();
-const email=document.getElementById('c-email').value.trim();
-const mdp=document.getElementById('c-mdp').value;
+async function creerProfil(){
 const msg=document.getElementById('c-msg');
 msg.textContent='';
-if(!prenom||!nom){msg.textContent='Indiquez votre prénom et votre nom.';return;}
-if(!email||mdp.length<6){msg.textContent='Entrez un e-mail et un mot de passe de 6 caractères minimum.';return;}
-const corps={email:email,password:mdp,data:{prenom:prenom,nom:nom,telephone:tel||null,adresse:adresse||null}};
+const nom=document.getElementById('p-nom').value.trim();
+const tel=document.getElementById('p-tel').value.trim();
+const quartier=document.getElementById('p-quartier').value.trim();
+if(!nom||!tel){msg.textContent='Indiquez votre nom et votre téléphone.';return;}
+const s=await sessionValide();
+if(!s||!s.user_id){afficherConnexion();return;}
 try{
-const r=await fetch(SUPABASE_URL+'/auth/v1/signup',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(corps)});
-const j=await r.json();
-if(!r.ok){msg.textContent=traduire(j);return;}
-if(j.access_token){sauverReponse(j,email);await afficherCompte();return;}
-msg.textContent="Compte créé, mais la confirmation par e-mail est encore active. Vérifiez l'étape 1 de l'ancienne consigne.";
-}catch(e){msg.textContent='Erreur réseau, réessayez.';}
+const r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:s.user_id,nom:nom,telephone:tel,quartier:quartier||null})});
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+msg.textContent='Profil non enregistré. Réessayez.';
+return;
+}
+s.nom=nom;
+s.telephone=tel;
+s.quartier=quartier||null;
+enregistrerSession(s);
+afficherProfil(s);
 }
 
 function seDeconnecter(){
 oublierSession();
+if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect();
 afficherCompte();
 }
 
