@@ -1,186 +1,244 @@
-let boutiqueActuelle=null;
-let logoBoutique="";
+const CLE_SESSION='niohub_session_v2';
+const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.googleusercontent.com';
 
-function telephonesBoutique(b){
-return [b.telephone,b.telephone2].filter(Boolean).map(esc).join(' · ');
+function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
+function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
+function oublierSession(){localStorage.removeItem(CLE_SESSION);}
+function nomComplet(){const s=lireSession();return (s&&s.nom)||'';}
+
+function sauverTokens(j){
+const anc=lireSession()||{};
+const meme=!j.user||anc.user_id===j.user.id;
+const s={
+access_token:j.access_token,
+refresh_token:j.refresh_token||anc.refresh_token,
+expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600),
+user_id:(j.user&&j.user.id)||anc.user_id||null,
+email:(j.user&&j.user.email)||anc.email||'',
+nom:meme?(anc.nom||null):null,
+telephone:meme?(anc.telephone||null):null,
+adresse:meme?(anc.adresse||null):null
+};
+enregistrerSession(s);
+return s;
 }
 
-function ajouterChampTel2(){
-const tel=document.getElementById('bt-tel');
-if(!tel||document.getElementById('bt-tel2')) return;
-const bloc=document.createElement('div');
-bloc.innerHTML='<label>Autre numéro (facultatif)</label><input id="bt-tel2" type="tel" inputmode="tel">';
-tel.insertAdjacentElement('afterend',bloc);
-}
-ajouterChampTel2();
+function traduire(j){return String(j.msg||j.error_description||j.error||'Connexion impossible. Réessayez.');}
 
-async function chargerMaBoutique(s){
+async function sessionValide(){
+const s=lireSession();
+if(!s||!s.access_token) return null;
+if(s.expires_at-60>Date.now()/1000) return s;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) throw new Error(r.status);
+const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+if(!r.ok){oublierSession();return null;}
+return sauverTokens(await r.json());
+}catch(e){return s;}
+}
+
+async function chargerProfil(s){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+if(!r.ok) return null;
 const lignes=await r.json();
 return lignes[0]||null;
 }catch(e){return null;}
 }
 
-function afficherInfosBoutique(connecte){
-const zone=document.getElementById('infos-boutique');
-const bouton=document.getElementById('bt-action');
-const b=boutiqueActuelle;
-if(!connecte){
-bouton.style.display='none';
-zone.innerHTML='<div class="liste" style="margin-top:0">Connectez-vous dans Profil pour gérer votre boutique.</div>';
-return;
-}
-if(!b){
-bouton.style.display='none';
-zone.innerHTML='<div class="liste" style="margin-top:0">Vous n\'avez pas encore de boutique.</div><button class="btn" onclick="ouvrirFormBoutique()">Ouvrir ma boutique</button>';
-return;
-}
-bouton.style.display='';
-bouton.textContent='Modifier';
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
+function injecterStyle(){
+const st=document.createElement('style');
+st.textContent=`
+#auth{display:none;position:fixed;top:0;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;overflow-y:auto;background:#FBF7EE;z-index:50}
+.auth-haut{background:linear-gradient(160deg,#0E6B47 0%,#0A4D33 100%);color:#fff;padding:60px 24px 90px;text-align:center;border-radius:0 0 32px 32px}
+.auth-logo{width:72px;height:72px;margin:0 auto 14px;border-radius:24px;background:#F2B233;color:#1E1A14;font-size:34px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.auth-titre{margin:0;font-size:28px;font-weight:800;color:#fff}
+.auth-sous{margin-top:8px;font-size:14px;line-height:1.5;opacity:.92}
+.auth-carte{background:#fff;margin:-60px 20px 30px;padding:24px 20px;border-radius:24px;border:1px solid #EDE5D3;box-shadow:0 12px 32px rgba(30,26,20,.12)}
+.auth-carte h2{margin:0 0 6px;font-size:20px;color:#1E1A14}
+.auth-carte p{margin:0 0 16px;font-size:14px;line-height:1.5;color:#6B6254}
+.g-enveloppe{display:flex;justify-content:center;padding:16px 10px;border-radius:18px;background:#F7F4EC;border:1px solid #EDE5D3}
+.auth-pied{margin-top:16px;text-align:center;font-size:12px;line-height:1.5;color:#8A8170}
+.auth-champs label{display:block;margin:12px 0 6px;font-size:13px;font-weight:bold}
+.auth-champs input{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
+.btn-plein{width:100%;height:52px;margin-top:16px;border:0;border-radius:14px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold;box-shadow:0 6px 16px rgba(14,107,71,.3)}
+.auth-lien{width:100%;margin-top:12px;border:0;background:none;color:#0E6B47;font-size:13px;font-weight:bold}
+`;
+document.head.appendChild(st);
 }
 
-function afficherSectionsVendeur(visible){
-document.querySelectorAll('#boutique > .btn, #boutique > .btn2').forEach(el=>el.style.display=visible?'':'none');
-['commandes-liste','messages-liste'].forEach(id=>{
-const zone=document.getElementById(id);
-if(!zone) return;
-zone.style.display=visible?'block':'none';
-const titre=zone.previousElementSibling;
-if(titre&&titre.tagName==='LABEL') titre.style.display=visible?'block':'none';
+function construireAuth(){
+const a=document.createElement('div');
+a.id='auth';
+a.innerHTML=`<div class="auth-haut"><div class="auth-logo">N</div><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
+document.body.appendChild(a);
+}
+
+function construireZoneProfil(){
+const profil=document.getElementById('profil');
+const avatar=profil.querySelector(':scope > .boutique');
+if(avatar) avatar.style.display='none';
+const zone=document.createElement('div');
+zone.id='compte-zone';
+profil.querySelector('header').insertAdjacentElement('afterend',zone);
+}
+
+const montrerOriginal=montrer;
+montrer=function(vue){
+const estAuth=vue==='auth';
+const auth=document.getElementById('auth');
+if(auth) auth.style.display=estAuth?'block':'none';
+montrerOriginal(estAuth?'__aucune__':vue);
+};
+
+function chargerGoogle(){
+return new Promise((ok,ko)=>{
+if(window.google&&google.accounts&&google.accounts.id) return ok();
+const s=document.createElement('script');
+s.src='https://accounts.google.com/gsi/client';
+s.onload=()=>ok();
+s.onerror=()=>ko();
+document.head.appendChild(s);
 });
 }
 
-async function chargerCommandes(s){
-const zone=document.getElementById('commandes-liste');
-zone.textContent='Chargement…';
+let googleInitialise=false;
+
+async function rendrerBoutonGoogle(){
+const zone=document.getElementById('g-bouton');
+if(!zone) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=*&vendeur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
-zone.innerHTML=lignes.length
-?lignes.map(c=>`<div class="ligne"><div style="flex:1"><div class="name">${esc(c.produit)} × ${esc(c.quantite)}</div><div class="price" style="font-size:13px">${esc(c.nom_client)} · ${esc(c.telephone)}</div><div style="font-size:12px;color:#6B6254">${esc(c.adresse||'Adresse non indiquée')} · ${esc(c.paiement||'')}</div></div></div>`).join('')
-:"Aucune commande pour l'instant.";
-}catch(e){zone.textContent='Erreur de chargement.';}
+await chargerGoogle();
+if(!googleInitialise){
+google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:connexionGoogle});
+googleInitialise=true;
+}
+zone.innerHTML='';
+google.accounts.id.renderButton(zone,{theme:'outline',size:'large',shape:'pill',text:'continue_with',width:300});
+}catch(e){
+zone.textContent='Connexion Google indisponible pour le moment.';
+}
 }
 
-async function chargerMessages(s){
-const zone=document.getElementById('messages-liste');
-zone.textContent='Chargement…';
+function afficherConnexion(){
+document.getElementById('auth-corps').innerHTML=`
+<h2>Bienvenue</h2>
+<p>Connectez-vous pour acheter, vendre et gérer votre boutique en toute sécurité.</p>
+<div class="g-enveloppe"><div id="g-bouton"></div></div>
+<div id="c-msg" class="msg"></div>
+<div class="auth-pied">En continuant, vous acceptez les conditions d'utilisation de NioHub.</div>`;
+montrer('auth');
+rendrerBoutonGoogle();
+}
+
+function afficherCompletion(){
+document.getElementById('auth-corps').innerHTML=`
+<h2>Presque terminé</h2>
+<p>Complétez votre profil pour commencer. Ces informations serviront à vos achats et à votre boutique.</p>
+<div class="auth-champs">
+<label>Prénom</label><input id="p-prenom" placeholder="Ex. Fatou">
+<label>Nom</label><input id="p-nom" placeholder="Ex. Diop">
+<label>Téléphone</label><input id="p-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
+<label>Adresse (facultatif)</label><input id="p-adresse" placeholder="Quartier, repère">
+</div>
+<div id="c-msg" class="msg"></div>
+<button class="btn-plein" onclick="creerProfil()">Enregistrer mon profil</button>
+<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
+montrer('auth');
+}
+
+async function connexionGoogle(reponse){
+const msg=document.getElementById('c-msg');
+if(msg) msg.textContent='';
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&vendeur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
-zone.innerHTML=lignes.length
-?lignes.map(m=>`<div class="ligne" style="display:block"><div class="name">${esc(m.expediteur)} · <span style="font-weight:normal;color:#6B6254">${esc(m.produit)}</span></div><div style="font-size:14px;margin-top:4px">${esc(m.texte)}</div></div>`).join('')
-:"Aucun message pour l'instant.";
-}catch(e){zone.textContent='Erreur de chargement.';}
+const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({provider:'google',id_token:reponse.credential})});
+const j=await r.json();
+if(!r.ok){if(msg) msg.textContent=traduire(j);return;}
+sauverTokens(j);
+await verifierAcces();
+}catch(e){
+if(msg) msg.textContent='Connexion impossible. Réessayez.';
+}
 }
 
-async function voirBoutique(){
-montrer('boutique');
-document.getElementById('infos-boutique').textContent='Chargement…';
+async function verifierAcces(){
 const s=await sessionValide();
-const connecte=!!(s&&s.user_id);
-boutiqueActuelle=connecte?await chargerMaBoutique(s):null;
-afficherInfosBoutique(connecte);
-const ouverte=connecte&&!!boutiqueActuelle;
-afficherSectionsVendeur(ouverte);
-if(ouverte){chargerCommandes(s);chargerMessages(s);}
+if(!s||!s.user_id){afficherConnexion();return;}
+if(!s.nom){
+const p=await chargerProfil(s);
+if(!p){afficherCompletion();return;}
+s.nom=p.nom;
+s.telephone=p.telephone;
+s.adresse=p.adresse||null;
+enregistrerSession(s);
+}
+montrer('accueil');
 }
 
-async function ouvrirFormBoutique(){
-const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous d\'abord dans Profil.');montrer('profil');return;}
-const b=boutiqueActuelle||{};
-logoBoutique=b.logo||"";
-const champNom=document.getElementById('bt-nom');
-const suggestion=nomComplet();
-champNom.placeholder=suggestion?'Chez '+suggestion:'Nom de la boutique';
-champNom.value=b.nom||"";
-document.getElementById('bt-tel').value=b.telephone||"";
-document.getElementById('bt-tel2').value=b.telephone2||"";
-document.getElementById('bt-adresse').value=b.adresse||"";
-document.getElementById('bt-desc').value=b.description||"";
-document.getElementById('bt-msg').textContent="";
-apercuLogo(logoBoutique);
-montrer('boutique-form');
-}
-
-function apercuLogo(src){
-const el=document.getElementById('bt-logo');
-if(src){el.textContent='';el.style.background=`url(${src}) center/cover no-repeat`;}
-else{el.textContent='+ Logo';el.style.background='#fff';}
-}
-
-function choisirLogo(e){
-const f=e.target.files[0];
-if(!f) return;
-const lecteur=new FileReader();
-lecteur.onload=()=>{
-const img=new Image();
-img.onload=()=>{
-const echelle=Math.min(1,400/img.width);
-const c=document.createElement('canvas');
-c.width=img.width*echelle;
-c.height=img.height*echelle;
-c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-logoBoutique=c.toDataURL('image/jpeg',0.7);
-apercuLogo(logoBoutique);
-};
-img.src=lecteur.result;
-};
-lecteur.readAsDataURL(f);
-}
-
-async function enregistrerBoutique(){
-const msg=document.getElementById('bt-msg');
+async function creerProfil(){
+const msg=document.getElementById('c-msg');
 msg.textContent='';
+const prenom=document.getElementById('p-prenom').value.trim();
+const nom=document.getElementById('p-nom').value.trim();
+const tel=document.getElementById('p-tel').value.trim();
+const adresse=document.getElementById('p-adresse').value.trim();
+if(!prenom||!nom||!tel){msg.textContent='Indiquez votre prénom, votre nom et votre téléphone.';return;}
 const s=await sessionValide();
-if(!s||!s.user_id){msg.textContent='Connectez-vous dans Profil avant d\'enregistrer.';return;}
-const saisi=document.getElementById('bt-nom').value.trim();
-const suggestion=nomComplet();
-const nom=saisi||(!boutiqueActuelle&&suggestion?'Chez '+suggestion:'');
-const tel=document.getElementById('bt-tel').value.trim();
-if(!nom||!tel){msg.textContent='Indiquez le nom et le téléphone.';return;}
-const corps={
-user_id:s.user_id,
-nom:nom,
-telephone:tel,
-telephone2:document.getElementById('bt-tel2').value.trim()||null,
-adresse:document.getElementById('bt-adresse').value.trim()||null,
-description:document.getElementById('bt-desc').value.trim()||null,
-logo:logoBoutique||null
-};
-const entetes={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'};
+if(!s||!s.user_id){afficherConnexion();return;}
+const complet=prenom+' '+nom;
 try{
-let r;
-if(boutiqueActuelle){
-r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?id=eq.'+boutiqueActuelle.id,{method:'PATCH',headers:entetes,body:JSON.stringify(corps)});
-}else{
-r=await fetch(SUPABASE_URL+'/rest/v1/boutiques',{method:'POST',headers:entetes,body:JSON.stringify(corps)});
-}
+const r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null})});
 if(!r.ok) throw new Error(r.status);
 }catch(e){
-msg.textContent='Erreur, enregistrement impossible. Réessayez.';
+msg.textContent='Profil non enregistré. Réessayez.';
 return;
 }
-await voirBoutique();
+s.nom=complet;
+s.telephone=tel;
+s.adresse=adresse||null;
+enregistrerSession(s);
+montrer('accueil');
 }
 
-async function afficherBoutiqueFiche(userId){
-const zone=document.querySelector('#fiche .boutique');
-if(!zone) return;
-if(!userId){zone.innerHTML='<b>Produit de démonstration</b>';return;}
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+userId+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
-const b=lignes[0];
-zone.innerHTML=b
-?`<b>${esc(b.nom)}</b><br><span style="font-size:12px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')} · Tél : ${telephonesBoutique(b)}</span>`
-:'<b>Boutique non ouverte</b>';
-}catch(e){zone.innerHTML='<b>Boutique</b>';}
+async function afficherProfilCarte(){
+const s=await sessionValide();
+if(!s||!s.user_id){afficherConnexion();return;}
+if(!s.nom){afficherCompletion();return;}
+const zone=document.getElementById('compte-zone');
+const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone||'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div><button class="btn" style="margin-top:12px" onclick="seDeconnecter()">Se déconnecter</button>`;
 }
+
+function seDeconnecter(){
+oublierSession();
+if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect();
+verifierAcces();
+}
+
+const ouvrirFormBoutiqueAvant=ouvrirFormBoutique;
+ouvrirFormBoutique=async function(){
+await ouvrirFormBoutiqueAvant();
+const s=lireSession()||{};
+const tel=document.getElementById('bt-tel');
+const adr=document.getElementById('bt-adresse');
+if(tel) tel.placeholder=s.telephone||'Téléphone';
+if(adr) adr.placeholder=s.adresse||'Quartier, repère';
+};
+
+const enregistrerBoutiqueAvant=enregistrerBoutique;
+enregistrerBoutique=async function(){
+const s=lireSession()||{};
+const tel=document.getElementById('bt-tel');
+const adr=document.getElementById('bt-adresse');
+if(tel&&!tel.value.trim()&&s.telephone) tel.value=s.telephone;
+if(adr&&!adr.value.trim()&&s.adresse) adr.value=s.adresse;
+return enregistrerBoutiqueAvant();
+};
+
+const voirProfilAvant=voirProfil;
+voirProfil=function(){voirProfilAvant();afficherProfilCarte();};
+
+injecterStyle();
+construireAuth();
+construireZoneProfil();
+montrer('auth');
+verifierAcces();
