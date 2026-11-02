@@ -15,8 +15,8 @@ const defauts=[
 ];
 let distants=[];
 let photoChoisie="";
-let editId=null;
 let photoExistante="";
+let editId=null;
 let origineAjout='accueil';
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -43,7 +43,7 @@ try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
-distants=lignes.map(l=>({id:l.id,nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
+distants=lignes.map(l=>({id:l.id,user_id:l.user_id,nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
 }catch(e){console.log(e);}
 afficherGrille();
 }
@@ -71,10 +71,13 @@ async function voirMesProduits(){
 montrer('mesproduits');
 const zone=document.getElementById('bmes');
 zone.textContent='Chargement…';
+const s=await sessionValide();
 await chargerProduits();
-zone.innerHTML=distants.length
-?distants.map((l,i)=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${i})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${i})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
-:"Aucun produit publié pour l'instant.";
+if(!s||!s.user_id){zone.textContent='Connectez-vous dans Profil pour voir vos produits.';return;}
+const mes=distants.filter(l=>l.user_id===s.user_id);
+zone.innerHTML=mes.length
+?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${l.id})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${l.id})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
+:"Vous n'avez pas encore de produit publié.";
 }
 
 function remettreApercu(photo){
@@ -83,7 +86,9 @@ if(photo){ap.textContent="";ap.style.background=`url(${photo}) center/cover no-r
 else{ap.textContent="+ Choisir une photo";ap.style.background="#fff";}
 }
 
-function voirAjout(origine){
+async function voirAjout(origine){
+const s=await sessionValide();
+if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier un produit.');montrer('profil');return;}
 origineAjout=origine||'accueil';
 editId=null;
 photoChoisie="";
@@ -97,8 +102,10 @@ montrer('ajout');
 
 function retourAjout(){retourVers(origineAjout);}
 
-function modifierProduit(i){
-const p=distants[i];
+async function modifierProduit(id){
+const s=await sessionValide();
+const p=distants.find(x=>x.id===id);
+if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez modifier que vos produits.');return;}
 editId=p.id;
 origineAjout='mesproduits';
 photoChoisie="";
@@ -112,11 +119,13 @@ remettreApercu(photoExistante);
 montrer('ajout');
 }
 
-async function supprimerProduit(i){
-const p=distants[i];
+async function supprimerProduit(id){
+const s=await sessionValide();
+const p=distants.find(x=>x.id===id);
+if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez supprimer que vos produits.');return;}
 if(!confirm('Supprimer « '+p.nom+' » ?')) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+p.id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Prefer:'return=minimal'}});
+const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=minimal'}});
 if(!r.ok) throw new Error(r.status);
 }catch(e){
 alert('Suppression impossible. Réessayez.');
@@ -146,6 +155,8 @@ lecteur.readAsDataURL(f);
 }
 
 async function publier(){
+const s=await sessionValide();
+if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
 const nom=document.getElementById('nom').value.trim();
 const prix=document.getElementById('prix').value.trim();
 const desc=document.getElementById('desc').value.trim();
@@ -160,9 +171,10 @@ methode="PATCH";
 if(photoChoisie) corps.photo=photoChoisie;
 }else{
 corps.photo=photoChoisie||null;
+corps.user_id=s.user_id;
 }
 try{
-const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
+const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
 if(!r.ok) throw new Error(r.status);
 }catch(e){
 alert('Erreur, enregistrement impossible. Réessayez.');
