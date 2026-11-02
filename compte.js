@@ -1,6 +1,6 @@
 const CLE_SESSION='niohub_session';
+const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.googleusercontent.com';
 
-function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
 function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
 function oublierSession(){localStorage.removeItem(CLE_SESSION);}
 
