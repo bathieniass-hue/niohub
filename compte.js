@@ -1,6 +1,7 @@
 const CLE_SESSION='niohub_session';
 const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.googleusercontent.com';
 
+function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
 function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
 function oublierSession(){localStorage.removeItem(CLE_SESSION);}
 
@@ -13,9 +14,10 @@ return (s.prenom+' '+(s.nom||'')).trim();
 function appliquerUtilisateur(s,u){
 if(!u) return s;
 const m=u.user_metadata||{};
+const nomGoogle=(m.full_name||m.name||'').split(' ');
 if(u.email) s.email=u.email;
-s.prenom=m.prenom||s.prenom||'';
-s.nom=m.nom||s.nom||'';
+s.prenom=m.prenom||m.given_name||nomGoogle[0]||s.prenom||'';
+s.nom=m.nom||m.family_name||nomGoogle.slice(1).join(' ')||s.nom||'';
 return s;
 }
 
@@ -50,6 +52,7 @@ return sauverReponse(await r.json(),s.email);
 }
 
 let modeInscription=false;
+let googleInitialise=false;
 
 function construireCompte(){
 const profil=document.getElementById('profil');
@@ -76,6 +79,8 @@ bloc.innerHTML=`
 <div id="c-msg" class="msg"></div>
 <button id="c-action" class="btn" style="margin-top:14px" onclick="validerFormulaire()">Se connecter</button>
 <button id="c-bascule" class="btn2" onclick="basculerMode()">Pas encore de compte ? Créer un compte</button>
+<div style="text-align:center;color:#6B6254;font-size:13px;margin-top:14px">ou</div>
+<div id="g-bouton" style="display:flex;justify-content:center;margin-top:10px"></div>
 </div>`;
 profil.querySelector('header').insertAdjacentElement('afterend',bloc);
 }
@@ -90,6 +95,47 @@ document.getElementById('c-msg').textContent='';
 
 function validerFormulaire(){return modeInscription?creerCompte():seConnecter();}
 
+function chargerGoogle(){
+return new Promise((ok,ko)=>{
+if(window.google&&google.accounts&&google.accounts.id) return ok();
+const s=document.createElement('script');
+s.src='https://accounts.google.com/gsi/client';
+s.onload=()=>ok();
+s.onerror=()=>ko();
+document.head.appendChild(s);
+});
+}
+
+async function rendrerBoutonGoogle(){
+const zone=document.getElementById('g-bouton');
+if(!zone) return;
+try{
+await chargerGoogle();
+if(!googleInitialise){
+google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:connexionGoogle});
+googleInitialise=true;
+}
+zone.innerHTML='';
+google.accounts.id.renderButton(zone,{theme:'outline',size:'large',text:'continue_with',shape:'rectangular',width:300});
+}catch(e){
+zone.textContent='Connexion Google indisponible pour le moment.';
+}
+}
+
+async function connexionGoogle(reponse){
+const msg=document.getElementById('c-msg');
+msg.textContent='';
+try{
+const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({provider:'google',id_token:reponse.credential})});
+const j=await r.json();
+if(!r.ok){msg.textContent=traduire(j);return;}
+sauverReponse(j,'');
+await afficherCompte();
+}catch(e){
+msg.textContent='Connexion Google impossible. Réessayez.';
+}
+}
+
 async function afficherCompte(){
 const s=await sessionValide();
 const infos=document.getElementById('compte-infos');
@@ -102,6 +148,7 @@ infos.innerHTML=`<div class="liste" style="margin-top:0"><b>${esc(nomComplet()||
 infos.style.display='none';
 form.style.display='block';
 document.getElementById('c-msg').textContent='';
+rendrerBoutonGoogle();
 }
 }
 
@@ -137,7 +184,7 @@ const r=await fetch(SUPABASE_URL+'/auth/v1/signup',{method:'POST',headers:{apike
 const j=await r.json();
 if(!r.ok){msg.textContent=traduire(j);return;}
 if(j.access_token){sauverReponse(j,email);await afficherCompte();return;}
-msg.textContent="Compte créé, mais la confirmation par e-mail est encore active. Vérifiez l'étape 1.";
+msg.textContent="Compte créé, mais la confirmation par e-mail est encore active. Vérifiez l'étape 1 de l'ancienne consigne.";
 }catch(e){msg.textContent='Erreur réseau, réessayez.';}
 }
 
