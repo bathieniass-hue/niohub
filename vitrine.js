@@ -43,8 +43,8 @@ zone.innerHTML=`
 <div style="color:#F2B233;font-size:14px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div></div>
 </div>
 <div class="liste" style="margin-top:10px;font-size:13px">
-<div>${esc(b.adresse||'Adresse non indiquée')}</div>
-<div style="margin-top:4px">Tél : ${tel.length?tel.map(esc).join(' · '):'Non indiqué'}</div>
+<div>Adresse : ${esc(b.adresse||'Non indiquée')}</div>
+<div style="margin-top:4px">Tél : ${tel.length?tel.map(esc).join(' / '):'Non indiqué'}</div>
 <div style="margin-top:8px">${esc(b.description||'Pas de description.')}</div>
 </div>
 <div style="display:flex;gap:10px;margin-top:6px">
@@ -83,3 +83,66 @@ const zone=cible.closest('#fiche .boutique');
 if(!zone) return;
 if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
 });
+
+const stylePied=document.createElement('style');
+stylePied.textContent=`
+#fdp-pied{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px 6px}
+#fdp-gauche,#fdp-droite{display:flex;align-items:center;min-width:0}
+#fdp-gauche>*{margin:0 !important;width:auto !important;height:auto !important;min-height:0 !important;padding:5px 12px !important;font-size:12px !important;line-height:1.2 !important;border:1px solid #0E6B47 !important;border-radius:14px !important;background:#fff !important;color:#0E6B47 !important;font-weight:bold !important;box-shadow:none !important;display:inline-block !important;text-decoration:none}
+#fdp-droite>*{margin:0 !important;font-size:13px;font-weight:bold;color:#0E6B47;cursor:pointer;white-space:nowrap}
+`;
+document.head.appendChild(stylePied);
+
+function creerPiedFiche(){
+const fiche=document.getElementById('fiche');
+const bar=fiche?fiche.querySelector('.bar'):null;
+if(!fiche||!bar||document.getElementById('fdp-pied')) return;
+const pied=document.createElement('div');
+pied.id='fdp-pied';
+pied.innerHTML='<div id="fdp-gauche"></div><div id="fdp-droite"></div>';
+fiche.insertBefore(pied,bar);
+}
+creerPiedFiche();
+
+function trouverDansFiche(motif){
+const fiche=document.getElementById('fiche');
+const pied=document.getElementById('fdp-pied');
+if(!fiche||!pied) return null;
+const trouve=Array.from(fiche.querySelectorAll('button,a,div,span')).find(el=>!pied.contains(el)&&el.children.length===0&&motif.test(el.textContent||''));
+return trouve?(trouve.closest('button,a')||trouve):null;
+}
+
+function rangerPiedFiche(){
+const gauche=document.getElementById('fdp-gauche');
+const droite=document.getElementById('fdp-droite');
+if(gauche&&!gauche.children.length){
+const avis=trouverDansFiche(/voir les avis/i);
+if(avis) gauche.appendChild(avis);
+}
+if(droite&&!droite.children.length){
+const boutique=trouverDansFiche(/voir la boutique/i);
+if(boutique){
+boutique.onclick=()=>{
+if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
+};
+droite.appendChild(boutique);
+}
+}
+}
+
+function viderPiedFiche(){
+const g=document.getElementById('fdp-gauche');
+const d=document.getElementById('fdp-droite');
+if(g) g.innerHTML='';
+if(d) d.innerHTML='';
+}
+
+const ouvrirAvantPied=ouvrir;
+ouvrir=function(i){
+viderPiedFiche();
+ouvrirAvantPied(i);
+rangerPiedFiche();
+};
+
+const fichePied=document.getElementById('fiche');
+if(fichePied) new MutationObserver(()=>rangerPiedFiche()).observe(fichePied,{childList:true,subtree:true});
