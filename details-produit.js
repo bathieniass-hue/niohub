@@ -13,20 +13,21 @@ const COULEURS_PRODUIT=[
 {nom:"Gris",hex:"#9E9E9E"},
 {nom:"Rose",hex:"#F48FB1"}
 ];
+const LARGEUR_LIBELLE=74;
 let choixDetails={categorie:'',etat:''};
 let couleursChoisies=[];
 
 const styleDetails=document.createElement('style');
 styleDetails.textContent=`
 #dp-card{background:#fff;border:1px solid #E6DECB;border-radius:12px;overflow:hidden;margin-top:8px}
-.dp-row{display:grid;grid-template-columns:80px minmax(0,1fr) 14px;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box}
+.dp-row{display:grid;grid-template-columns:${LARGEUR_LIBELLE}px minmax(0,1fr) 14px;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box}
 .dp-cliquable{cursor:pointer}
 #dp-card > .dp-row:first-child{border-top:0}
 .dp-label{color:#6B6254;font-size:13px;line-height:1.2}
-.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dp-valeur.vide{font-weight:normal;color:#9A9080}
+.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dp-valeur.vide{font-weight:bold;color:#9A9080}
 .dp-chev{font-size:16px;line-height:1;color:#1E1A14;text-align:right}
-.dp-couleurs{display:flex;align-items:flex-start;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 8px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
+.dp-couleurs{display:flex;align-items:flex-start;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 0;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
 .dp-couleurs::-webkit-scrollbar{display:none}
 .dp-sw{flex-shrink:0;width:36px;min-height:0;height:auto;text-align:center;background:none;border:0;padding:0;margin:0;font-family:sans-serif;color:#1E1A14;font-size:10px;line-height:1}
 .dp-pastille{width:26px;height:26px;border-radius:13px;border:1px solid #8A8170;margin:0 auto 2px;box-sizing:border-box}
@@ -105,9 +106,10 @@ const x=ev&&ev.clientX?ev.clientX:r.left+r.width/2;
 const y=ev&&ev.clientY?ev.clientY:r.top+r.height/2;
 const box=document.getElementById('dp-pop');
 box.innerHTML=`<div style="font-weight:bold;font-size:12px;color:#6B6254;padding:8px 14px 4px">${titre}</div>`+liste.map(v=>`<button type="button" class="dp-choix${choixDetails[n]===v?' on':''}" onclick="choisirOption('${n}','${v}')">${v}</button>`).join('');
-const largeur=Math.min(220,window.innerWidth-24);
+const colonneValeur=r.left+12+LARGEUR_LIBELLE;
+const largeur=Math.max(180,Math.min(240,window.innerWidth-colonneValeur-12));
+const gauche=Math.max(12,Math.min(colonneValeur,window.innerWidth-largeur-12));
 const hauteur=Math.min(280,(liste.length+1)*44+8);
-const gauche=Math.min(Math.max(12,r.left),window.innerWidth-largeur-12);
 let haut=r.bottom+4;
 if(haut+hauteur>window.innerHeight-12) haut=Math.max(12,r.top-hauteur-4);
 box.style.width=largeur+'px';
