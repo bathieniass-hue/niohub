@@ -111,7 +111,7 @@
 </div>
 
 <div id="profil" class="page">
-<header><span style="font-weight:bold;font-size:20px">Profil</span><span></span></header>
+<header><span style="font-weight:bold;font-size:20px">Profil</span><button class="petit" onclick="modifierProfil()">Modifier</button></header>
 <div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center">
 <div class="avatar">N</div>
 <div><div class="nomboutique" style="font-size:18px">Utilisateur test</div><div style="font-size:13px;color:#6B6254">Mode test, sans compte</div></div>
@@ -122,6 +122,7 @@
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Adresses</b><span>›</span></div>
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Paiements</b><span>›</span></div>
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Aide</b><span>›</span></div>
+<div class="ligne" onclick="deconnecter()"><b style="flex:1;color:#B4291A">Déconnecter</b><span>›</span></div>
 </div>
 </div>
 
@@ -140,5 +141,6 @@
 <script src="statut.js"></script>
 <script src="achats.js"></script>
 <script src="vitrine.js"></script>
+<script src="profil.js"></script>
 </body>
 </html>
