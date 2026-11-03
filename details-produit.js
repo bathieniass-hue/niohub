@@ -19,20 +19,22 @@ let couleursChoisies=[];
 const styleDetails=document.createElement('style');
 styleDetails.textContent=`
 #dp-card{background:#fff;border:1px solid #E6DECB;border-radius:12px;overflow:hidden;margin-top:8px}
-.dp-row{display:flex;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box;cursor:pointer}
+.dp-row{display:grid;grid-template-columns:80px minmax(0,1fr) 14px;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box}
+.dp-cliquable{cursor:pointer}
 #dp-card > .dp-row:first-child{border-top:0}
-.dp-label{width:66px;flex-shrink:0;color:#6B6254;font-size:13px;line-height:1.2}
-.dp-valeur{flex:1;font-weight:bold;font-size:13px;line-height:1.2;min-width:0;text-align:left;padding-left:0}
+.dp-label{color:#6B6254;font-size:13px;line-height:1.2}
+.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dp-valeur.vide{font-weight:normal;color:#9A9080}
-.dp-chev{font-size:16px;line-height:1;color:#1E1A14;margin-left:4px;flex-shrink:0}
-.dp-couleurs{display:flex;align-items:flex-start;flex:1;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 4px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
+.dp-chev{font-size:16px;line-height:1;color:#1E1A14;text-align:right}
+.dp-couleurs{display:flex;align-items:flex-start;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 8px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
 .dp-couleurs::-webkit-scrollbar{display:none}
 .dp-sw{flex-shrink:0;width:36px;min-height:0;height:auto;text-align:center;background:none;border:0;padding:0;margin:0;font-family:sans-serif;color:#1E1A14;font-size:10px;line-height:1}
 .dp-pastille{width:26px;height:26px;border-radius:13px;border:1px solid #8A8170;margin:0 auto 2px;box-sizing:border-box}
 .dp-sw.on .dp-pastille{box-shadow:0 0 0 2px #fff,0 0 0 3px #0E6B47}
-.dp-choix{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 4px;border:0;border-bottom:1px solid #EDE5D3;background:#fff;font-size:15px;color:#1E1A14;font-family:sans-serif;text-align:left;box-sizing:border-box}
-.dp-choix:last-child{border-bottom:0}
+.dp-choix{display:block;width:100%;padding:12px 14px;border:0;border-top:1px solid #F3EEE2;background:#fff;font-size:15px;color:#1E1A14;font-family:sans-serif;text-align:left;box-sizing:border-box}
+.dp-choix:first-child{border-top:0}
 .dp-choix.on{color:#0E6B47;font-weight:bold}
+@keyframes dpPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 #dp-card #desc{display:block;width:100%;box-sizing:border-box;border:0;border-top:1px solid #EDE5D3;border-radius:0;margin:0;padding:8px 12px;min-height:56px;font-size:13px;line-height:1.3;font-family:sans-serif;background:#fff;outline:none;resize:vertical;color:#1E1A14}
 `;
 document.head.appendChild(styleDetails);
@@ -48,7 +50,7 @@ desc.placeholder='description et détails';
 const carte=document.createElement('div');
 carte.id='dp-card';
 carte.innerHTML=`
-<div class="dp-row" onclick="ouvrirOption('categorie')">
+<div class="dp-row dp-cliquable" id="dp-row-categorie" onclick="ouvrirOption('categorie',event)">
 <span class="dp-label">Catégorie</span>
 <span class="dp-valeur vide" id="dp-val-categorie">Choisir</span>
 <span class="dp-chev">›</span>
@@ -58,7 +60,7 @@ carte.innerHTML=`
 <div class="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="dp-sw" data-c="${c.nom}" onclick="basculerCouleur(this)"><div class="dp-pastille" style="background:${c.hex}"></div>${c.nom.toLowerCase()}</button>`).join('')}</div>
 <span class="dp-chev">›</span>
 </div>
-<div class="dp-row" onclick="ouvrirOption('etat')">
+<div class="dp-row dp-cliquable" id="dp-row-etat" onclick="ouvrirOption('etat',event)">
 <span class="dp-label">État</span>
 <span class="dp-valeur vide" id="dp-val-etat">Choisir</span>
 <span class="dp-chev">›</span>
@@ -69,17 +71,20 @@ bouton.insertAdjacentElement('beforebegin',carte);
 }
 creerChampsDetails();
 
-function creerModalDetails(){
-if(document.getElementById('dp-modal')) return;
-const m=document.createElement('div');
-m.id='dp-modal';
-m.style.cssText='display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(30,26,20,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
-m.onclick=fermerOption;
-m.innerHTML=`<div id="dp-modal-box" style="background:#fff;border-radius:14px;width:100%;max-width:300px;padding:12px 16px 8px;box-sizing:border-box;font-family:sans-serif;max-height:80vh;overflow-y:auto"><div id="dp-modal-titre" style="font-weight:bold;font-size:15px;color:#1E1A14;padding:4px 4px 8px"></div><div id="dp-modal-liste"></div></div>`;
-m.querySelector('#dp-modal-box').onclick=e=>e.stopPropagation();
-document.body.appendChild(m);
+function creerPopover(){
+if(document.getElementById('dp-fond')) return;
+const fond=document.createElement('div');
+fond.id='dp-fond';
+fond.style.cssText='display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:transparent;z-index:999';
+fond.onclick=fermerOption;
+const box=document.createElement('div');
+box.id='dp-pop';
+box.style.cssText='position:fixed;background:#fff;border:1px solid #E6DECB;border-radius:12px;box-shadow:0 8px 24px rgba(30,26,20,.18);padding:4px 0;max-height:280px;overflow-y:auto;z-index:1001;box-sizing:border-box;font-family:sans-serif';
+box.onclick=e=>e.stopPropagation();
+fond.appendChild(box);
+document.body.appendChild(fond);
 }
-creerModalDetails();
+creerPopover();
 
 function rafraichirDetails(){
 ['categorie','etat'].forEach(n=>{
@@ -90,17 +95,32 @@ val.className='dp-valeur'+(choixDetails[n]?'':' vide');
 document.querySelectorAll('#dp-card .dp-sw').forEach(b=>b.classList.toggle('on',couleursChoisies.includes(b.dataset.c)));
 }
 
-function ouvrirOption(n){
-const titre=n==='categorie'?'Catégorie':'État';
+function ouvrirOption(n,ev){
+creerPopover();
 const liste=n==='categorie'?CATEGORIES_PRODUIT:ETATS_PRODUIT;
-document.getElementById('dp-modal-titre').textContent=titre;
-document.getElementById('dp-modal-liste').innerHTML=liste.map(v=>`<button type="button" class="dp-choix${choixDetails[n]===v?' on':''}" onclick="choisirOption('${n}','${v}')"><span>${v}</span><span>${choixDetails[n]===v?'✓':''}</span></button>`).join('');
-document.getElementById('dp-modal').style.display='flex';
+const titre=n==='categorie'?'Catégorie':'État';
+const ligne=document.getElementById('dp-row-'+n);
+const r=ligne.getBoundingClientRect();
+const x=ev&&ev.clientX?ev.clientX:r.left+r.width/2;
+const y=ev&&ev.clientY?ev.clientY:r.top+r.height/2;
+const box=document.getElementById('dp-pop');
+box.innerHTML=`<div style="font-weight:bold;font-size:12px;color:#6B6254;padding:8px 14px 4px">${titre}</div>`+liste.map(v=>`<button type="button" class="dp-choix${choixDetails[n]===v?' on':''}" onclick="choisirOption('${n}','${v}')">${v}</button>`).join('');
+const largeur=Math.min(220,window.innerWidth-24);
+const hauteur=Math.min(280,(liste.length+1)*44+8);
+const gauche=Math.min(Math.max(12,r.left),window.innerWidth-largeur-12);
+let haut=r.bottom+4;
+if(haut+hauteur>window.innerHeight-12) haut=Math.max(12,r.top-hauteur-4);
+box.style.width=largeur+'px';
+box.style.left=gauche+'px';
+box.style.top=haut+'px';
+box.style.transformOrigin=(x-gauche)+'px '+(y-haut)+'px';
+box.style.animation='dpPop .18s ease-out';
+document.getElementById('dp-fond').style.display='block';
 }
 
 function fermerOption(){
-const m=document.getElementById('dp-modal');
-if(m) m.style.display='none';
+const f=document.getElementById('dp-fond');
+if(f) f.style.display='none';
 }
 
 function choisirOption(n,v){
