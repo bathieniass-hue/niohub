@@ -1,6 +1,9 @@
 const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
 const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 
+// Mettre true pour revoir les 4 produits de démonstration
+const AFFICHER_DEMO=false;
+
 const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
 const VUES_MENU={accueil:0,boutique:1,mesproduits:1,'boutique-form':1,profil:2};
 
@@ -20,10 +23,24 @@ let photoChoisie="";
 let photoExistante="";
 let editId=null;
 let origineAjout='accueil';
+let chargementEchoue=false;
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function tous(){return defauts.concat(distants);}
-function fond(p){return p.photo?`url(${p.photo}) center/cover no-repeat`:p.couleur;}
+function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
+
+// Accepte uniquement une image en base64 ou un fichier de notre Supabase Storage.
+// Tout le reste est refusé : impossible de sortir de l'attribut style.
+function urlSure(u){
+const t=String(u||'');
+if(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(t)) return t;
+if(t.startsWith(SUPABASE_URL+'/storage/v1/object/public/')&&/^https:\/\/[A-Za-z0-9.\-]+\/storage\/v1\/object\/public\/[A-Za-z0-9_\-\/.]+$/.test(t)) return t;
+return '';
+}
+function fondImage(u,defaut){
+const s=urlSure(u);
+return s?'url('+s+') center/cover no-repeat':defaut;
+}
+function fond(p){return fondImage(p.photo,p.couleur);}
 
 function montrer(vue){
 VUES.forEach(v=>{const el=document.getElementById(v);if(el)el.style.display=v===vue?'block':'none';});
@@ -53,8 +70,23 @@ try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
-distants=lignes.map(l=>({id:l.id,user_id:l.user_id,nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
-}catch(e){console.log(e);}
+distants=lignes.map(l=>({
+id:l.id,
+user_id:l.user_id,
+nom:l.nom,
+prix:l.prix,
+desc:l.description||'Pas de description.',
+photo:l.photo||"",
+couleur:'#D9B26F',
+categorie:l.categorie||null,
+etat:l.etat||null,
+couleurs:l.couleurs||null
+}));
+chargementEchoue=false;
+}catch(e){
+console.log(e);
+chargementEchoue=true;
+}
 await chargerBoutiquesCache();
 afficherGrille();
 }
@@ -82,13 +114,17 @@ if(!grille) return;
 const bloc=garantirBlocBoutiques();
 const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includes(q)):[];
 bloc.innerHTML=trouvees.length
-?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${b.user_id}')"><div class="vignette" style="border-radius:28px;background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
+?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>!q||x.p.nom.toLowerCase().includes(q));
 if(liste.length){
 grille.innerHTML=liste.map(x=>`<div class="card" onclick="ouvrir(${x.i})"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
+}else if(q){
+grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
+}else if(chargementEchoue&&!distants.length){
+grille.innerHTML=`<div class="vide">Impossible de charger les produits. Vérifiez votre connexion et rouvrez l'application.</div>`;
 }else{
-grille.innerHTML=q?`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`:`<div class="vide">Aucun produit pour l'instant.</div>`;
+grille.innerHTML=`<div class="vide">Aucun produit pour l'instant.</div>`;
 }
 }
 
@@ -205,13 +241,14 @@ await chargerProduits();
 if(!s||!s.user_id){zone.textContent='Connectez-vous dans Profil pour voir vos produits.';return;}
 const mes=distants.filter(l=>l.user_id===s.user_id);
 zone.innerHTML=mes.length
-?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${l.photo?'url('+l.photo+') center/cover':'#D9B26F'}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${l.id})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${l.id})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
+?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${fondImage(l.photo,'#D9B26F').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${Number(l.id)})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${Number(l.id)})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
 :"Vous n'avez pas encore de produit publié.";
 }
 
 function remettreApercu(photo){
 const ap=document.getElementById('apercu');
-if(photo){ap.textContent="";ap.style.background=`url(${photo}) center/cover no-repeat`;}
+const s=urlSure(photo);
+if(s){ap.textContent="";ap.style.background='url('+s+') center/cover no-repeat';}
 else{ap.textContent="+ Choisir une photo";ap.style.background="#fff";}
 }
 
@@ -254,8 +291,11 @@ const p=distants.find(x=>x.id===id);
 if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez supprimer que vos produits.');return;}
 if(!confirm('Supprimer « '+p.nom+' » ?')) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=minimal'}});
+const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id+'&user_id=eq.'+s.user_id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=representation'}});
 if(!r.ok) throw new Error(r.status);
+const lignes=await r.json();
+// Supabase répond "OK" même si la règle de sécurité a bloqué : on vérifie qu'une ligne a bien été supprimée
+if(!lignes.length) throw new Error('refusé');
 }catch(e){
 alert('Suppression impossible. Réessayez.');
 return;
@@ -266,6 +306,7 @@ voirMesProduits();
 function choisirPhoto(e){
 const f=e.target.files[0];
 if(!f)return;
+if(!f.type.startsWith('image/')){alert('Choisissez une photo (image).');return;}
 const lecteur=new FileReader();
 lecteur.onload=()=>{
 const img=new Image();
@@ -278,41 +319,13 @@ c.getContext('2d').drawImage(img,0,0,c.width,c.height);
 photoChoisie=c.toDataURL('image/jpeg',0.7);
 remettreApercu(photoChoisie);
 };
+img.onerror=()=>alert('Cette photo ne peut pas être lue. Essayez-en une autre.');
 img.src=lecteur.result;
 };
 lecteur.readAsDataURL(f);
 }
 
-async function publier(){
-const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
-const nom=document.getElementById('nom').value.trim();
-const prix=document.getElementById('prix').value.trim();
-const desc=document.getElementById('desc').value.trim();
-if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
-const corps={nom:nom,prix:Number(prix).toLocaleString('fr-FR')+' FCFA',description:desc||null};
-const modification=editId!==null;
-let url=SUPABASE_URL+"/rest/v1/produits";
-let methode="POST";
-if(modification){
-url+='?id=eq.'+editId;
-methode="PATCH";
-if(photoChoisie) corps.photo=photoChoisie;
-}else{
-corps.photo=photoChoisie||null;
-corps.user_id=s.user_id;
-}
-try{
-const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(corps)});
-if(!r.ok) throw new Error(r.status);
-}catch(e){
-alert('Erreur, enregistrement impossible. Réessayez.');
-return;
-}
-editId=null;
-await chargerProduits();
-retourVers(origineAjout);
-}
+// publier() est définie dans details-produit.js (catégorie, état, couleurs).
 
 styleAccueil();
 installerRecherche();
