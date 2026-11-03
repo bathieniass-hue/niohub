@@ -1,45 +1,114 @@
 const CATEGORIES_PRODUIT=["Mode","Tech","Maison","Beauté","Alimentation","Autres"];
 const ETATS_PRODUIT=["Neuf","Comme neuf","Bon état","Occasion"];
-const COULEURS_PRODUIT=["Noir","Blanc","Rouge","Bleu","Vert","Jaune","Beige","Marron","Gris","Rose"];
+const COULEURS_PRODUIT=[
+{nom:"Vert",hex:"#1E9E4A"},
+{nom:"Bleu",hex:"#1565C0"},
+{nom:"Rouge",hex:"#D32F2F"},
+{nom:"Jaune",hex:"#FBC02D"},
+{nom:"Noir",hex:"#111111"},
+{nom:"Blanc",hex:"#FFFFFF"},
+{nom:"Orange",hex:"#F57C00"},
+{nom:"Beige",hex:"#D7C4A3"},
+{nom:"Marron",hex:"#6D4C41"},
+{nom:"Gris",hex:"#9E9E9E"},
+{nom:"Rose",hex:"#F48FB1"}
+];
+let choixDetails={categorie:'',etat:''};
 let couleursChoisies=[];
+let optionOuverte=null;
 
 const styleDetails=document.createElement('style');
 styleDetails.textContent=`
-.puce{display:inline-block;margin:0 6px 8px 0;padding:8px 14px;border:1px solid #E6DECB;border-radius:20px;background:#fff;font-size:14px;color:#1E1A14;font-family:sans-serif}
+#dp-card{background:#fff;border:1px solid #E6DECB;border-radius:16px;overflow:hidden;margin-top:14px}
+.dp-row{display:flex;align-items:center;padding:14px 16px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14}
+#dp-card > .dp-row:first-child{border-top:0}
+.dp-label{width:84px;flex-shrink:0;color:#6B6254;font-size:15px}
+.dp-valeur{flex:1;font-weight:bold;font-size:15px;min-width:0;text-align:left;padding-left:6px}
+.dp-valeur.vide{font-weight:normal;color:#9A9080}
+.dp-chev{font-size:22px;color:#1E1A14;display:inline-block;margin-left:8px;transition:transform .2s;flex-shrink:0}
+.dp-chev.bas{transform:rotate(90deg)}
+.dp-chev.haut{transform:rotate(-90deg)}
+.dp-options{display:none;flex-wrap:wrap;gap:8px;padding:0 16px 14px;font-family:sans-serif}
+.puce{padding:8px 14px;border:1px solid #E6DECB;border-radius:20px;background:#fff;font-size:14px;color:#1E1A14;font-family:sans-serif}
 .puce.on{background:#0E6B47;border-color:#0E6B47;color:#fff}
-.sel-produit{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif;box-sizing:border-box}
+.dp-couleurs{display:flex;align-items:flex-start;flex:1;min-width:0;overflow-x:auto;gap:12px;padding:2px 2px 2px 6px;scrollbar-width:none}
+.dp-couleurs::-webkit-scrollbar{display:none}
+.dp-sw{flex-shrink:0;width:50px;text-align:center;background:none;border:0;padding:0;font-family:sans-serif;color:#1E1A14;font-size:12px}
+.dp-pastille{width:44px;height:44px;border-radius:22px;border:1px solid #8A8170;margin:0 auto 4px;box-sizing:border-box}
+.dp-sw.on .dp-pastille{box-shadow:0 0 0 3px #fff,0 0 0 5px #0E6B47}
+#dp-card #desc{display:block;width:100%;box-sizing:border-box;border:0;border-top:1px solid #EDE5D3;border-radius:0;margin:0;padding:14px 16px;min-height:130px;font-size:15px;font-family:sans-serif;background:#fff;outline:none;resize:vertical;color:#1E1A14}
 `;
 document.head.appendChild(styleDetails);
 
 function creerChampsDetails(){
 const bouton=document.getElementById('ajout-publier');
-if(!bouton||document.getElementById('dp-bloc')) return;
-const bloc=document.createElement('div');
-bloc.id='dp-bloc';
-bloc.innerHTML=`
-<label>Catégorie</label>
-<select id="dp-categorie" class="sel-produit"><option value="">Choisir une catégorie</option>${CATEGORIES_PRODUIT.map(c=>`<option>${c}</option>`).join('')}</select>
-<label>État du produit</label>
-<select id="dp-etat" class="sel-produit"><option value="">Choisir l'état</option>${ETATS_PRODUIT.map(e=>`<option>${e}</option>`).join('')}</select>
-<label>Couleurs disponibles</label>
-<div id="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="puce" data-c="${c}" onclick="basculerCouleur(this)">${c}</button>`).join('')}</div>
+const desc=document.getElementById('desc');
+if(!bouton||!desc||document.getElementById('dp-card')) return;
+const lab=desc.previousElementSibling;
+if(lab&&lab.tagName==='LABEL') lab.remove();
+desc.placeholder='description et détails';
+
+const carte=document.createElement('div');
+carte.id='dp-card';
+carte.innerHTML=`
+<div class="dp-row" onclick="ouvrirOption('categorie')">
+<span class="dp-label">Catégorie</span>
+<span class="dp-valeur vide" id="dp-val-categorie">Choisir</span>
+<span class="dp-chev bas" id="dp-chev-categorie">›</span>
+</div>
+<div class="dp-options" id="dp-opts-categorie">${CATEGORIES_PRODUIT.map(c=>`<button type="button" class="puce" onclick="choisirOption('categorie','${c}')">${c}</button>`).join('')}</div>
+<div class="dp-row">
+<span class="dp-label">Couleur</span>
+<div class="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="dp-sw" data-c="${c.nom}" onclick="basculerCouleur(this)"><div class="dp-pastille" style="background:${c.hex}"></div>${c.nom.toLowerCase()}</button>`).join('')}</div>
+<span class="dp-chev">›</span>
+</div>
+<div class="dp-row" onclick="ouvrirOption('etat')">
+<span class="dp-label">État</span>
+<span class="dp-valeur vide" id="dp-val-etat">Choisir</span>
+<span class="dp-chev bas" id="dp-chev-etat">›</span>
+</div>
+<div class="dp-options" id="dp-opts-etat">${ETATS_PRODUIT.map(e=>`<button type="button" class="puce" onclick="choisirOption('etat','${e}')">${e}</button>`).join('')}</div>
 `;
-bouton.insertAdjacentElement('beforebegin',bloc);
+carte.appendChild(desc);
+bouton.insertAdjacentElement('beforebegin',carte);
 }
 creerChampsDetails();
 
+function rafraichirDetails(){
+['categorie','etat'].forEach(n=>{
+const val=document.getElementById('dp-val-'+n);
+const est=optionOuverte===n;
+val.textContent=choixDetails[n]||'Choisir';
+val.className='dp-valeur'+(choixDetails[n]?'':' vide');
+document.getElementById('dp-opts-'+n).style.display=est?'flex':'none';
+document.getElementById('dp-chev-'+n).className='dp-chev '+(est?'haut':'bas');
+document.querySelectorAll('#dp-opts-'+n+' .puce').forEach(b=>b.classList.toggle('on',b.textContent===choixDetails[n]));
+});
+document.querySelectorAll('#dp-card .dp-sw').forEach(b=>b.classList.toggle('on',couleursChoisies.includes(b.dataset.c)));
+}
+
+function ouvrirOption(n){
+optionOuverte=optionOuverte===n?null:n;
+rafraichirDetails();
+}
+
+function choisirOption(n,v){
+choixDetails[n]=v;
+optionOuverte=null;
+rafraichirDetails();
+}
+
 function basculerCouleur(btn){
 const c=btn.dataset.c;
-if(couleursChoisies.includes(c)) couleursChoisies=couleursChoisies.filter(x=>x!==c);
-else couleursChoisies=couleursChoisies.concat([c]);
-btn.classList.toggle('on',couleursChoisies.includes(c));
+couleursChoisies=couleursChoisies.includes(c)?couleursChoisies.filter(x=>x!==c):couleursChoisies.concat([c]);
+rafraichirDetails();
 }
 
 function reinitialiserDetails(){
-document.getElementById('dp-categorie').value='';
-document.getElementById('dp-etat').value='';
+choixDetails={categorie:'',etat:''};
 couleursChoisies=[];
-document.querySelectorAll('#dp-couleurs .puce').forEach(b=>b.classList.remove('on'));
+optionOuverte=null;
+rafraichirDetails();
 }
 
 async function chargerDetailsEdition(id){
@@ -48,10 +117,10 @@ const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=categorie,etat,couleu
 if(!r.ok) return;
 const p=(await r.json())[0];
 if(!p) return;
-document.getElementById('dp-categorie').value=p.categorie||'';
-document.getElementById('dp-etat').value=p.etat||'';
+choixDetails={categorie:p.categorie||'',etat:p.etat||''};
 couleursChoisies=p.couleurs?p.couleurs.split(',').map(x=>x.trim()).filter(Boolean):[];
-document.querySelectorAll('#dp-couleurs .puce').forEach(b=>b.classList.toggle('on',couleursChoisies.includes(b.dataset.c)));
+optionOuverte=null;
+rafraichirDetails();
 }catch(e){}
 }
 
@@ -78,8 +147,8 @@ const corps={
 nom:nom,
 prix:Number(prix).toLocaleString('fr-FR')+' FCFA',
 description:desc||null,
-categorie:document.getElementById('dp-categorie').value||'Autres',
-etat:document.getElementById('dp-etat').value||null,
+categorie:choixDetails.categorie||'Autres',
+etat:choixDetails.etat||null,
 couleurs:couleursChoisies.length?couleursChoisies.join(', '):null
 };
 const modification=editId!==null;
