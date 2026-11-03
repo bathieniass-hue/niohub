@@ -13,7 +13,7 @@ const COULEURS_PRODUIT=[
 {nom:"Gris",hex:"#9E9E9E"},
 {nom:"Rose",hex:"#F48FB1"}
 ];
-const LARGEUR_LIBELLE=74;
+const LARGEUR_LIBELLE=72;
 let choixDetails={categorie:'',etat:''};
 let couleursChoisies=[];
 
@@ -21,12 +21,14 @@ const styleDetails=document.createElement('style');
 styleDetails.textContent=`
 #dp-card{background:#fff;border:1px solid #E6DECB;border-radius:12px;overflow:hidden;margin-top:8px}
 .dp-row{display:grid;grid-template-columns:${LARGEUR_LIBELLE}px minmax(0,1fr) 14px;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box}
+#dp-card .dp-row > *{grid-column:auto !important;grid-row:auto !important;margin:0 !important;text-align:left !important}
+#dp-card .dp-chev{text-align:right !important}
 .dp-cliquable{cursor:pointer}
 #dp-card > .dp-row:first-child{border-top:0}
 .dp-label{color:#6B6254;font-size:13px;line-height:1.2}
-.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dp-valeur.vide{font-weight:bold;color:#9A9080}
-.dp-chev{font-size:16px;line-height:1;color:#1E1A14;text-align:right}
+.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1E1A14}
+.dp-valeur.dp-vide{font-weight:bold;color:#9A9080}
+.dp-chev{font-size:16px;line-height:1;color:#1E1A14}
 .dp-couleurs{display:flex;align-items:flex-start;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 0;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
 .dp-couleurs::-webkit-scrollbar{display:none}
 .dp-sw{flex-shrink:0;width:36px;min-height:0;height:auto;text-align:center;background:none;border:0;padding:0;margin:0;font-family:sans-serif;color:#1E1A14;font-size:10px;line-height:1}
@@ -53,17 +55,17 @@ carte.id='dp-card';
 carte.innerHTML=`
 <div class="dp-row dp-cliquable" id="dp-row-categorie" onclick="ouvrirOption('categorie',event)">
 <span class="dp-label">Catégorie</span>
-<span class="dp-valeur vide" id="dp-val-categorie">Choisir</span>
+<span class="dp-valeur dp-vide" id="dp-val-categorie">Choisir</span>
+<span class="dp-chev">›</span>
+</div>
+<div class="dp-row dp-cliquable" id="dp-row-etat" onclick="ouvrirOption('etat',event)">
+<span class="dp-label">État</span>
+<span class="dp-valeur dp-vide" id="dp-val-etat">Choisir</span>
 <span class="dp-chev">›</span>
 </div>
 <div class="dp-row">
 <span class="dp-label">Couleur</span>
 <div class="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="dp-sw" data-c="${c.nom}" onclick="basculerCouleur(this)"><div class="dp-pastille" style="background:${c.hex}"></div>${c.nom.toLowerCase()}</button>`).join('')}</div>
-<span class="dp-chev">›</span>
-</div>
-<div class="dp-row dp-cliquable" id="dp-row-etat" onclick="ouvrirOption('etat',event)">
-<span class="dp-label">État</span>
-<span class="dp-valeur vide" id="dp-val-etat">Choisir</span>
 <span class="dp-chev">›</span>
 </div>
 `;
@@ -91,7 +93,7 @@ function rafraichirDetails(){
 ['categorie','etat'].forEach(n=>{
 const val=document.getElementById('dp-val-'+n);
 val.textContent=choixDetails[n]||'Choisir';
-val.className='dp-valeur'+(choixDetails[n]?'':' vide');
+val.className='dp-valeur'+(choixDetails[n]?'':' dp-vide');
 });
 document.querySelectorAll('#dp-card .dp-sw').forEach(b=>b.classList.toggle('on',couleursChoisies.includes(b.dataset.c)));
 }
