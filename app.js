@@ -48,8 +48,92 @@ distants=lignes.map(l=>({id:l.id,user_id:l.user_id,nom:l.nom,prix:l.prix,desc:l.
 afficherGrille();
 }
 
+function requeteRecherche(){
+const el=document.getElementById('q');
+return el?el.value.trim().toLowerCase():'';
+}
+
 function afficherGrille(){
-document.getElementById('grid').innerHTML=tous().map((p,i)=>`<div class="card" onclick="ouvrir(${i})"><div class="img" style="background:${fond(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div></div></div>`).join('');
+const q=requeteRecherche();
+const liste=tous().map((p,i)=>({p,i})).filter(x=>!q||x.p.nom.toLowerCase().includes(q));
+const grille=document.getElementById('grid');
+if(!grille) return;
+if(liste.length){
+grille.innerHTML=liste.map(x=>`<div class="card" onclick="ouvrir(${x.i})"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
+}else{
+grille.innerHTML=q?`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`:`<div class="vide">Aucun produit pour l'instant.</div>`;
+}
+}
+
+function suggestions(q){
+const vus=new Set();
+const res=[];
+tous().forEach(p=>{
+const nom=String(p.nom||'').trim();
+const cle=nom.toLowerCase();
+if(!nom||vus.has(cle)||!cle.includes(q)) return;
+vus.add(cle);
+res.push(nom);
+});
+res.sort((a,b)=>{
+const sa=a.toLowerCase().startsWith(q)?0:1;
+const sb=b.toLowerCase().startsWith(q)?0:1;
+return sa-sb||a.localeCompare(b,'fr');
+});
+return res.slice(0,6);
+}
+
+function afficherSuggestions(){
+const q=requeteRecherche();
+const zone=document.getElementById('suggest');
+if(!zone) return;
+if(!q){zone.innerHTML='';return;}
+zone.innerHTML=suggestions(q).map(n=>{
+const i=n.toLowerCase().indexOf(q);
+const avant=esc(n.slice(0,i));
+const milieu=esc(n.slice(i,i+q.length));
+const apres=esc(n.slice(i+q.length));
+return `<button onclick="choisirSuggestion(this.dataset.nom)" data-nom="${esc(n)}">${avant}<b>${milieu}</b>${apres}</button>`;
+}).join('');
+}
+
+function choisirSuggestion(nom){
+document.getElementById('q').value=nom;
+document.getElementById('suggest').innerHTML='';
+afficherGrille();
+}
+
+function installerRecherche(){
+const ancien=document.querySelector('#accueil .search');
+if(!ancien||document.getElementById('q')) return;
+const zone=document.createElement('div');
+zone.className='recherche';
+zone.innerHTML='<input id="q" type="search" placeholder="Rechercher un produit" autocomplete="off"><div id="suggest"></div>';
+ancien.replaceWith(zone);
+const champ=document.getElementById('q');
+champ.addEventListener('input',()=>{afficherSuggestions();afficherGrille();});
+champ.addEventListener('keydown',e=>{
+if(e.key==='Enter'){
+document.getElementById('suggest').innerHTML='';
+afficherGrille();
+champ.blur();
+}
+});
+}
+
+function styleRecherche(){
+const st=document.createElement('style');
+st.textContent=`
+.recherche{position:relative;margin:0 20px}
+#q{width:100%;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif;outline:none}
+#q:focus{border-color:#0E6B47}
+#suggest{position:absolute;left:0;right:0;top:100%;margin-top:6px;background:#fff;border:1px solid #EDE5D3;border-radius:14px;box-shadow:0 10px 24px rgba(30,26,20,.12);z-index:20;overflow:hidden}
+#suggest button{display:block;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid #F3EEE2;background:#fff;font-size:14px;color:#1E1A14}
+#suggest button:last-child{border-bottom:0}
+#suggest b{color:#0E6B47}
+.vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
+`;
+document.head.appendChild(st);
 }
 
 function ouvrir(i){
@@ -185,5 +269,7 @@ await chargerProduits();
 retourVers(origineAjout);
 }
 
+styleRecherche();
+installerRecherche();
 chargerProduits();
 montrer('accueil');
