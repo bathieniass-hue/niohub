@@ -111,12 +111,13 @@
 </div>
 
 <div id="profil" class="page">
-<header><span style="font-weight:bold;font-size:20px">Profil</span><button class="petit" onclick="modifierProfil()">Modifier</button></header>
+<header><span style="font-weight:bold;font-size:20px">Profil</span><span></span></header>
 <div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center">
 <div class="avatar">N</div>
-<div><div class="nomboutique" style="font-size:18px">Utilisateur test</div><div style="font-size:13px;color:#6B6254">Mode test, sans compte</div></div>
+<div><div class="nomboutique" id="profil-nom" style="font-size:18px">Utilisateur test</div><div style="font-size:13px;color:#6B6254">Mode test, sans compte</div></div>
 </div>
 <div class="liste" style="margin-top:12px">
+<div class="ligne" onclick="modifierProfil()"><b style="flex:1">Modifier mon profil</b><span>›</span></div>
 <div class="ligne" onclick="voirBoutique()"><b style="flex:1">Ma boutique</b><span>›</span></div>
 <div class="ligne" onclick="voirAchats()"><b style="flex:1">Mes achats</b><span>›</span></div>
 <div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Adresses</b><span>›</span></div>
