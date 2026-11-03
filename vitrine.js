@@ -1,6 +1,6 @@
 const styleVitrine=document.createElement('style');
 styleVitrine.textContent=`
-#fd-bas{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid #EDE5D3}
+#fd-bas{width:100%;flex:0 0 100%;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid #EDE5D3}
 #fd-bas .fd-avis{width:auto !important;margin:0 !important;padding:5px 12px !important;font-size:12px !important;line-height:1.2 !important;min-height:0 !important;border:1px solid #0E6B47 !important;border-radius:14px !important;background:#fff !important;color:#0E6B47 !important;font-weight:bold !important;box-shadow:none !important}
 #fd-bas .fd-voirboutique{margin:0 !important;padding:0 !important;border:0 !important;background:none !important;font-size:13px;font-weight:bold;color:#0E6B47;font-family:sans-serif;cursor:pointer;white-space:nowrap}
 `;
@@ -76,6 +76,14 @@ if(!zone) return;
 if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
 });
 
+function trouverBlocBoutique(){
+const blocs=Array.from(document.querySelectorAll('#fiche .boutique'));
+const avecCarte=blocs.find(b=>b.querySelector('.avatar,.nomboutique'));
+if(avecCarte) return avecCarte;
+const avecTexte=blocs.find(b=>(b.textContent||'').trim().length>10);
+return avecTexte||blocs[blocs.length-1]||null;
+}
+
 function trouverBoutonFiche(motif){
 const fiche=document.getElementById('fiche');
 const rangee=document.getElementById('fd-bas');
@@ -85,17 +93,19 @@ return el?(el.closest('button,a')||el):null;
 }
 
 function rangerBlocBoutique(){
-const bloc=document.querySelector('#fiche .boutique');
+const bloc=trouverBlocBoutique();
 if(!bloc) return;
+bloc.style.flexWrap='wrap';
 let rangee=document.getElementById('fd-bas');
 if(!rangee){
 rangee=document.createElement('div');
 rangee.id='fd-bas';
 }
+if(rangee.parentElement===bloc&&rangee.querySelector('.fd-avis')&&rangee.querySelector('.fd-voirboutique')) return;
 const avis=trouverBoutonFiche(/voir les avis/i);
 if(avis){
 avis.classList.add('fd-avis');
-rangee.appendChild(avis);
+rangee.insertBefore(avis,rangee.firstChild);
 }
 if(!rangee.querySelector('.fd-voirboutique')){
 const vb=document.createElement('button');
@@ -107,7 +117,7 @@ if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voi
 };
 rangee.appendChild(vb);
 }
-bloc.appendChild(rangee);
+if(rangee.parentElement!==bloc) bloc.appendChild(rangee);
 }
 
 const afficherBoutiqueFicheAvantVitrine=afficherBoutiqueFiche;
@@ -119,5 +129,10 @@ rangerBlocBoutique();
 const ouvrirAvantVitrineBloc=ouvrir;
 ouvrir=function(i){
 ouvrirAvantVitrineBloc(i);
+rangerBlocBoutique();
 setTimeout(rangerBlocBoutique,300);
+setTimeout(rangerBlocBoutique,800);
 };
+
+const ficheObservee=document.getElementById('fiche');
+if(ficheObservee) new MutationObserver(()=>rangerBlocBoutique()).observe(ficheObservee,{childList:true,subtree:true});
