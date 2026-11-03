@@ -16,8 +16,9 @@ function majBoutonFavori(){
 const b=document.getElementById('btn-favori');
 if(!b) return;
 const est=lireFavoris().includes(ficheCle);
-b.textContent=est?'♥':'♡';
+b.textContent=est?'❤️':'♡';
 b.style.color=est?'#B4291A':'#6B6254';
+b.setAttribute('aria-label',est?'Retirer des favoris':'Ajouter aux favoris');
 }
 
 function basculerFavori(){
@@ -34,9 +35,8 @@ photo.style.position='relative';
 const b=document.createElement('button');
 b.id='btn-favori';
 b.type='button';
-b.setAttribute('aria-label','Ajouter aux favoris');
 b.onclick=basculerFavori;
-b.style.cssText='position:absolute;right:14px;bottom:14px;width:46px;height:46px;border-radius:23px;border:0;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:24px;line-height:46px;padding:0;cursor:pointer;';
+b.style.cssText='position:absolute;right:12px;bottom:10px;border:0;background:none;padding:0;font-size:30px;line-height:1;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.35);';
 photo.appendChild(b);
 }
 
