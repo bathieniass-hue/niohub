@@ -23,10 +23,6 @@ bloc.innerHTML=`
 <select id="dp-etat" class="sel-produit"><option value="">Choisir l'état</option>${ETATS_PRODUIT.map(e=>`<option>${e}</option>`).join('')}</select>
 <label>Couleurs disponibles</label>
 <div id="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="puce" data-c="${c}" onclick="basculerCouleur(this)">${c}</button>`).join('')}</div>
-<label>Détails personnels du vendeur</label>
-<input id="dp-vnom" placeholder="Nom complet">
-<input id="dp-vtel" type="tel" inputmode="tel" placeholder="Téléphone" style="margin-top:8px">
-<input id="dp-vadresse" placeholder="Adresse" style="margin-top:8px">
 `;
 bouton.insertAdjacentElement('beforebegin',bloc);
 }
@@ -44,26 +40,11 @@ document.getElementById('dp-categorie').value='';
 document.getElementById('dp-etat').value='';
 couleursChoisies=[];
 document.querySelectorAll('#dp-couleurs .puce').forEach(b=>b.classList.remove('on'));
-['dp-vnom','dp-vtel','dp-vadresse'].forEach(id=>document.getElementById(id).value='');
-}
-
-async function remplirVendeur(){
-const s=await sessionValide();
-if(!s||!s.user_id) return;
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=nom,telephone,adresse&user_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) return;
-const p=(await r.json())[0];
-if(!p) return;
-document.getElementById('dp-vnom').value=p.nom||'';
-document.getElementById('dp-vtel').value=p.telephone||'';
-document.getElementById('dp-vadresse').value=p.adresse||'';
-}catch(e){}
 }
 
 async function chargerDetailsEdition(id){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=categorie,etat,couleurs,vendeur_nom,vendeur_telephone,vendeur_adresse&id=eq.'+id+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
+const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=categorie,etat,couleurs&id=eq.'+id+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) return;
 const p=(await r.json())[0];
 if(!p) return;
@@ -71,9 +52,6 @@ document.getElementById('dp-categorie').value=p.categorie||'';
 document.getElementById('dp-etat').value=p.etat||'';
 couleursChoisies=p.couleurs?p.couleurs.split(',').map(x=>x.trim()).filter(Boolean):[];
 document.querySelectorAll('#dp-couleurs .puce').forEach(b=>b.classList.toggle('on',couleursChoisies.includes(b.dataset.c)));
-document.getElementById('dp-vnom').value=p.vendeur_nom||'';
-document.getElementById('dp-vtel').value=p.vendeur_telephone||'';
-document.getElementById('dp-vadresse').value=p.vendeur_adresse||'';
 }catch(e){}
 }
 
@@ -81,7 +59,6 @@ const voirAjoutAvantDetails=voirAjout;
 voirAjout=async function(origine){
 await voirAjoutAvantDetails(origine);
 reinitialiserDetails();
-await remplirVendeur();
 };
 
 const modifierProduitAvantDetails=modifierProduit;
@@ -103,10 +80,7 @@ prix:Number(prix).toLocaleString('fr-FR')+' FCFA',
 description:desc||null,
 categorie:document.getElementById('dp-categorie').value||'Autres',
 etat:document.getElementById('dp-etat').value||null,
-couleurs:couleursChoisies.length?couleursChoisies.join(', '):null,
-vendeur_nom:document.getElementById('dp-vnom').value.trim()||null,
-vendeur_telephone:document.getElementById('dp-vtel').value.trim()||null,
-vendeur_adresse:document.getElementById('dp-vadresse').value.trim()||null
+couleurs:couleursChoisies.length?couleursChoisies.join(', '):null
 };
 const modification=editId!==null;
 let url=SUPABASE_URL+'/rest/v1/produits';
