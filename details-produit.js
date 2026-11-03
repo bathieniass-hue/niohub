@@ -14,6 +14,8 @@ const COULEURS_PRODUIT=[
 {nom:"Rose",hex:"#F48FB1"}
 ];
 const LARGEUR_LIBELLE=72;
+const PRIX_MAX=100000000;
+const PHOTO_MAX=390000;
 let choixDetails={categorie:'',etat:''};
 let couleursChoisies=[];
 
@@ -145,16 +147,12 @@ couleursChoisies=[];
 rafraichirDetails();
 }
 
-async function chargerDetailsEdition(id){
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=categorie,etat,couleurs&id=eq.'+id+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok) return;
-const p=(await r.json())[0];
-if(!p) return;
+// À l'édition, les détails viennent des données déjà chargées (plus de 2e appel réseau
+// qui pouvait échouer et faire écraser la catégorie par "Autres").
+function remplirDetailsDepuis(p){
 choixDetails={categorie:p.categorie||'',etat:p.etat||''};
-couleursChoisies=p.couleurs?p.couleurs.split(',').map(x=>x.trim()).filter(Boolean):[];
+couleursChoisies=p.couleurs?String(p.couleurs).split(',').map(x=>x.trim()).filter(Boolean):[];
 rafraichirDetails();
-}catch(e){}
 }
 
 const voirAjoutAvantDetails=voirAjout;
@@ -166,19 +164,29 @@ reinitialiserDetails();
 const modifierProduitAvantDetails=modifierProduit;
 modifierProduit=async function(id){
 await modifierProduitAvantDetails(id);
-if(editId===id) await chargerDetailsEdition(id);
+if(editId===id){
+const p=distants.find(x=>x.id===id);
+if(p) remplirDetailsDepuis(p);
+}
 };
 
 publier=async function(){
+const bouton=document.getElementById('ajout-publier');
+if(bouton&&bouton.disabled) return;
 const s=await sessionValide();
 if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
 const nom=document.getElementById('nom').value.trim();
-const prix=document.getElementById('prix').value.trim();
+const prixSaisi=document.getElementById('prix').value.trim();
 const desc=document.getElementById('desc').value.trim();
-if(!nom||!prix){alert('Indiquez au moins le nom et le prix.');return;}
+if(!nom||!prixSaisi){alert('Indiquez au moins le nom et le prix.');return;}
+const prix=Math.round(Number(prixSaisi));
+if(!(prix>0)||prix>PRIX_MAX){alert('Le prix doit être un nombre entre 1 et '+PRIX_MAX.toLocaleString('fr-FR')+' FCFA.');return;}
+if(nom.length>100){alert('Le nom est trop long (100 caractères maximum).');return;}
+if(desc.length>2000){alert('La description est trop longue (2000 caractères maximum).');return;}
+if(photoChoisie&&photoChoisie.length>PHOTO_MAX){alert('Cette photo est trop lourde. Choisissez-en une plus légère.');return;}
 const corps={
 nom:nom,
-prix:Number(prix).toLocaleString('fr-FR')+' FCFA',
+prix:prix.toLocaleString('fr-FR')+' FCFA',
 description:desc||null,
 categorie:choixDetails.categorie||'Autres',
 etat:choixDetails.etat||null,
@@ -188,20 +196,29 @@ const modification=editId!==null;
 let url=SUPABASE_URL+'/rest/v1/produits';
 let methode='POST';
 if(modification){
-url+='?id=eq.'+editId;
+url+='?id=eq.'+editId+'&user_id=eq.'+s.user_id;
 methode='PATCH';
 if(photoChoisie) corps.photo=photoChoisie;
 }else{
 corps.photo=photoChoisie||null;
 corps.user_id=s.user_id;
 }
+const texteBouton=bouton?bouton.textContent:'';
+if(bouton){bouton.disabled=true;bouton.textContent='Envoi en cours…';}
 try{
-const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(corps)});
+const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'},body:JSON.stringify(corps)});
 if(!r.ok) throw new Error(r.status);
+if(modification){
+const lignes=await r.json();
+// Supabase répond "OK" même si la règle de sécurité bloque : on vérifie qu'une ligne a bien été modifiée
+if(!lignes.length) throw new Error('refusé');
+}
 }catch(e){
 alert('Erreur, enregistrement impossible. Réessayez.');
+if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 return;
 }
+if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 editId=null;
 await chargerProduits();
 retourVers(origineAjout);
