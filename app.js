@@ -1,7 +1,7 @@
 const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
 const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 
-const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil'];
+const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
 const VUES_MENU={accueil:0,boutique:1,mesproduits:1,'boutique-form':1,profil:2};
 
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
@@ -14,6 +14,8 @@ const defauts=[
 {nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
 ];
 let distants=[];
+let boutiquesCache=[];
+let suggestionsEnCours=[];
 let photoChoisie="";
 let photoExistante="";
 let editId=null;
@@ -38,6 +40,14 @@ window.scrollTo(0,0);
 function voirAccueil(){montrer('accueil');}
 function voirProfil(){montrer('profil');}
 
+async function chargerBoutiquesCache(){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc',{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok) throw new Error(r.status);
+boutiquesCache=await r.json();
+}catch(e){boutiquesCache=[];}
+}
+
 async function chargerProduits(){
 try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
@@ -45,6 +55,7 @@ if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 distants=lignes.map(l=>({id:l.id,user_id:l.user_id,nom:l.nom,prix:l.prix,desc:l.description||'Pas de description.',photo:l.photo||"",couleur:'#D9B26F'}));
 }catch(e){console.log(e);}
+await chargerBoutiquesCache();
 afficherGrille();
 }
 
@@ -53,11 +64,27 @@ const el=document.getElementById('q');
 return el?el.value.trim().toLowerCase():'';
 }
 
+function garantirBlocBoutiques(){
+let bloc=document.getElementById('boutiques-trouvees');
+if(!bloc){
+bloc=document.createElement('div');
+bloc.id='boutiques-trouvees';
+bloc.style.padding='0 20px';
+document.getElementById('grid').insertAdjacentElement('beforebegin',bloc);
+}
+return bloc;
+}
+
 function afficherGrille(){
 const q=requeteRecherche();
-const liste=tous().map((p,i)=>({p,i})).filter(x=>!q||x.p.nom.toLowerCase().includes(q));
 const grille=document.getElementById('grid');
 if(!grille) return;
+const bloc=garantirBlocBoutiques();
+const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includes(q)):[];
+bloc.innerHTML=trouvees.length
+?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${b.user_id}')"><div class="vignette" style="border-radius:28px;background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
+:'';
+const liste=tous().map((p,i)=>({p,i})).filter(x=>!q||x.p.nom.toLowerCase().includes(q));
 if(liste.length){
 grille.innerHTML=liste.map(x=>`<div class="card" onclick="ouvrir(${x.i})"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
 }else{
@@ -66,40 +93,54 @@ grille.innerHTML=q?`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »
 }
 
 function suggestions(q){
-const vus=new Set();
 const res=[];
+const vus=new Set();
+boutiquesCache.forEach(b=>{
+const nom=String(b.nom||'').trim();
+const cle='b:'+nom.toLowerCase();
+if(!nom||vus.has(cle)||!nom.toLowerCase().includes(q)) return;
+vus.add(cle);
+res.push({type:'boutique',nom:nom,userId:b.user_id});
+});
 tous().forEach(p=>{
 const nom=String(p.nom||'').trim();
-const cle=nom.toLowerCase();
-if(!nom||vus.has(cle)||!cle.includes(q)) return;
+const cle='p:'+nom.toLowerCase();
+if(!nom||vus.has(cle)||!nom.toLowerCase().includes(q)) return;
 vus.add(cle);
-res.push(nom);
+res.push({type:'produit',nom:nom});
 });
 res.sort((a,b)=>{
-const sa=a.toLowerCase().startsWith(q)?0:1;
-const sb=b.toLowerCase().startsWith(q)?0:1;
-return sa-sb||a.localeCompare(b,'fr');
+const sa=a.nom.toLowerCase().startsWith(q)?0:1;
+const sb=b.nom.toLowerCase().startsWith(q)?0:1;
+return sa-sb||a.nom.localeCompare(b.nom,'fr');
 });
-return res.slice(0,6);
+return res.slice(0,8);
 }
 
 function afficherSuggestions(){
 const q=requeteRecherche();
 const zone=document.getElementById('suggest');
 if(!zone) return;
-if(!q){zone.innerHTML='';return;}
-zone.innerHTML=suggestions(q).map(n=>{
-const i=n.toLowerCase().indexOf(q);
-const avant=esc(n.slice(0,i));
-const milieu=esc(n.slice(i,i+q.length));
-const apres=esc(n.slice(i+q.length));
-return `<button onclick="choisirSuggestion(this.dataset.nom)" data-nom="${esc(n)}">${avant}<b>${milieu}</b>${apres}</button>`;
+if(!q){zone.innerHTML='';suggestionsEnCours=[];return;}
+suggestionsEnCours=suggestions(q);
+zone.innerHTML=suggestionsEnCours.map((s,k)=>{
+const i=s.nom.toLowerCase().indexOf(q);
+const tag=s.type==='boutique'?'<span class="tag-b">Boutique</span>':'<span class="tag-p">Produit</span>';
+return `<button onclick="choisirSuggestion(${k})">${esc(s.nom.slice(0,i))}<b>${esc(s.nom.slice(i,i+q.length))}</b>${esc(s.nom.slice(i+q.length))}${tag}</button>`;
 }).join('');
 }
 
-function choisirSuggestion(nom){
-document.getElementById('q').value=nom;
+function choisirSuggestion(k){
+const s=suggestionsEnCours[k];
+if(!s) return;
 document.getElementById('suggest').innerHTML='';
+if(s.type==='boutique'){
+document.getElementById('q').value='';
+afficherGrille();
+voirVitrine(s.userId);
+return;
+}
+document.getElementById('q').value=s.nom;
 afficherGrille();
 }
 
@@ -108,7 +149,7 @@ const ancien=document.querySelector('#accueil .search');
 if(!ancien||document.getElementById('q')) return;
 const zone=document.createElement('div');
 zone.className='recherche';
-zone.innerHTML='<input id="q" type="search" placeholder="Rechercher un produit" autocomplete="off"><div id="suggest"></div>';
+zone.innerHTML='<input id="q" type="search" placeholder="Rechercher un produit ou une boutique" autocomplete="off"><div id="suggest"></div>';
 ancien.replaceWith(zone);
 const champ=document.getElementById('q');
 champ.addEventListener('input',()=>{afficherSuggestions();afficherGrille();});
@@ -121,7 +162,7 @@ champ.blur();
 });
 }
 
-function styleRecherche(){
+function styleAccueil(){
 const st=document.createElement('style');
 st.textContent=`
 .recherche{position:relative;margin:0 20px}
@@ -131,9 +172,72 @@ st.textContent=`
 #suggest button{display:block;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid #F3EEE2;background:#fff;font-size:14px;color:#1E1A14}
 #suggest button:last-child{border-bottom:0}
 #suggest b{color:#0E6B47}
+.tag-b,.tag-p{font-size:11px;font-weight:bold;padding:2px 6px;border-radius:8px;margin-left:6px}
+.tag-b{background:#E1F1E8;color:#0E6B47}
+.tag-p{background:#FFF1CC;color:#8A5A00}
+.titre-section{font-size:14px;font-weight:bold;margin:8px 0 6px;color:#6B6254}
 .vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
+#fiche .boutique{cursor:pointer}
 `;
 document.head.appendChild(st);
+}
+
+function creerPageVitrine(){
+if(document.getElementById('vitrine')) return;
+const p=document.createElement('div');
+p.id='vitrine';
+p.className='page';
+document.body.appendChild(p);
+}
+
+async function chargerBoutiqueDe(userId){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+userId+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok) throw new Error(r.status);
+return (await r.json())[0]||null;
+}catch(e){return null;}
+}
+
+async function voirVitrine(userId){
+if(!userId){alert('Cette boutique n\'est pas disponible.');return;}
+creerPageVitrine();
+const p=document.getElementById('vitrine');
+p.innerHTML='<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold;font-size:18px">Boutique</span><span></span></header><div id="vit-corps">Chargement…</div>';
+montrer('vitrine');
+const [b,avis]=await Promise.all([chargerBoutiqueDe(userId),chargerAvisVendeur(userId)]);
+const zone=document.getElementById('vit-corps');
+if(!zone) return;
+if(!b){zone.innerHTML='<div class="liste" style="margin-top:0">Cette boutique n\'est pas encore ouverte.</div>';return;}
+await chargerProduits();
+const prods=distants.filter(x=>x.user_id===userId);
+const tel=[b.telephone,b.telephone2].filter(Boolean);
+const num=String(tel[0]||'').replace(/\D/g,'');
+const wa=num?'https://wa.me/'+(num.length===9?'221'+num:num):'#';
+zone.innerHTML=`
+<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center">
+<div class="avatar" style="width:64px;height:64px;flex-shrink:0;background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':esc((b.nom||'N').charAt(0).toUpperCase())}</div>
+<div style="flex:1;min-width:0"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div>
+<div style="color:#F2B233;font-size:14px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div></div>
+</div>
+<div class="liste" style="margin-top:10px;font-size:13px">
+<div>${esc(b.adresse||'Adresse non indiquée')}</div>
+<div style="margin-top:4px">Tél : ${tel.length?tel.map(esc).join(' · '):'Non indiqué'}</div>
+<div style="margin-top:8px">${esc(b.description||'Pas de description.')}</div>
+</div>
+<div style="display:flex;gap:10px;margin-top:6px">
+<a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="tel:${esc(tel[0]||'')}">Appeler</a>
+<a class="btn2" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block;margin-top:0" href="${wa}" target="_blank">WhatsApp</a>
+</div>
+<label>Produits (${prods.length})</label>
+${prods.length?`<div class="grid" style="padding:6px 0 30px">${prods.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${x.id})"><div class="img" style="background:${fond(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`:'<div class="liste">Aucun produit publié pour l\'instant.</div>'}
+<label>Avis des clients</label>
+<div class="liste" style="margin-top:0">${avis.length?avis.map(a=>`<div style="padding:8px 0;border-bottom:1px solid #EDE5D3"><div style="font-weight:bold;font-size:14px">${esc(a.auteur)} <span style="color:#F2B233;font-weight:normal">${etoiles(a.note)}</span></div>${a.commentaire?`<div style="font-size:14px;margin-top:4px">${esc(a.commentaire)}</div>`:''}</div>`).join(''):'Aucun avis pour l\'instant.'}</div>
+<div style="font-size:12px;color:#6B6254;margin-top:8px">Pour donner un avis, ouvrez un produit de cette boutique.</div>`;
+}
+
+function ouvrirProduitVitrine(id){
+const i=tous().findIndex(x=>x.id===id);
+if(i>=0) ouvrir(i);
 }
 
 function ouvrir(i){
@@ -269,7 +373,13 @@ await chargerProduits();
 retourVers(origineAjout);
 }
 
-styleRecherche();
+styleAccueil();
 installerRecherche();
+creerPageVitrine();
+document.addEventListener('click',e=>{
+const z=e.target.closest?e.target.closest('#fiche .boutique'):null;
+if(!z) return;
+if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
+});
 chargerProduits();
 montrer('accueil');
