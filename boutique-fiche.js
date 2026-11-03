@@ -35,9 +35,9 @@ zone.innerHTML=`
 </div>
 </div>
 <div style="margin-top:12px;font-size:14px">${esc(b.description||'Pas de description.')}</div>
-<div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px 12px;margin-top:14px;font-size:13px">
+<div style="margin-top:14px;font-size:13px;line-height:1.6">
 <div>Tél : ${tel?esc(tel):'Non indiqué'}</div>
-<div style="text-align:right;margin-left:auto">Adresse : ${esc(b.adresse||'Non indiquée')}</div>
+<div>Adresse : ${esc(b.adresse||'Non indiquée')}</div>
 </div>
 </div>
 <button class="btn2" style="margin-top:12px" onclick="voirAvisRecus()">Avis reçus (${avis.length})</button>`;
