@@ -29,9 +29,9 @@ zone.innerHTML=`
 <div class="boutique" style="margin-top:0">
 <div style="display:flex;gap:14px;align-items:center">
 <div class="avatar" style="width:64px;height:64px;flex-shrink:0;background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':esc((b.nom||'N').charAt(0).toUpperCase())}</div>
-<div style="flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 10px">
+<div style="flex:1;min-width:0">
 <div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div>
-<div style="color:#F2B233;font-size:14px;white-space:nowrap">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span></div>
+<div style="color:#F2B233;font-size:14px;margin-top:2px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span></div>
 </div>
 </div>
 <div style="margin-top:12px;font-size:14px">${esc(b.description||'Pas de description.')}</div>
