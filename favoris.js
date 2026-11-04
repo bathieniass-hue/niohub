@@ -5,11 +5,24 @@ return p.id?'id:'+p.id:'nom:'+p.nom;
 }
 
 function lireFavoris(){
-try{return JSON.parse(localStorage.getItem('niohub_favoris')||'[]');}catch(e){return [];}
+try{
+const l=JSON.parse(localStorage.getItem('niohub_favoris')||'[]');
+return Array.isArray(l)?l:[];
+}catch(e){return [];}
 }
 
 function ecrireFavoris(liste){
-localStorage.setItem('niohub_favoris',JSON.stringify(liste));
+// Peut échouer en navigation privée ou si le stockage est plein : on ne bloque pas l'application
+try{localStorage.setItem('niohub_favoris',JSON.stringify(liste));}catch(e){}
+}
+
+// Retire des favoris les produits qui n'existent plus (supprimés par leur vendeur)
+function nettoyerFavoris(){
+if(chargementEchoue||!distants.length) return;
+const ids=new Set(distants.map(p=>'id:'+p.id));
+const favs=lireFavoris();
+const gardes=favs.filter(k=>!String(k).startsWith('id:')||ids.has(k));
+if(gardes.length!==favs.length) ecrireFavoris(gardes);
 }
 
 function dessinerCoeur(rempli){
