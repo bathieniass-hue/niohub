@@ -19,6 +19,7 @@ if(!b) return;
 const s=await sessionValide();
 if(!s||!s.user_id) return;
 const avis=await chargerAvisVendeur(s.user_id);
+if(avis.erreur) return;
 // Si l'utilisateur a changé d'écran ou de boutique entre-temps, on n'écrit rien
 if(boutiqueActuelle!==b) return;
 const nom=document.querySelector('#infos-boutique .nomboutique');
@@ -43,6 +44,10 @@ montrer('avis-recus');
 const avis=await chargerAvisVendeur(s.user_id);
 const zone=document.getElementById('ar-corps');
 if(!zone) return;
+if(avis.erreur){
+zone.innerHTML='Impossible de charger vos avis. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="voirAvisRecus()">Réessayer</button>';
+return;
+}
 if(!avis.length){
 zone.innerHTML='Vous n\'avez pas encore reçu d\'avis.';
 return;
