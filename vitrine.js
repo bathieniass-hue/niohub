@@ -69,7 +69,7 @@ zone.innerHTML=`
 </div>
 ${contact}
 <label>Produits (${prods.length})</label>
-${prods.length?`<div class="grid" style="padding:6px 0 30px">${prods.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${fond(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`:'<div class="liste">Aucun produit publié pour l\'instant.</div>'}
+${prods.length?`<div class="grid" style="padding:6px 0 30px">${prods.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${fondMini(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`:'<div class="liste">Aucun produit publié pour l\'instant.</div>'}
 <label>Avis des clients</label>
 <div class="liste" style="margin-top:0">${listeAvis}</div>
 <div style="font-size:12px;color:#6B6254;margin-top:8px">Pour donner un avis, ouvrez un produit de cette boutique.</div>`;
