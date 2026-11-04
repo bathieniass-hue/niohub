@@ -1,5 +1,7 @@
 let boutiqueActuelle=null;
 let logoBoutique="";
+let logoBlob=null;
+let logoApercuUrl=null;
 let commandesCache=[];
 let messagesCache=[];
 let origineDetail='boutique';
@@ -175,6 +177,7 @@ const s=await sessionValide();
 if(!s||!s.user_id){alert('Connectez-vous d\'abord dans Profil.');montrer('profil');return;}
 const b=boutiqueActuelle||{};
 logoBoutique=b.logo||"";
+logoBlob=null;
 const champNom=document.getElementById('bt-nom');
 const suggestion=nomComplet();
 champNom.placeholder=suggestion?'Chez '+suggestion:'Nom de la boutique';
@@ -190,31 +193,28 @@ montrer('boutique-form');
 
 function apercuLogo(src){
 const el=document.getElementById('bt-logo');
-const sur=urlSure(src);
+const sur=urlSure(src)||urlLocale(src);
 if(sur){el.textContent='';el.style.background='url('+sur+') center/cover no-repeat';}
 else{el.textContent='+ Logo';el.style.background='#fff';}
 }
 
-function choisirLogo(e){
+async function choisirLogo(e){
 const f=e.target.files[0];
+e.target.value='';
 if(!f) return;
 if(!f.type.startsWith('image/')){alert('Choisissez une image pour le logo.');return;}
-const lecteur=new FileReader();
-lecteur.onload=()=>{
-const img=new Image();
-img.onload=()=>{
-const echelle=Math.min(1,400/img.width);
-const c=document.createElement('canvas');
-c.width=img.width*echelle;
-c.height=img.height*echelle;
-c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-logoBoutique=c.toDataURL('image/jpeg',0.7);
-apercuLogo(logoBoutique);
-};
-img.onerror=()=>alert('Ce logo ne peut pas être lu. Essayez une autre image.');
-img.src=lecteur.result;
-};
-lecteur.readAsDataURL(f);
+try{
+const img=await chargerImageDepuis(f);
+logoBlob=await reduireImage(img,300,0.75);
+if(!logoBlob) throw new Error('image');
+}catch(err){
+logoBlob=null;
+alert('Ce logo ne peut pas être lu. Essayez une autre image.');
+return;
+}
+if(logoApercuUrl) URL.revokeObjectURL(logoApercuUrl);
+logoApercuUrl=URL.createObjectURL(logoBlob);
+apercuLogo(logoApercuUrl);
 }
 
 async function enregistrerBoutique(){
@@ -236,7 +236,7 @@ if(!telephoneValide(tel)){msg.textContent='Numéro de téléphone invalide (9 ch
 if(tel2&&!telephoneValide(tel2)){msg.textContent='Le deuxième numéro est invalide.';return;}
 if(adresse.length>200){msg.textContent='L\'adresse est trop longue (200 caractères maximum).';return;}
 if(description.length>1000){msg.textContent='La description est trop longue (1000 caractères maximum).';return;}
-if(logoBoutique&&logoBoutique.length>LOGO_MAX){msg.textContent='Ce logo est trop lourd. Choisissez-en un plus léger.';return;}
+if(logoBlob&&logoBlob.size>LOGO_MAX){msg.textContent='Ce logo est trop lourd. Choisissez-en un plus léger.';return;}
 const corps={
 nom:nom,
 telephone:tel,
@@ -253,7 +253,13 @@ const texteBouton=bouton?bouton.textContent:'';
 boutiqueEnCours=true;
 if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
 const fin=()=>{boutiqueEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}};
+let nouveauLogo=null;
 try{
+// Le logo part d'abord dans Supabase Storage ; la base ne garde que son adresse
+if(logoBlob){
+nouveauLogo=await televerserPhoto(logoBlob,null,s);
+corps.logo=nouveauLogo;
+}
 let r;
 if(modification){
 r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?id=eq.'+encodeURIComponent(boutiqueActuelle.id)+'&user_id=eq.'+s.user_id,{method:'PATCH',headers:entetes,body:JSON.stringify(corps)});
@@ -265,6 +271,7 @@ if(!lignes.length) throw new Error('refusé');
 r=await fetch(SUPABASE_URL+'/rest/v1/boutiques',{method:'POST',headers:entetes,body:JSON.stringify(corps)});
 if(r.status===409){
 // Une boutique existe déjà pour ce compte : on la recharge au lieu d'en créer une 2e
+if(nouveauLogo) await supprimerPhotoStockee(nouveauLogo,s);
 fin();
 await voirBoutique();
 return;
@@ -272,10 +279,13 @@ return;
 if(!r.ok) throw new Error(r.status);
 }
 }catch(e){
+if(nouveauLogo) await supprimerPhotoStockee(nouveauLogo,s);
 fin();
 msg.textContent='Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.';
 return;
 }
+// Logo remplacé : l'ancien est supprimé de Storage
+if(modification&&nouveauLogo&&boutiqueActuelle&&boutiqueActuelle.logo) await supprimerPhotoStockee(boutiqueActuelle.logo,s);
 fin();
 await voirBoutique();
 }
