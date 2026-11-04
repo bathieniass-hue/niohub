@@ -24,6 +24,7 @@ let photoExistante="";
 let editId=null;
 let origineAjout='accueil';
 let chargementEchoue=false;
+let categorieActive='';
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
@@ -116,13 +117,15 @@ const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includ
 bloc.innerHTML=trouvees.length
 ?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
 :'';
-const liste=tous().map((p,i)=>({p,i})).filter(x=>!q||x.p.nom.toLowerCase().includes(q));
+const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
 if(liste.length){
-grille.innerHTML=liste.map(x=>`<div class="card" onclick="ouvrir(${x.i})"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
+grille.innerHTML=liste.map(x=>`<div class="card" onclick="${x.p.id?'ouvrirParId('+Number(x.p.id)+')':'ouvrir('+x.i+')'}"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
 grille.innerHTML=`<div class="vide">Impossible de charger les produits. Vérifiez votre connexion et rouvrez l'application.</div>`;
+}else if(categorieActive){
+grille.innerHTML=`<div class="vide">Aucun produit dans la catégorie « ${esc(categorieActive)} »</div>`;
 }else{
 grille.innerHTML=`<div class="vide">Aucun produit pour l'instant.</div>`;
 }
@@ -224,6 +227,12 @@ document.getElementById('fprix').textContent=p.prix;
 document.getElementById('fnom').textContent=p.nom;
 document.getElementById('fdesc').textContent=p.desc;
 montrer('fiche');
+}
+
+// Ouvre un produit par son identifiant : reste correct même si la liste change entre-temps
+function ouvrirParId(id){
+const i=tous().findIndex(x=>x.id===id);
+if(i>=0) ouvrir(i);
 }
 
 function retourVers(v){
