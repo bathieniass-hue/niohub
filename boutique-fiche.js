@@ -11,42 +11,27 @@ document.body.appendChild(p);
 }
 creerPageAvisRecus();
 
-async function rendreFicheBoutique(){
-const zone=document.getElementById('infos-boutique');
-if(!zone) return;
+// boutique.js affiche déjà la carte de la boutique (avec gestion des erreurs réseau).
+// Ici on ajoute seulement la note et le bouton "Avis reçus", avec un seul appel réseau (les avis).
+async function completerFicheBoutique(){
+const b=boutiqueActuelle;
+if(!b) return;
 const s=await sessionValide();
-if(!s||!s.user_id){
-zone.innerHTML='<div class="liste" style="margin-top:0">Connectez-vous pour voir votre boutique.</div>';
-return;
-}
-const [b,avis]=await Promise.all([chargerBoutiqueDe(s.user_id),chargerAvisVendeur(s.user_id)]);
-if(!b){
-zone.innerHTML='<div class="liste" style="margin-top:0">Vous n\'avez pas encore de boutique. Touchez Modifier pour l\'ouvrir.</div>';
-return;
-}
-const tel=[b.telephone,b.telephone2].filter(Boolean).join(' / ');
-zone.innerHTML=`
-<div class="boutique" style="margin-top:0">
-<div style="display:flex;gap:14px;align-items:center">
-<div class="avatar" style="width:64px;height:64px;flex-shrink:0;background:${b.logo?'url('+b.logo+') center/cover':'#F2B233'}">${b.logo?'':esc((b.nom||'N').charAt(0).toUpperCase())}</div>
-<div style="flex:1;min-width:0">
-<div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div>
-<div style="color:#F2B233;font-size:14px;margin-top:2px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span></div>
-</div>
-</div>
-<div style="margin-top:12px;font-size:14px">${esc(b.description||'Pas de description.')}</div>
-<div style="margin-top:14px;font-size:13px;line-height:1.6">
-<div>Tél : ${tel?esc(tel):'Non indiqué'}</div>
-<div>Adresse : ${esc(b.adresse||'Non indiquée')}</div>
-</div>
-</div>
-<button class="btn2" style="margin-top:12px" onclick="voirAvisRecus()">Avis reçus (${avis.length})</button>`;
+if(!s||!s.user_id) return;
+const avis=await chargerAvisVendeur(s.user_id);
+// Si l'utilisateur a changé d'écran ou de boutique entre-temps, on n'écrit rien
+if(boutiqueActuelle!==b) return;
+const nom=document.querySelector('#infos-boutique .nomboutique');
+const actions=document.getElementById('boutique-actions');
+if(!nom||!actions) return;
+nom.insertAdjacentHTML('afterend',`<div style="color:#F2B233;font-size:14px;margin-top:2px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div>`);
+actions.insertAdjacentHTML('beforeend',`<button class="btn2" onclick="voirAvisRecus()">Avis reçus (${avis.length})</button>`);
 }
 
 const voirBoutiqueAvantAvis=voirBoutique;
 voirBoutique=async function(){
 await voirBoutiqueAvantAvis();
-await rendreFicheBoutique();
+await completerFicheBoutique();
 };
 
 async function voirAvisRecus(){
