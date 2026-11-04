@@ -183,7 +183,7 @@ const prix=Math.round(Number(prixSaisi));
 if(!(prix>0)||prix>PRIX_MAX){alert('Le prix doit être un nombre entre 1 et '+PRIX_MAX.toLocaleString('fr-FR')+' FCFA.');return;}
 if(nom.length>100){alert('Le nom est trop long (100 caractères maximum).');return;}
 if(desc.length>2000){alert('La description est trop longue (2000 caractères maximum).');return;}
-if(photoChoisie&&photoChoisie.length>PHOTO_MAX){alert('Cette photo est trop lourde. Choisissez-en une plus légère.');return;}
+if(photoBlob&&photoBlob.size>PHOTO_MAX){alert('Cette photo est trop lourde. Choisissez-en une plus légère.');return;}
 const corps={
 nom:nom,
 prix:prix.toLocaleString('fr-FR')+' FCFA',
@@ -198,14 +198,19 @@ let methode='POST';
 if(modification){
 url+='?id=eq.'+editId+'&user_id=eq.'+s.user_id;
 methode='PATCH';
-if(photoChoisie) corps.photo=photoChoisie;
 }else{
-corps.photo=photoChoisie||null;
+corps.photo=null;
 corps.user_id=s.user_id;
 }
 const texteBouton=bouton?bouton.textContent:'';
 if(bouton){bouton.disabled=true;bouton.textContent='Envoi en cours…';}
+let nouvelleUrl=null;
 try{
+// La photo part d'abord dans Supabase Storage ; la base ne garde que son adresse
+if(photoBlob){
+nouvelleUrl=await televerserPhoto(photoBlob,photoMiniBlob,s);
+corps.photo=nouvelleUrl;
+}
 const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'},body:JSON.stringify(corps)});
 if(!r.ok) throw new Error(r.status);
 if(modification){
@@ -214,10 +219,14 @@ const lignes=await r.json();
 if(!lignes.length) throw new Error('refusé');
 }
 }catch(e){
-alert('Erreur, enregistrement impossible. Réessayez.');
+// Échec après l'envoi de la photo : on la retire pour ne pas laisser de fichier orphelin
+if(nouvelleUrl) await supprimerPhotoStockee(nouvelleUrl,s);
+alert('Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.');
 if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 return;
 }
+// Photo remplacée : l'ancienne est supprimée de Storage
+if(modification&&nouvelleUrl&&photoExistante) await supprimerPhotoStockee(photoExistante,s);
 if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 editId=null;
 await chargerProduits();
