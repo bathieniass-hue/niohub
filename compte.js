@@ -6,6 +6,19 @@ function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s
 function oublierSession(){localStorage.removeItem(CLE_SESSION);}
 function nomComplet(){const s=lireSession();return (s&&s.nom)||'';}
 
+// Met à jour le profil gardé en mémoire sur le téléphone (nom, téléphone, adresse)
+function mettreAJourSession(champs){
+const s=lireSession();
+if(!s) return;
+Object.assign(s,champs);
+enregistrerSession(s);
+}
+
+function telephoneValide(t){
+const n=String(t||'').replace(/\D/g,'');
+return n.length>=9&&n.length<=15;
+}
+
 function sauverTokens(j){
 const anc=lireSession()||{};
 const meme=!j.user||anc.user_id===j.user.id;
@@ -31,18 +44,36 @@ if(!s||!s.access_token) return null;
 if(s.expires_at-60>Date.now()/1000) return s;
 try{
 const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
-if(!r.ok){oublierSession();return null;}
+if(!r.ok){
+// On ne déconnecte que si le jeton est vraiment refusé, pas pour une panne passagère du serveur
+if(r.status===400||r.status===401||r.status===403){oublierSession();return null;}
+return s;
+}
 return sauverTokens(await r.json());
 }catch(e){return s;}
 }
 
+// Distingue "pas de profil" d'une "erreur réseau" pour ne jamais redemander un profil qui existe déjà
 async function chargerProfil(s){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) return null;
+if(!r.ok) return {erreur:true};
 const lignes=await r.json();
-return lignes[0]||null;
-}catch(e){return null;}
+return {profil:lignes[0]||null};
+}catch(e){return {erreur:true};}
+}
+
+// Retourne 'ok', 'creer' (aucun profil) ou 'erreur' (réseau)
+async function assurerProfil(s){
+if(s.nom) return 'ok';
+const res=await chargerProfil(s);
+if(res.erreur) return 'erreur';
+if(!res.profil) return 'creer';
+s.nom=res.profil.nom;
+s.telephone=res.profil.telephone;
+s.adresse=res.profil.adresse||null;
+enregistrerSession(s);
+return 'ok';
 }
 
 function injecterStyle(){
@@ -130,18 +161,27 @@ montrer('auth');
 rendrerBoutonGoogle();
 }
 
+function afficherErreurReseau(){
+document.getElementById('auth-corps').innerHTML=`
+<h2>Connexion impossible</h2>
+<p>Nous n'arrivons pas à joindre le serveur. Vérifiez votre connexion internet puis réessayez.</p>
+<button class="btn-plein" onclick="verifierAcces()">Réessayer</button>
+<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
+montrer('auth');
+}
+
 function afficherCompletion(){
 document.getElementById('auth-corps').innerHTML=`
 <h2>Presque terminé</h2>
 <p>Complétez votre profil pour commencer. Ces informations serviront à vos achats et à votre boutique.</p>
 <div class="auth-champs">
-<label>Prénom</label><input id="p-prenom" placeholder="Ex. Fatou">
-<label>Nom</label><input id="p-nom" placeholder="Ex. Diop">
-<label>Téléphone</label><input id="p-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
-<label>Adresse (facultatif)</label><input id="p-adresse" placeholder="Quartier, repère">
+<label>Prénom</label><input id="p-prenom" placeholder="Ex. Fatou" maxlength="40">
+<label>Nom</label><input id="p-nom" placeholder="Ex. Diop" maxlength="40">
+<label>Téléphone</label><input id="p-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67" maxlength="20">
+<label>Adresse (facultatif)</label><input id="p-adresse" placeholder="Quartier, repère" maxlength="200">
 </div>
 <div id="c-msg" class="msg"></div>
-<button class="btn-plein" onclick="creerProfil()">Enregistrer mon profil</button>
+<button id="p-valider" class="btn-plein" onclick="creerProfil()">Enregistrer mon profil</button>
 <button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
 montrer('auth');
 }
@@ -163,18 +203,16 @@ if(msg) msg.textContent='Connexion impossible. Réessayez.';
 async function verifierAcces(){
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
-if(!s.nom){
-const p=await chargerProfil(s);
-if(!p){afficherCompletion();return;}
-s.nom=p.nom;
-s.telephone=p.telephone;
-s.adresse=p.adresse||null;
-enregistrerSession(s);
-}
+const etat=await assurerProfil(s);
+if(etat==='erreur'){afficherErreurReseau();return;}
+if(etat==='creer'){afficherCompletion();return;}
 montrer('accueil');
 }
 
+let profilEnCours=false;
+
 async function creerProfil(){
+if(profilEnCours) return;
 const msg=document.getElementById('c-msg');
 msg.textContent='';
 const prenom=document.getElementById('p-prenom').value.trim();
@@ -182,16 +220,33 @@ const nom=document.getElementById('p-nom').value.trim();
 const tel=document.getElementById('p-tel').value.trim();
 const adresse=document.getElementById('p-adresse').value.trim();
 if(!prenom||!nom||!tel){msg.textContent='Indiquez votre prénom, votre nom et votre téléphone.';return;}
+if(!telephoneValide(tel)){msg.textContent='Numéro de téléphone invalide (9 chiffres, ex. 77 123 45 67).';return;}
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
 const complet=prenom+' '+nom;
+const bouton=document.getElementById('p-valider');
+profilEnCours=true;
+if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
+const fin=()=>{profilEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent='Enregistrer mon profil';}};
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null})});
-if(!r.ok) throw new Error(r.status);
-}catch(e){
-msg.textContent='Profil non enregistré. Réessayez.';
+if(r.status===409){
+// Le profil existe déjà (double envoi ou autre appareil) : on le récupère au lieu d'échouer
+const res=await chargerProfil(s);
+if(res.profil){
+enregistrerSession(Object.assign(s,{nom:res.profil.nom,telephone:res.profil.telephone,adresse:res.profil.adresse||null}));
+fin();
+montrer('accueil');
 return;
 }
+}
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+fin();
+msg.textContent='Profil non enregistré. Vérifiez votre connexion et réessayez.';
+return;
+}
+fin();
 s.nom=complet;
 s.telephone=tel;
 s.adresse=adresse||null;
@@ -202,10 +257,15 @@ montrer('accueil');
 async function afficherProfilCarte(){
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
-if(!s.nom){afficherCompletion();return;}
 const zone=document.getElementById('compte-zone');
+const etat=await assurerProfil(s);
+if(etat==='creer'){afficherCompletion();return;}
+if(etat==='erreur'){
+zone.innerHTML='<div class="liste" style="margin-top:0">Impossible de charger votre profil. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="afficherProfilCarte()">Réessayer</button></div>';
+return;
+}
 const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone||'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div><button class="btn" style="margin-top:12px" onclick="seDeconnecter()">Se déconnecter</button>`;
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone||'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
 }
 
 function seDeconnecter(){
