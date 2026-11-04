@@ -65,7 +65,7 @@ nettoyerFavoris();
 const favs=lireFavoris();
 const liste=tous().filter(p=>favs.includes(cleProduit(p)));
 const corps=liste.length
-?`<div class="grid" style="padding:6px 0 30px">${liste.map(p=>`<div class="card" onclick="${p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+tous().indexOf(p)+')'}"><div class="img" style="background:${fond(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div></div></div>`).join('')}</div>`
+?`<div class="grid" style="padding:6px 0 30px">${liste.map(p=>`<div class="card" onclick="${p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+tous().indexOf(p)+')'}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div></div></div>`).join('')}</div>`
 :'<div class="liste" style="margin-top:20px">Aucun favori pour l\'instant. Touchez le cœur sur un produit pour le garder ici.</div>';
 page.innerHTML=`<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold;font-size:20px">Favoris</span><span></span></header>${corps}`;
 }
