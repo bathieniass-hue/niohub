@@ -15,25 +15,8 @@ styleFicheDetails.textContent=`
 `;
 document.head.appendChild(styleFicheDetails);
 
-const chargerProduitsAvantFiche=chargerProduits;
-chargerProduits=async function(){
-await chargerProduitsAvantFiche();
-await ajouterDetailsProduits();
-};
-
-async function ajouterDetailsProduits(){
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=id,categorie,etat,couleurs',{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok) return;
-const lignes=await r.json();
-const par={};
-lignes.forEach(l=>{par[l.id]=l;});
-distants.forEach(p=>{
-const l=par[p.id];
-if(l){p.categorie=l.categorie;p.etat=l.etat;p.couleurs=l.couleurs;}
-});
-}catch(e){}
-}
+// La catégorie, l'état et les couleurs sont déjà chargés avec les produits par app.js :
+// plus d'appel réseau supplémentaire, et plus de rechargement du catalogue au démarrage.
 
 function arrangerFiche(p){
 const corps=document.querySelector('#fiche .corps');
@@ -80,5 +63,3 @@ ouvrir=function(i){
 ouvrirAvantFiche(i);
 arrangerFiche(tous()[i]);
 };
-
-chargerProduits();
