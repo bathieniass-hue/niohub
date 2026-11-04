@@ -19,8 +19,10 @@ const defauts=[
 let distants=[];
 let boutiquesCache=[];
 let suggestionsEnCours=[];
-let photoChoisie="";
+let photoBlob=null;
+let photoMiniBlob=null;
 let photoExistante="";
+let apercuUrl=null;
 let editId=null;
 let origineAjout='accueil';
 let chargementEchoue=false;
@@ -42,6 +44,70 @@ const s=urlSure(u);
 return s?'url('+s+') center/cover no-repeat':defaut;
 }
 function fond(p){return fondImage(p.photo,p.couleur);}
+
+// ---- Photos stockées dans Supabase Storage (bucket "photos") ----
+const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
+
+// Aperçu local (blob:) créé par l'application elle-même, jamais venant de la base
+function urlLocale(u){
+const t=String(u||'');
+return /^blob:[A-Za-z0-9:\/.\-]+$/.test(t)?t:'';
+}
+
+// Chaque photo de produit existe en deux tailles : abc.jpg (fiche) et abc_m.jpg (miniature des listes)
+function urlMiniature(u){
+const t=String(u||'');
+return t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')?t.replace(/\.jpg$/,'_m.jpg'):t;
+}
+function fondMini(p){return fondImage(urlMiniature(p.photo),p.couleur);}
+
+function chargerImageDepuis(fichier){
+return new Promise((ok,ko)=>{
+const adresse=URL.createObjectURL(fichier);
+const img=new Image();
+img.onload=()=>{URL.revokeObjectURL(adresse);ok(img);};
+img.onerror=()=>{URL.revokeObjectURL(adresse);ko(new Error('lecture'));};
+img.src=adresse;
+});
+}
+
+function reduireImage(img,largeurMax,qualite){
+const echelle=Math.min(1,largeurMax/img.width);
+const c=document.createElement('canvas');
+c.width=Math.max(1,Math.round(img.width*echelle));
+c.height=Math.max(1,Math.round(img.height*echelle));
+c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
+}
+
+async function televerserFichier(chemin,blob,s){
+const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg'},body:blob});
+if(!r.ok) throw new Error(r.status);
+}
+
+// Envoie la photo (et sa miniature si fournie) dans le dossier de l'utilisateur.
+// Retourne l'adresse publique de la grande photo.
+async function televerserPhoto(blob,mini,s){
+const base=s.user_id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+await televerserFichier(base+'.jpg',blob,s);
+if(mini){
+try{await televerserFichier(base+'_m.jpg',mini,s);}
+catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.jpg',s);throw e;}
+}
+return PREFIXE_PHOTOS+base+'.jpg';
+}
+
+// Supprime une photo de Storage (et sa miniature). Sans effet pour les anciennes photos stockées dans la base.
+async function supprimerPhotoStockee(url,s){
+const t=String(url||'');
+if(!t.startsWith(PREFIXE_PHOTOS)) return;
+const chemin=t.slice(PREFIXE_PHOTOS.length);
+const chemins=[chemin];
+if(chemin.endsWith('.jpg')&&!chemin.endsWith('_m.jpg')) chemins.push(chemin.replace(/\.jpg$/,'_m.jpg'));
+try{
+await fetch(SUPABASE_URL+'/storage/v1/object/photos',{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({prefixes:chemins})});
+}catch(e){}
+}
 
 function montrer(vue){
 VUES.forEach(v=>{const el=document.getElementById(v);if(el)el.style.display=v===vue?'block':'none';});
@@ -119,7 +185,7 @@ bloc.innerHTML=trouvees.length
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
 if(liste.length){
-grille.innerHTML=liste.map(x=>`<div class="card" onclick="${x.p.id?'ouvrirParId('+Number(x.p.id)+')':'ouvrir('+x.i+')'}"><div class="img" style="background:${fond(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
+grille.innerHTML=liste.map(x=>`<div class="card" onclick="${x.p.id?'ouvrirParId('+Number(x.p.id)+')':'ouvrir('+x.i+')'}"><div class="img" style="background:${fondMini(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
@@ -250,13 +316,13 @@ await chargerProduits();
 if(!s||!s.user_id){zone.textContent='Connectez-vous dans Profil pour voir vos produits.';return;}
 const mes=distants.filter(l=>l.user_id===s.user_id);
 zone.innerHTML=mes.length
-?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${fondImage(l.photo,'#D9B26F').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${Number(l.id)})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${Number(l.id)})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
+?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${fondImage(urlMiniature(l.photo),'#D9B26F').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${Number(l.id)})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${Number(l.id)})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
 :"Vous n'avez pas encore de produit publié.";
 }
 
 function remettreApercu(photo){
 const ap=document.getElementById('apercu');
-const s=urlSure(photo);
+const s=urlSure(photo)||urlLocale(photo);
 if(s){ap.textContent="";ap.style.background='url('+s+') center/cover no-repeat';}
 else{ap.textContent="+ Choisir une photo";ap.style.background="#fff";}
 }
@@ -266,7 +332,8 @@ const s=await sessionValide();
 if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier un produit.');montrer('profil');return;}
 origineAjout=origine||'accueil';
 editId=null;
-photoChoisie="";
+photoBlob=null;
+photoMiniBlob=null;
 photoExistante="";
 document.getElementById('ajout-titre').textContent='Ajouter un produit';
 document.getElementById('ajout-publier').textContent='Publier';
@@ -283,7 +350,8 @@ const p=distants.find(x=>x.id===id);
 if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez modifier que vos produits.');return;}
 editId=p.id;
 origineAjout='mesproduits';
-photoChoisie="";
+photoBlob=null;
+photoMiniBlob=null;
 photoExistante=p.photo||"";
 document.getElementById('ajout-titre').textContent='Modifier le produit';
 document.getElementById('ajout-publier').textContent='Enregistrer les modifications';
@@ -309,29 +377,29 @@ if(!lignes.length) throw new Error('refusé');
 alert('Suppression impossible. Réessayez.');
 return;
 }
+await supprimerPhotoStockee(p.photo,s);
 voirMesProduits();
 }
 
-function choisirPhoto(e){
+async function choisirPhoto(e){
 const f=e.target.files[0];
-if(!f)return;
+e.target.value='';
+if(!f) return;
 if(!f.type.startsWith('image/')){alert('Choisissez une photo (image).');return;}
-const lecteur=new FileReader();
-lecteur.onload=()=>{
-const img=new Image();
-img.onload=()=>{
-const echelle=Math.min(1,600/img.width);
-const c=document.createElement('canvas');
-c.width=img.width*echelle;
-c.height=img.height*echelle;
-c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-photoChoisie=c.toDataURL('image/jpeg',0.7);
-remettreApercu(photoChoisie);
-};
-img.onerror=()=>alert('Cette photo ne peut pas être lue. Essayez-en une autre.');
-img.src=lecteur.result;
-};
-lecteur.readAsDataURL(f);
+try{
+const img=await chargerImageDepuis(f);
+photoBlob=await reduireImage(img,800,0.75);
+photoMiniBlob=await reduireImage(img,360,0.7);
+if(!photoBlob||!photoMiniBlob) throw new Error('image');
+}catch(err){
+photoBlob=null;
+photoMiniBlob=null;
+alert('Cette photo ne peut pas être lue. Essayez-en une autre.');
+return;
+}
+if(apercuUrl) URL.revokeObjectURL(apercuUrl);
+apercuUrl=URL.createObjectURL(photoBlob);
+remettreApercu(apercuUrl);
 }
 
 // publier() est définie dans details-produit.js (catégorie, état, couleurs).
