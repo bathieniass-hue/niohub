@@ -1,4 +1,6 @@
 *{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+button{-webkit-tap-highlight-color:transparent}
 body{margin:0 auto;max-width:430px;min-height:100vh;font-family:sans-serif;background:#FBF7EE;color:#1E1A14}
 header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
 h1{margin:0;color:#0E6B47;font-size:26px}
@@ -40,3 +42,11 @@ nav button.on{color:#0E6B47;font-weight:bold}
 .petit{height:40px;padding:0 14px;border:1.5px solid #0E6B47;border-radius:10px;background:#fff;color:#0E6B47;font-weight:bold;font-size:14px}
 .btn2{width:100%;height:52px;border-radius:12px;background:#fff;color:#0E6B47;border:1.5px solid #0E6B47;font-size:15px;font-weight:bold;margin-top:10px}
 .msg{color:#B4291A;font-size:14px;margin-top:10px;min-height:20px}
+
+/* Boutons désactivés pendant un envoi (publier, commander, enregistrer...) */
+.btn:disabled,.btn2:disabled,.btn-plein:disabled{opacity:.6;cursor:default}
+
+/* Format des photos (ancien format-photo.js) */
+#apercu,#fphoto,.card .img{aspect-ratio:9/10 !important;height:auto !important;width:100%}
+.card{height:auto !important;display:flex;flex-direction:column}
+.card .info{position:static !important;padding:8px 4px 4px !important}
