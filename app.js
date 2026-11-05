@@ -81,7 +81,7 @@ return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
 }
 
 async function televerserFichier(chemin,blob,s){
-const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg'},body:blob});
+const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
 if(!r.ok) throw new Error(r.status);
 }
 
