@@ -81,7 +81,7 @@ const st=document.createElement('style');
 st.textContent=`
 #auth{display:none;position:fixed;top:0;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;overflow-y:auto;background:#FBF7EE;z-index:50}
 .auth-haut{background:linear-gradient(160deg,#0E6B47 0%,#0A4D33 100%);color:#fff;padding:60px 24px 90px;text-align:center;border-radius:0 0 32px 32px}
-.auth-logo{width:72px;height:72px;margin:0 auto 14px;border-radius:24px;background:#F2B233;color:#1E1A14;font-size:34px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.auth-logo{display:block;width:96px;height:96px;margin:0 auto 10px;object-fit:contain}
 .auth-titre{margin:0;font-size:28px;font-weight:800;color:#fff}
 .auth-sous{margin-top:8px;font-size:14px;line-height:1.5;opacity:.92}
 .auth-carte{background:#fff;margin:-60px 20px 30px;padding:24px 20px;border-radius:24px;border:1px solid #EDE5D3;box-shadow:0 12px 32px rgba(30,26,20,.12)}
@@ -100,7 +100,7 @@ document.head.appendChild(st);
 function construireAuth(){
 const a=document.createElement('div');
 a.id='auth';
-a.innerHTML=`<div class="auth-haut"><div class="auth-logo">N</div><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
+a.innerHTML=`<div class="auth-haut"><img class="auth-logo" src="logo-n.png" alt="NioHub"><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
 document.body.appendChild(a);
 }
 
