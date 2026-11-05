@@ -156,7 +156,7 @@ document.getElementById('auth-corps').innerHTML=`
 <p>Connectez-vous pour acheter, vendre et gérer votre boutique en toute sécurité.</p>
 <div class="g-enveloppe"><div id="g-bouton"></div></div>
 <div id="c-msg" class="msg"></div>
-<div class="auth-pied">En continuant, vous acceptez les conditions d'utilisation de NioHub.</div>`;
+<div class="auth-pied">En continuant, vous acceptez les <a href="conditions.html" target="_blank" rel="noopener" style="color:#0E6B47;font-weight:bold">conditions d'utilisation et la politique de confidentialité</a> de NioHub.</div>`;
 montrer('auth');
 rendrerBoutonGoogle();
 }

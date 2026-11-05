@@ -4,7 +4,7 @@
 const VERSION='niohub-v1';
 const FICHIERS=[
 './','index.html','style.css','manifest.json',
-'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
+'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png','conditions.html',
 'app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
 'vitrine.js','profil.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','fiche-details.js','pwa.js'
 ];
