@@ -1,5 +1,8 @@
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior-y:contain}
+body{overscroll-behavior-y:contain}
+/* 16 px minimum : en dessous, l'iPhone zoome tout seul quand on touche un champ */
+input,textarea,select{font-size:16px !important}
 button{-webkit-tap-highlight-color:transparent}
 body{margin:0 auto;max-width:430px;min-height:100vh;font-family:sans-serif;background:#FBF7EE;color:#1E1A14}
 header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
