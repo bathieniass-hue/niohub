@@ -1,5 +1,5 @@
 // NioHub : installation, mises à jour et actualisation de l'application.
-const VERSION_APP='d954348618'; // remplacé automatiquement à chaque livraison
+const VERSION_APP='4735143223'; // remplacé automatiquement à chaque livraison
 let DELAI_RETOUR=60000;  // actualiser les produits si l'application revient après plus d'1 minute
 let invitationInstall=null;
 
