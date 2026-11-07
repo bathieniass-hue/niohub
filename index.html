@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>NioHub</title>
 <meta name="description" content="Achetez et vendez près de chez vous, en toute confiance.">
 <meta name="theme-color" content="#0E6B47">
@@ -18,14 +18,16 @@
 <body>
 
 <div id="accueil">
-<header><h1>NioHub</h1><button class="plus" onclick="voirAjout('accueil')">+</button></header>
+<div id="haut">
+<div class="repliable" id="rep-entete"><div class="interieur"><header><h1>NioHub</h1><button class="plus" onclick="voirAjout('accueil')">+</button></header></div></div>
 <div class="search">Rechercher un produit</div>
-<div class="cats" id="cats"></div>
+<div class="repliable" id="rep-cats"><div class="interieur"><div class="cats" id="cats"></div></div></div>
+</div>
 <div class="grid" id="grid"></div>
 </div>
 
 <div id="fiche" class="fiche">
-<header><button class="retour" onclick="voirAccueil()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
+<header><button class="retour" onclick="fermerFiche()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
 <div class="photo" id="fphoto"></div>
 <div class="corps">
 <div class="prix" id="fprix"></div>
@@ -39,24 +41,13 @@
 </div>
 </div>
 
-<div id="message" class="page">
-<header><button class="retour" onclick="retourFicheMessage()">←</button><span style="font-weight:bold">Message au vendeur</span><span></span></header>
-<div class="liste" style="margin-top:0"><b id="msg-produit"></b></div>
-<label>Votre nom</label>
-<input id="msg-nom" placeholder="Ex. Fatou Diop">
-<label>Votre message</label>
-<textarea id="msg-texte" placeholder="Ex. Est-il disponible en taille L ?"></textarea>
-<div id="msg-msg" class="msg"></div>
-<button class="btn" style="margin-top:14px" onclick="envoyerMessage()">Envoyer</button>
-</div>
-
 <div id="commande" class="page">
 <header><button class="retour" onclick="retourFiche()">←</button><span style="font-weight:bold">Commander</span><span></span></header>
 <div class="liste" style="margin-top:0"><b id="cmd-produit"></b></div>
 <label>Votre nom</label>
 <input id="cmd-nom" placeholder="Ex. Fatou Diop">
 <label>Téléphone</label>
-<input id="cmd-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67">
+<div class="champ-tel"><span class="indicatif">+221</span><input id="cmd-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
 <label>Adresse de livraison</label>
 <input id="cmd-adresse" placeholder="Quartier, repère">
 <label>Quantité</label>
@@ -103,7 +94,7 @@
 <label>Nom de la boutique</label>
 <input id="bt-nom">
 <label>Téléphone</label>
-<input id="bt-tel" type="tel" inputmode="tel">
+<div class="champ-tel"><span class="indicatif">+221</span><input id="bt-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
 <label>Adresse</label>
 <input id="bt-adresse" placeholder="Quartier, repère">
 <label>Description</label>

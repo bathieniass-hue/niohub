@@ -19,7 +19,7 @@ if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){alert('Ce produit 
 if(produitOuvert.user_id===s.user_id){alert('Vous ne pouvez pas commander votre propre produit.');return;}
 document.getElementById('cmd-produit').textContent=produitOuvert.nom+' · '+produitOuvert.prix;
 document.getElementById('cmd-nom').value=nomComplet();
-document.getElementById('cmd-tel').value=s.telephone||'';
+document.getElementById('cmd-tel').value=formaterTelephone(s.telephone);
 document.getElementById('cmd-adresse').value=s.adresse||'';
 document.getElementById('cmd-quantite').value='1';
 document.getElementById('cmd-msg').textContent='';
@@ -37,13 +37,12 @@ if(!s||!s.user_id){alert('Connectez-vous dans Profil pour commander.');montrer('
 if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){msg.textContent='Produit introuvable. Retournez à la fiche et réessayez.';return;}
 if(produitOuvert.user_id===s.user_id){msg.textContent='Vous ne pouvez pas commander votre propre produit.';return;}
 const nom=document.getElementById('cmd-nom').value.trim();
-const tel=document.getElementById('cmd-tel').value.trim();
+const tel=formaterTelephone(document.getElementById('cmd-tel').value);
 const adresse=document.getElementById('cmd-adresse').value.trim();
 const quantite=Number(document.getElementById('cmd-quantite').value);
 const paiement=document.getElementById('cmd-paiement').value;
 if(!nom||!tel){msg.textContent='Indiquez votre nom et votre téléphone.';return;}
-const chiffres=tel.replace(/\D/g,'').length;
-if(chiffres<9||chiffres>15){msg.textContent='Numéro de téléphone invalide (9 chiffres, ex. 77 123 45 67).';return;}
+if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
 if(!Number.isInteger(quantite)||quantite<1||quantite>100){msg.textContent='La quantité doit être un nombre entre 1 et 100.';return;}
 if(nom.length>80||adresse.length>200){msg.textContent='Le nom ou l\'adresse est trop long.';return;}
 const prixUnitaire=prixNombre(produitOuvert.prix);

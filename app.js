@@ -27,6 +27,11 @@ let editId=null;
 let origineAjout='accueil';
 let chargementEchoue=false;
 let categorieActive='';
+let notesVendeurs={};
+let signatureCatalogue='';
+let vueCourante='accueil';
+let origineFiche=null;
+let restaurationScroll=false;
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
@@ -118,6 +123,7 @@ menu.style.display='none';
 menu.style.display='flex';
 menu.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===VUES_MENU[vue]));
 }
+vueCourante=vue;
 window.scrollTo(0,0);
 }
 
@@ -129,7 +135,7 @@ try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc',{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
 boutiquesCache=await r.json();
-}catch(e){boutiquesCache=[];}
+}catch(e){}
 }
 
 async function chargerProduits(){
@@ -155,8 +161,46 @@ console.log(e);
 chargementEchoue=true;
 }
 await chargerBoutiquesCache();
+const notes=await chargerNotesVendeurs();
+if(notes) notesVendeurs=notes;
+// On ne redessine la grille que si quelque chose a changé : pas de clignotement pendant l'actualisation automatique
+const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
+if(signature===signatureCatalogue) return;
+signatureCatalogue=signature;
 afficherGrille();
 }
+
+// Note moyenne de chaque vendeur (vue SQL notes_vendeurs). Si la vue n'existe pas encore : pas d'étoiles, rien ne casse.
+async function chargerNotesVendeurs(){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/notes_vendeurs?select=vendeur_id,moyenne,nb',{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok) throw new Error(r.status);
+const m={};
+(await r.json()).forEach(l=>{m[l.vendeur_id]={moyenne:Number(l.moyenne),nb:Number(l.nb)};});
+return m;
+}catch(e){return null;}
+}
+
+// ---- Carte produit (accueil et favoris) : photo, prix, puis la boutique avec sa note et son adresse ----
+const ICONE_LIEU='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+
+function blocVendeurCarte(p){
+const b=p.user_id?boutiquesCache.find(x=>x.user_id===p.user_id):null;
+if(!b) return '';
+const n=notesVendeurs[b.user_id];
+const note=n&&n.nb
+?`<span class="v-etoiles">${etoiles(n.moyenne)}</span> <b>${n.moyenne.toFixed(1).replace('.',',')}</b> <span class="v-nb">(${n.nb})</span>`
+:'<span class="v-nb">Aucun avis</span>';
+const lieu=b.adresse?`<div class="v-lieu">${ICONE_LIEU}<span>${esc(b.adresse)}</span></div>`:'';
+const ini=esc((b.nom||'N').charAt(0).toUpperCase());
+return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':ini}</div><div class="v-txt"><div class="v-nom">${esc(b.nom)}</div><div class="v-note">${note}</div></div></div>${lieu}`;
+}
+
+function carteProduitHTML(p,i){
+const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
+return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
+}
+
 
 function requeteRecherche(){
 const el=document.getElementById('q');
@@ -185,7 +229,7 @@ bloc.innerHTML=trouvees.length
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
 if(liste.length){
-grille.innerHTML=liste.map(x=>`<div class="card" onclick="${x.p.id?'ouvrirParId('+Number(x.p.id)+')':'ouvrir('+x.i+')'}"><div class="img" style="background:${fondMini(x.p)}"></div><div class="info"><div class="name">${esc(x.p.nom)}</div><div class="price">${esc(x.p.prix)}</div></div></div>`).join('');
+grille.innerHTML=liste.map(x=>carteProduitHTML(x.p,x.i)).join('');
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
@@ -288,6 +332,7 @@ document.head.appendChild(st);
 
 function ouvrir(i){
 const p=tous()[i];
+if(vueCourante!=='fiche') origineFiche={vue:vueCourante,y:window.scrollY};
 document.getElementById('fphoto').style.background=fond(p);
 document.getElementById('fprix').textContent=p.prix;
 document.getElementById('fnom').textContent=p.nom;
@@ -299,6 +344,18 @@ montrer('fiche');
 function ouvrirParId(id){
 const i=tous().findIndex(x=>x.id===id);
 if(i>=0) ouvrir(i);
+}
+
+// Fermer une fiche produit : on revient là où on était (accueil, favoris, boutique, conversation...) à la même hauteur
+function fermerFiche(){
+const o=origineFiche;
+origineFiche=null;
+let cible=(o&&o.vue&&o.vue!=='fiche')?o.vue:'accueil';
+if(cible==='chat'&&typeof chatCourant!=='undefined'&&!chatCourant) cible='accueil';
+if(cible==='favoris'&&typeof rendreFavoris==='function') rendreFavoris();
+restaurationScroll=!!(o&&cible===o.vue&&o.y>0);
+montrer(cible);
+if(restaurationScroll){window.scrollTo(0,o.y);restaurationScroll=false;}
 }
 
 function retourVers(v){

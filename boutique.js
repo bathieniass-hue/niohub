@@ -35,7 +35,7 @@ window.scrollTo(0,0);
 }
 
 function telephonesBoutique(b){
-return [b.telephone,b.telephone2].filter(Boolean).map(esc).join(' · ');
+return [b.telephone,b.telephone2].filter(Boolean).map(t=>esc('+221 '+formaterTelephone(t))).join(' · ');
 }
 
 function lienWhatsapp(tel){
@@ -49,8 +49,8 @@ function ajouterChampTel2(){
 const tel=document.getElementById('bt-tel');
 if(!tel||document.getElementById('bt-tel2')) return;
 const bloc=document.createElement('div');
-bloc.innerHTML='<label>Autre numéro (facultatif)</label><input id="bt-tel2" type="tel" inputmode="tel" maxlength="20">';
-tel.insertAdjacentElement('afterend',bloc);
+bloc.innerHTML='<label>Autre numéro (facultatif)</label><div class="champ-tel"><span class="indicatif">+221</span><input id="bt-tel2" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>';
+(tel.closest('.champ-tel')||tel).insertAdjacentElement('afterend',bloc);
 }
 ajouterChampTel2();
 
@@ -145,32 +145,7 @@ return `<div class="ligne" style="cursor:pointer" onclick="voirCommandeDetail(${
 
 // voirCommandeDetail() est définie dans statut.js (détail + changement de statut).
 
-async function voirMessages(){
-const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil.');montrer('profil');return;}
-const p=creerPage('messages-page');
-p.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Messages</span><span></span></header><div id="liste-messages" class="liste" style="margin-top:0">Chargement…</div>`;
-afficherPage('messages-page');
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&vendeur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
-if(!r.ok) throw new Error(r.status);
-messagesCache=await r.json();
-document.getElementById('liste-messages').innerHTML=messagesCache.length
-?messagesCache.map((m,i)=>`<div class="ligne" style="cursor:pointer" onclick="voirMessageDetail(${i})"><div style="flex:1"><div class="name">${esc(m.expediteur)}</div><div style="font-size:13px;color:#6B6254">${esc(m.produit)} · ${esc(new Date(m.created_at).toLocaleDateString('fr-FR'))}</div></div><span>›</span></div>`).join('')
-:"Aucun message pour l'instant.";
-}catch(e){document.getElementById('liste-messages').textContent='Erreur de chargement. Vérifiez votre connexion.';}
-}
-
-function voirMessageDetail(i){
-const m=messagesCache[i];
-if(!m) return;
-ouvrirDetail('messages-page','Message',[
-['De',m.expediteur],
-['Produit',m.produit],
-['Date',new Date(m.created_at).toLocaleString('fr-FR')]
-],
-`<div style="background:#fff;border:1px solid #EDE5D3;border-radius:14px;padding:14px;margin-top:14px;font-size:15px;line-height:1.5">${esc(m.texte)}</div>`);
-}
+// voirMessages() est définie dans messages.js (conversations).
 
 async function ouvrirFormBoutique(){
 const s=await sessionValide();
@@ -182,8 +157,8 @@ const champNom=document.getElementById('bt-nom');
 const suggestion=nomComplet();
 champNom.placeholder=suggestion?'Chez '+suggestion:'Nom de la boutique';
 champNom.value=b.nom||"";
-document.getElementById('bt-tel').value=b.telephone||"";
-document.getElementById('bt-tel2').value=b.telephone2||"";
+document.getElementById('bt-tel').value=formaterTelephone(b.telephone);
+document.getElementById('bt-tel2').value=formaterTelephone(b.telephone2);
 document.getElementById('bt-adresse').value=b.adresse||"";
 document.getElementById('bt-desc').value=b.description||"";
 document.getElementById('bt-msg').textContent="";
@@ -226,14 +201,14 @@ if(!s||!s.user_id){msg.textContent='Connectez-vous dans Profil avant d\'enregist
 const saisi=document.getElementById('bt-nom').value.trim();
 const suggestion=nomComplet();
 const nom=saisi||(!boutiqueActuelle&&suggestion?'Chez '+suggestion:'');
-const tel=document.getElementById('bt-tel').value.trim();
-const tel2=document.getElementById('bt-tel2').value.trim();
+const tel=formaterTelephone(document.getElementById('bt-tel').value);
+const tel2=formaterTelephone(document.getElementById('bt-tel2').value);
 const adresse=document.getElementById('bt-adresse').value.trim();
 const description=document.getElementById('bt-desc').value.trim();
 if(!nom||!tel){msg.textContent='Indiquez le nom et le téléphone.';return;}
 if(nom.length>100){msg.textContent='Le nom de la boutique est trop long (100 caractères maximum).';return;}
-if(!telephoneValide(tel)){msg.textContent='Numéro de téléphone invalide (9 chiffres, ex. 77 123 45 67).';return;}
-if(tel2&&!telephoneValide(tel2)){msg.textContent='Le deuxième numéro est invalide.';return;}
+if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
+if(tel2&&!telephoneValide(tel2)){msg.textContent='Autre numéro : '+MESSAGE_TEL;return;}
 if(adresse.length>200){msg.textContent='L\'adresse est trop longue (200 caractères maximum).';return;}
 if(description.length>1000){msg.textContent='La description est trop longue (1000 caractères maximum).';return;}
 if(logoBlob&&logoBlob.size>LOGO_MAX){msg.textContent='Ce logo est trop lourd. Choisissez-en un plus léger.';return;}

@@ -14,10 +14,41 @@ Object.assign(s,champs);
 enregistrerSession(s);
 }
 
-function telephoneValide(t){
-const n=String(t||'').replace(/\D/g,'');
-return n.length>=9&&n.length<=15;
+const MESSAGE_TEL='Numéro sénégalais invalide : 9 chiffres commençant par 7 (ex. 77 123 45 67).';
+
+// Tous les chiffres d'un numéro, sans l'indicatif +221 / 00221 s'il a été collé
+function normaliserTelephone(t){
+let n=String(t||'').replace(/\D/g,'');
+if(n.startsWith('00221')) n=n.slice(5);
+else if(n.startsWith('221')&&(n.length>9||n[3]==='7')) n=n.slice(3);
+return n;
 }
+// Les 9 premiers chiffres (pour l'affichage dans le champ)
+function chiffresTelephone(t){return normaliserTelephone(t).slice(0,9);}
+// 771234567 -> "77 123 45 67"
+function formaterTelephone(t){
+const n=chiffresTelephone(t);
+return [n.slice(0,2),n.slice(2,5),n.slice(5,7),n.slice(7,9)].filter(Boolean).join(' ');
+}
+// Numéro sénégalais : toujours 9 chiffres, commençant par 7
+function telephoneValide(t){return /^7\d{8}$/.test(normaliserTelephone(t));}
+function lienAppel(t){const n=chiffresTelephone(t);return n?'tel:+221'+n:'#';}
+
+// Les espaces s'écrivent tout seuls dans tous les champs téléphone, sans déplacer le curseur
+document.addEventListener('input',e=>{
+const el=e.target;
+if(!el||el.tagName!=='INPUT'||el.type!=='tel') return;
+const f=formaterTelephone(el.value);
+if(f===el.value) return;
+const pos=el.selectionStart;
+const chiffresAvant=pos==null?null:el.value.slice(0,pos).replace(/\D/g,'').length;
+el.value=f;
+if(chiffresAvant!==null){
+let i=0,c=0;
+while(i<f.length&&c<chiffresAvant){if(/\d/.test(f[i])) c++;i++;}
+try{el.setSelectionRange(i,i);}catch(err){}
+}
+});
 
 function sauverTokens(j){
 const anc=lireSession()||{};
@@ -177,7 +208,7 @@ document.getElementById('auth-corps').innerHTML=`
 <div class="auth-champs">
 <label>Prénom</label><input id="p-prenom" placeholder="Ex. Fatou" maxlength="40">
 <label>Nom</label><input id="p-nom" placeholder="Ex. Diop" maxlength="40">
-<label>Téléphone</label><input id="p-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67" maxlength="20">
+<label>Téléphone</label><div class="champ-tel"><span class="indicatif">+221</span><input id="p-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
 <label>Adresse (facultatif)</label><input id="p-adresse" placeholder="Quartier, repère" maxlength="200">
 </div>
 <div id="c-msg" class="msg"></div>
@@ -217,10 +248,10 @@ const msg=document.getElementById('c-msg');
 msg.textContent='';
 const prenom=document.getElementById('p-prenom').value.trim();
 const nom=document.getElementById('p-nom').value.trim();
-const tel=document.getElementById('p-tel').value.trim();
+const tel=formaterTelephone(document.getElementById('p-tel').value);
 const adresse=document.getElementById('p-adresse').value.trim();
 if(!prenom||!nom||!tel){msg.textContent='Indiquez votre prénom, votre nom et votre téléphone.';return;}
-if(!telephoneValide(tel)){msg.textContent='Numéro de téléphone invalide (9 chiffres, ex. 77 123 45 67).';return;}
+if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
 const complet=prenom+' '+nom;
@@ -265,7 +296,7 @@ zone.innerHTML='<div class="liste" style="margin-top:0">Impossible de charger vo
 return;
 }
 const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone||'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?'+221 '+formaterTelephone(s.telephone):'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
 }
 
 function seDeconnecter(){
@@ -289,7 +320,7 @@ enregistrerBoutique=async function(){
 const s=lireSession()||{};
 const tel=document.getElementById('bt-tel');
 const adr=document.getElementById('bt-adresse');
-if(tel&&!tel.value.trim()&&s.telephone) tel.value=s.telephone;
+if(tel&&!tel.value.trim()&&s.telephone) tel.value=formaterTelephone(s.telephone);
 if(adr&&!adr.value.trim()&&s.adresse) adr.value=s.adresse;
 return enregistrerBoutiqueAvant();
 };

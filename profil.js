@@ -13,7 +13,7 @@ p.innerHTML=`
 <label>Nom complet</label>
 <input id="pm-nom" placeholder="Ex. Fatou Diop" maxlength="80">
 <label>Téléphone</label>
-<input id="pm-tel" type="tel" inputmode="tel" placeholder="Ex. 77 123 45 67" maxlength="20">
+<div class="champ-tel"><span class="indicatif">+221</span><input id="pm-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
 <label>Adresse</label>
 <input id="pm-adresse" placeholder="Quartier, repère" maxlength="200">
 <div id="pm-msg" class="msg"></div>
@@ -29,7 +29,7 @@ async function modifierProfil(){
 const s=await sessionValide();
 if(!s||!s.user_id){alert('Connectez-vous pour modifier votre profil.');return;}
 // On remplit tout de suite avec les infos du téléphone, puis on rafraîchit depuis le serveur
-const avant={'pm-nom':s.nom||'','pm-tel':s.telephone||'','pm-adresse':s.adresse||''};
+const avant={'pm-nom':s.nom||'','pm-tel':formaterTelephone(s.telephone),'pm-adresse':s.adresse||''};
 Object.keys(avant).forEach(id=>{document.getElementById(id).value=avant[id];});
 document.getElementById('pm-msg').textContent='';
 montrer('profil-modif');
@@ -39,7 +39,7 @@ if(!s.nom) document.getElementById('pm-msg').textContent='Impossible de charger 
 return;
 }
 if(res.profil){
-const serveur={'pm-nom':res.profil.nom||'','pm-tel':res.profil.telephone||'','pm-adresse':res.profil.adresse||''};
+const serveur={'pm-nom':res.profil.nom||'','pm-tel':formaterTelephone(res.profil.telephone),'pm-adresse':res.profil.adresse||''};
 // On ne remplace que les champs que l'utilisateur n'a pas déjà modifiés
 Object.keys(avant).forEach(id=>{
 const el=document.getElementById(id);
@@ -59,11 +59,11 @@ msg.textContent='';
 const s=await sessionValide();
 if(!s||!s.user_id){alert('Connectez-vous pour modifier votre profil.');return;}
 const nom=document.getElementById('pm-nom').value.trim();
-const tel=document.getElementById('pm-tel').value.trim();
+const tel=formaterTelephone(document.getElementById('pm-tel').value);
 const adresse=document.getElementById('pm-adresse').value.trim();
 if(!nom||!tel){msg.textContent='Le nom et le téléphone sont obligatoires.';return;}
 if(nom.length<2||nom.length>80){msg.textContent='Le nom doit avoir entre 2 et 80 caractères.';return;}
-if(!telephoneValide(tel)){msg.textContent='Numéro de téléphone invalide (9 chiffres, ex. 77 123 45 67).';return;}
+if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
 if(adresse.length>200){msg.textContent='L\'adresse est trop longue (200 caractères maximum).';return;}
 const entete={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'};
 const donnees={nom:nom,telephone:tel,adresse:adresse||null};

@@ -53,3 +53,35 @@ nav button.on{color:#0E6B47;font-weight:bold}
 #apercu,#fphoto,.card .img{aspect-ratio:9/10 !important;height:auto !important;width:100%}
 .card{height:auto !important;display:flex;flex-direction:column}
 .card .info{position:static !important;padding:8px 4px 4px !important}
+
+/* ===== Barre du haut de l'accueil : elle se replie quand on descend, réapparaît dès qu'on remonte ===== */
+#haut{position:sticky;top:0;z-index:30;background:#FBF7EE;padding-bottom:6px}
+#haut.compact{box-shadow:0 2px 10px rgba(30,26,20,.08)}
+.repliable{display:grid;grid-template-rows:1fr;transition:grid-template-rows .22s ease,opacity .18s ease}
+.repliable>.interieur{overflow:hidden;min-height:0}
+#haut.compact .repliable{grid-template-rows:0fr;opacity:0}
+html,body{overflow-anchor:none}
+
+/* ===== La boutique sur les cartes produits : logo, nom, étoiles et note, adresse ===== */
+.vendeur{display:flex;gap:8px;align-items:center;margin-top:8px}
+.v-avatar{width:30px;height:30px;border-radius:15px;flex-shrink:0;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px}
+.v-txt{min-width:0;flex:1}
+.v-nom{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-note{font-size:11px;color:#1E1A14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-etoiles{color:#F2B233}
+.v-nb{color:#6B6254}
+.v-lieu{display:flex;gap:4px;align-items:center;margin-top:5px;font-size:12px;color:#6B6254}
+.v-lieu span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.v-lieu svg{flex-shrink:0}
+
+/* ===== Numéro sénégalais : +221 devant le champ ===== */
+.champ-tel{display:flex;align-items:stretch;border:1px solid #E6DECB;border-radius:12px;background:#fff;overflow:hidden}
+.champ-tel .indicatif{display:flex;align-items:center;padding:0 12px;font-weight:bold;font-size:16px;color:#6B6254;background:#F7F4EC;border-right:1px solid #EDE5D3}
+.champ-tel input{border:0 !important;border-radius:0 !important;flex:1;min-width:0;width:auto !important}
+.champ-tel:focus-within{border-color:#0E6B47}
+
+/* La liste de suggestions vide ne doit pas laisser une fine ligne sous la recherche */
+#suggest:empty{display:none}
+/* Barre repliée : un peu d'air au-dessus de la recherche */
+#haut{transition:padding-top .2s ease}
+#haut.compact{padding-top:10px}

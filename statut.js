@@ -26,13 +26,13 @@ ouvrirDetail('commandes-page','Commande',[
 ['Quantité',String(c.quantite)],
 ['Total',total],
 ['Client',c.nom_client],
-['Téléphone',tel],
+['Téléphone',tel?'+221 '+formaterTelephone(tel):''],
 ['Adresse',c.adresse||'Non indiquée'],
 ['Paiement',c.paiement||'Non indiqué'],
 ['Statut',statut],
 ['Date',new Date(c.created_at).toLocaleString('fr-FR')]
 ],
-`<div style="display:flex;gap:10px;margin-top:14px"><a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="tel:${esc(tel)}">Appeler</a><a class="btn2" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block;margin-top:0" href="${esc(lienWhatsapp(tel))}" target="_blank" rel="noopener">WhatsApp</a></div>
+`<div style="display:flex;gap:10px;margin-top:14px"><a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="${esc(lienAppel(tel))}">Appeler</a><a class="btn2" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block;margin-top:0" href="${esc(lienWhatsapp(tel))}" target="_blank" rel="noopener">WhatsApp</a></div>
 ${blocStatut}
 <div id="statut-msg" class="msg"></div>`);
 };

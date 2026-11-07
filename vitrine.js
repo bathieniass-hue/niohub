@@ -50,7 +50,7 @@ const note=avis.erreur
 :`<div style="color:#F2B233;font-size:14px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div>`;
 const contact=tel.length
 ?`<div style="display:flex;gap:10px;margin-top:6px">
-<a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="tel:${esc(tel[0])}">Appeler</a>
+<a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="${esc(lienAppel(tel[0]))}">Appeler</a>
 <a class="btn2" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block;margin-top:0" href="${esc(lienWhatsapp(tel[0]))}" target="_blank" rel="noopener">WhatsApp</a>
 </div>`
 :'';
@@ -64,7 +64,7 @@ zone.innerHTML=`
 </div>
 <div class="liste" style="margin-top:10px;font-size:13px">
 <div>Adresse : ${esc(b.adresse||'Non indiquée')}</div>
-<div style="margin-top:4px">Tél : ${tel.length?tel.map(esc).join(' / '):'Non indiqué'}</div>
+<div style="margin-top:4px">Tél : ${tel.length?tel.map(t=>'+221 '+esc(formaterTelephone(t))).join(' / '):'Non indiqué'}</div>
 <div style="margin-top:8px">${esc(b.description||'Pas de description.')}</div>
 </div>
 ${contact}

@@ -1,5 +1,5 @@
 // NioHub : installation, mises à jour et actualisation de l'application.
-const VERSION_APP='cc32746d00'; // remplacé automatiquement à chaque livraison
+const VERSION_APP='d5f7ef6a25'; // remplacé automatiquement à chaque livraison
 let DELAI_RETOUR=60000;  // actualiser les produits si l'application revient après plus d'1 minute
 let invitationInstall=null;
 
@@ -12,7 +12,7 @@ window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').ca
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
 // ---------- Écrans avec saisie : on n'y actualise jamais (pour ne rien effacer) ----------
-const ECRANS_SAISIE=['ajout','commande','message','boutique-form','profil-modif','avis-page','auth'];
+const ECRANS_SAISIE=['ajout','commande','chat','boutique-form','profil-modif','avis-page','auth'];
 function ecranAvecSaisie(){
 const ouvert=ECRANS_SAISIE.some(id=>{const e=document.getElementById(id);return e&&e.style.display==='block';});
 const champ=/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement&&document.activeElement.tagName)||'');
@@ -51,55 +51,16 @@ window.addEventListener('online',()=>{
 if(typeof chargementEchoue!=='undefined'&&chargementEchoue&&typeof chargerProduits==='function') chargerProduits();
 });
 
-// ---------- Tirer vers le bas pour actualiser ----------
-const SEUIL_TIRER=90;
-let departY=0,tirage=0,tirerActif=false;
-
-function indicateurTirer(){
-let e=document.getElementById('indic-tirer');
-if(!e){
-e=document.createElement('div');
-e.id='indic-tirer';
-e.style.cssText='position:fixed;left:50%;top:10px;transform:translate(-50%,-60px);z-index:190;background:#fff;border:1px solid #E6DECB;border-radius:20px;padding:8px 16px;font:bold 13px sans-serif;color:#0E6B47;box-shadow:0 4px 14px rgba(0,0,0,.15);transition:transform .15s;pointer-events:none';
-document.body.appendChild(e);
+// ---------- Actualisation automatique : plus besoin de glisser vers le bas ----------
+// Les produits, boutiques et notes se mettent à jour tout seuls. L'écran n'est redessiné que si quelque chose a changé.
+let INTERVALLE_AUTO=60000;
+function planifierActualisation(){
+setTimeout(()=>{
+if(document.visibilityState==='visible'&&!ecranAvecSaisie()&&typeof chargerProduits==='function') chargerProduits();
+planifierActualisation();
+},INTERVALLE_AUTO);
 }
-return e;
-}
-function afficherIndicateur(p){
-const e=indicateurTirer();
-e.textContent=p>=1?'Relâchez pour actualiser':'Tirez pour actualiser';
-e.style.transform='translate(-50%,'+(Math.round(p*70)-60)+'px)';
-}
-function masquerIndicateur(){
-const e=document.getElementById('indic-tirer');
-if(e) e.style.transform='translate(-50%,-60px)';
-}
-function actualiserApp(){
-const e=indicateurTirer();
-e.textContent='Actualisation…';
-e.style.transform='translate(-50%,10px)';
-setTimeout(()=>location.reload(),150);
-}
-
-document.addEventListener('touchstart',e=>{
-tirerActif=e.touches.length===1&&window.scrollY<=0&&!ecranAvecSaisie();
-departY=e.touches[0].clientY;
-tirage=0;
-},{passive:true});
-document.addEventListener('touchmove',e=>{
-if(!tirerActif) return;
-const dy=e.touches[0].clientY-departY;
-if(dy<=0||window.scrollY>0){tirage=0;masquerIndicateur();return;}
-tirage=dy;
-afficherIndicateur(Math.min(dy/SEUIL_TIRER,1));
-},{passive:true});
-document.addEventListener('touchend',()=>{
-const declenche=tirerActif&&tirage>=SEUIL_TIRER;
-tirerActif=false;
-tirage=0;
-if(declenche){actualiserApp();return;}
-masquerIndicateur();
-});
+planifierActualisation();
 
 // ---------- Installation ----------
 function estIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent);}
