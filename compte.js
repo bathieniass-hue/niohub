@@ -103,6 +103,7 @@ if(!res.profil) return 'creer';
 s.nom=res.profil.nom;
 s.telephone=res.profil.telephone;
 s.adresse=res.profil.adresse||null;
+s.photo=res.profil.photo||null;
 enregistrerSession(s);
 return 'ok';
 }
@@ -296,7 +297,10 @@ zone.innerHTML='<div class="liste" style="margin-top:0">Impossible de charger vo
 return;
 }
 const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar">${esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?'+221 '+formaterTelephone(s.telephone):'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
+const photo=urlSure(s.photo);
+// Photo pas encore connue sur ce téléphone : on la récupère une fois
+if(s.photo===undefined) chargerProfil(s).then(res=>{if(res.profil){mettreAJourSession({photo:res.profil.photo||null});if(res.profil.photo&&vueCourante==='profil') afficherProfilCarte();}});
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?'+221 '+formaterTelephone(s.telephone):'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
 }
 
 function seDeconnecter(){
