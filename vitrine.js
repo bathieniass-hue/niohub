@@ -25,7 +25,7 @@ return {boutique:(await r.json())[0]||null};
 }
 
 async function voirVitrine(userId){
-if(!userId){alert('Cette boutique n\'est pas disponible.');return;}
+if(!userId){bandeau('Cette boutique n\'est pas disponible.','erreur');return;}
 const fiche=document.getElementById('fiche');
 const venantDeFiche=!!fiche&&fiche.style.display==='block';
 const retour=venantDeFiche?"montrer('fiche')":"voirAccueil()";

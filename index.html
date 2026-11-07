@@ -119,9 +119,9 @@
 <div class="liste" style="margin-top:12px">
 <div class="ligne" onclick="voirBoutique()"><b style="flex:1">Ma boutique</b><span>›</span></div>
 <div class="ligne" onclick="voirAchats()"><b style="flex:1">Mes achats</b><span>›</span></div>
-<div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Adresses</b><span>›</span></div>
-<div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Paiements</b><span>›</span></div>
-<div class="ligne" onclick="alert('Bientôt disponible')"><b style="flex:1">Aide</b><span>›</span></div>
+<div class="ligne" onclick="bandeau('Bientôt disponible')"><b style="flex:1">Adresses</b><span>›</span></div>
+<div class="ligne" onclick="bandeau('Bientôt disponible')"><b style="flex:1">Paiements</b><span>›</span></div>
+<div class="ligne" onclick="bandeau('Bientôt disponible')"><b style="flex:1">Aide</b><span>›</span></div>
 <div class="ligne" onclick="window.open('conditions.html','_blank')"><b style="flex:1">Conditions et confidentialité</b><span>›</span></div>
 <div class="ligne" onclick="deconnecter()"><b style="flex:1;color:#B4291A">Déconnecter</b><span>›</span></div>
 </div>
@@ -133,6 +133,7 @@
 <button onclick="voirProfil()">Profil</button>
 </nav>
 
+<script src="bandeau.js"></script>
 <script src="app.js"></script>
 <script src="commande.js"></script>
 <script src="boutique.js"></script>

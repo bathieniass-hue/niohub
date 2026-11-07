@@ -5,7 +5,7 @@ const VERSION='niohub-d5f7ef6a25'; // remplacé automatiquement à chaque livrai
 const FICHIERS=[
 './','index.html','style.css','manifest.json','conditions.html',
 'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
-'app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
+'bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
 'vitrine.js','profil.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','fiche-details.js','pwa.js'
 ];
 const DELAI_RESEAU=5000;

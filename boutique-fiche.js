@@ -37,7 +37,7 @@ await completerFicheBoutique();
 
 async function voirAvisRecus(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous pour voir vos avis.');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous pour voir vos avis.');return;}
 const page=document.getElementById('avis-recus');
 page.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Avis reçus</span><span></span></header><div id="ar-corps" class="liste" style="margin-top:14px">Chargement…</div>`;
 montrer('avis-recus');

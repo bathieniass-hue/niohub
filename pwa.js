@@ -153,8 +153,8 @@ invitationInstall=null;
 majInstallation();
 return;
 }
-if(estWebview()){alert('Ouvrez cette page dans Chrome ou Safari (menu ⋮ puis « Ouvrir dans le navigateur ») pour pouvoir installer NioHub.');return;}
-if(estIOS()) alert('Pour installer NioHub sur iPhone : touchez le bouton Partager de Safari, puis « Sur l’écran d’accueil ».');
+if(estWebview()){bandeau('Ouvrez cette page dans Chrome ou Safari (menu ⋮ puis « Ouvrir dans le navigateur ») pour pouvoir installer NioHub.','info',{duree:9000});return;}
+if(estIOS()) bandeau('Pour installer NioHub sur iPhone : touchez le bouton Partager de Safari, puis « Sur l’écran d’accueil ».','info',{duree:9000});
 }
 
 window.addEventListener('beforeinstallprompt',e=>{

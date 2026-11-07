@@ -27,7 +27,7 @@ let profilModifEnCours=false;
 
 async function modifierProfil(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous pour modifier votre profil.');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous pour modifier votre profil.');return;}
 // On remplit tout de suite avec les infos du téléphone, puis on rafraîchit depuis le serveur
 const avant={'pm-nom':s.nom||'','pm-tel':formaterTelephone(s.telephone),'pm-adresse':s.adresse||''};
 Object.keys(avant).forEach(id=>{document.getElementById(id).value=avant[id];});
@@ -57,7 +57,7 @@ if(profilModifEnCours) return;
 const msg=document.getElementById('pm-msg');
 msg.textContent='';
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous pour modifier votre profil.');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous pour modifier votre profil.');return;}
 const nom=document.getElementById('pm-nom').value.trim();
 const tel=formaterTelephone(document.getElementById('pm-tel').value);
 const adresse=document.getElementById('pm-adresse').value.trim();

@@ -35,7 +35,7 @@ return '#B4541A';
 
 async function voirAchats(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');montrer('profil');return;}
 const p=pageAchats(PAGE_ACHATS);
 p.innerHTML=`<header><button class="retour" onclick="voirProfil()">←</button><span style="font-weight:bold;font-size:20px">Mes achats</span><span></span></header><div id="liste-achats" class="liste" style="margin-top:0">Chargement…</div>`;
 afficherPageAchats(PAGE_ACHATS);

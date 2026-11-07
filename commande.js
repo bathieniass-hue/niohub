@@ -14,9 +14,9 @@ return parseInt(String(texte||'').replace(/\D/g,''),10)||0;
 
 async function voirCommande(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
-if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){alert('Ce produit de démonstration ne peut pas être commandé.');return;}
-if(produitOuvert.user_id===s.user_id){alert('Vous ne pouvez pas commander votre propre produit.');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
+if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){bandeau('Ce produit de démonstration ne peut pas être commandé.');return;}
+if(produitOuvert.user_id===s.user_id){bandeau('Vous ne pouvez pas commander votre propre produit.','erreur');return;}
 document.getElementById('cmd-produit').textContent=produitOuvert.nom+' · '+produitOuvert.prix;
 document.getElementById('cmd-nom').value=nomComplet();
 document.getElementById('cmd-tel').value=formaterTelephone(s.telephone);
@@ -33,7 +33,7 @@ if(commandeEnCours) return;
 const msg=document.getElementById('cmd-msg');
 msg.textContent='';
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
 if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){msg.textContent='Produit introuvable. Retournez à la fiche et réessayez.';return;}
 if(produitOuvert.user_id===s.user_id){msg.textContent='Vous ne pouvez pas commander votre propre produit.';return;}
 const nom=document.getElementById('cmd-nom').value.trim();
@@ -73,6 +73,6 @@ return;
 commandeEnCours=false;
 if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 const total=prixUnitaire*quantite;
-alert('Commande envoyée au vendeur'+(total?' · Total : '+total.toLocaleString('fr-FR')+' FCFA':'')+'.\n\nAucun paiement n\'a été fait dans l\'application. Le vendeur vous contactera : convenez avec lui du paiement ('+paiement+') et de la livraison.');
+bandeau('Commande envoyée au vendeur'+(total?' · Total : '+total.toLocaleString('fr-FR')+' FCFA':'')+'.\n\nAucun paiement n\'a été fait dans l\'application. Le vendeur vous contactera : convenez avec lui du paiement ('+paiement+') et de la livraison.','succes',{duree:9000});
 voirAccueil();
 }

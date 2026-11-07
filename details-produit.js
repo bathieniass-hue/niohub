@@ -174,16 +174,16 @@ publier=async function(){
 const bouton=document.getElementById('ajout-publier');
 if(bouton&&bouton.disabled) return;
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
 const nom=document.getElementById('nom').value.trim();
 const prixSaisi=document.getElementById('prix').value.trim();
 const desc=document.getElementById('desc').value.trim();
-if(!nom||!prixSaisi){alert('Indiquez au moins le nom et le prix.');return;}
+if(!nom||!prixSaisi){bandeau('Indiquez au moins le nom et le prix.','erreur');return;}
 const prix=Math.round(Number(prixSaisi));
-if(!(prix>0)||prix>PRIX_MAX){alert('Le prix doit être un nombre entre 1 et '+PRIX_MAX.toLocaleString('fr-FR')+' FCFA.');return;}
-if(nom.length>100){alert('Le nom est trop long (100 caractères maximum).');return;}
-if(desc.length>2000){alert('La description est trop longue (2000 caractères maximum).');return;}
-if(photoBlob&&photoBlob.size>PHOTO_MAX){alert('Cette photo est trop lourde. Choisissez-en une plus légère.');return;}
+if(!(prix>0)||prix>PRIX_MAX){bandeau('Le prix doit être un nombre entre 1 et '+PRIX_MAX.toLocaleString('fr-FR')+' FCFA.','erreur');return;}
+if(nom.length>100){bandeau('Le nom est trop long (100 caractères maximum).','erreur');return;}
+if(desc.length>2000){bandeau('La description est trop longue (2000 caractères maximum).','erreur');return;}
+if(photoBlob&&photoBlob.size>PHOTO_MAX){bandeau('Cette photo est trop lourde. Choisissez-en une plus légère.','erreur');return;}
 const corps={
 nom:nom,
 prix:prix.toLocaleString('fr-FR')+' FCFA',
@@ -221,7 +221,7 @@ if(!lignes.length) throw new Error('refusé');
 }catch(e){
 // Échec après l'envoi de la photo : on la retire pour ne pas laisser de fichier orphelin
 if(nouvelleUrl) await supprimerPhotoStockee(nouvelleUrl,s);
-alert('Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.');
+bandeau('Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.','erreur');
 if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
 return;
 }

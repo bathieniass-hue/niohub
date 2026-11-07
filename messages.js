@@ -155,7 +155,7 @@ return Array.from(map.values());
 
 async function voirConversations(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour voir vos messages.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour voir vos messages.');montrer('profil');return;}
 if(vueCourante!=='chat'&&vueCourante!=='conversations') origineListe=(vueCourante==='boutique')?'boutique':'accueil';
 const p=document.getElementById('conversations');
 p.innerHTML=`<div class="entete-ecran"><button class="retour-carre" onclick="fermerListe()" aria-label="Retour">←</button><span class="titre-ecran">Messages</span></div><div id="conv-corps" class="liste" style="margin-top:6px">Chargement…</div>`;
@@ -208,15 +208,15 @@ ouvrirChat({produitId:c.produitId||(p&&p.id)||null,produitNom:c.produitNom||(p&&
 // Depuis la fiche produit : bouton « Message »
 async function voirMessage(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
-if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){alert('Ce produit de démonstration ne peut pas recevoir de message.');return;}
-if(produitOuvert.user_id===s.user_id){alert('C\'est votre produit : ouvrez Messages pour répondre à vos clients.');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
+if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){bandeau('Ce produit de démonstration ne peut pas recevoir de message.');return;}
+if(produitOuvert.user_id===s.user_id){bandeau('C\'est votre produit : ouvrez Messages pour répondre à vos clients.');return;}
 await ouvrirChat({produitId:produitOuvert.id,produitNom:produitOuvert.nom,vendeurId:produitOuvert.user_id,acheteurId:s.user_id},'fiche');
 }
 
 async function ouvrirChat(ctx,origine){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
 chatMoi=s.user_id;
 chatCourant=Object.assign({},ctx);
 chatOrigine=origine;
@@ -322,7 +322,7 @@ const texte=champ.value.trim();
 if(!texte) return;
 erreur.textContent='';
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
 const c=chatCourant;
 if(!c.produitId){erreur.textContent='Ce message est trop ancien pour recevoir une réponse ici. Contactez la personne par téléphone.';return;}
 envoiEnCours=true;

@@ -125,7 +125,7 @@ afficherPage('detail-vente');
 
 async function voirCommandes(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');montrer('profil');return;}
 const p=creerPage('commandes-page');
 p.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Commandes</span><span></span></header><div id="liste-commandes" class="liste" style="margin-top:0">Chargement…</div>`;
 afficherPage('commandes-page');
@@ -149,7 +149,7 @@ return `<div class="ligne" style="cursor:pointer" onclick="voirCommandeDetail(${
 
 async function ouvrirFormBoutique(){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous d\'abord dans Profil.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous d\'abord dans Profil.');montrer('profil');return;}
 const b=boutiqueActuelle||{};
 logoBoutique=b.logo||"";
 logoBlob=null;
@@ -177,14 +177,14 @@ async function choisirLogo(e){
 const f=e.target.files[0];
 e.target.value='';
 if(!f) return;
-if(!f.type.startsWith('image/')){alert('Choisissez une image pour le logo.');return;}
+if(!f.type.startsWith('image/')){bandeau('Choisissez une image pour le logo.','erreur');return;}
 try{
 const img=await chargerImageDepuis(f);
 logoBlob=await reduireImage(img,300,0.75);
 if(!logoBlob) throw new Error('image');
 }catch(err){
 logoBlob=null;
-alert('Ce logo ne peut pas être lu. Essayez une autre image.');
+bandeau('Ce logo ne peut pas être lu. Essayez une autre image.','erreur');
 return;
 }
 if(logoApercuUrl) URL.revokeObjectURL(logoApercuUrl);

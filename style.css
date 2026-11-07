@@ -85,3 +85,20 @@ html,body{overflow-anchor:none}
 /* Barre repliée : un peu d'air au-dessus de la recherche */
 #haut{transition:padding-top .2s ease}
 #haut.compact{padding-top:10px}
+
+/* ---- Bandeaux (remplacent les alertes du navigateur) ---- */
+#bandeaux{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 0;z-index:1000;pointer-events:none}
+.bandeau{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 10px 12px 12px;border-radius:14px;background:#fff;border:1px solid #EDE5D3;border-left:5px solid #0E6B47;box-shadow:0 6px 20px rgba(30,26,20,.14);font-size:14px;line-height:1.45;color:#1E1A14;cursor:pointer;animation:bandeau-entree .25s ease-out}
+.bandeau.sortie{animation:bandeau-sortie .25s ease-in forwards}
+.bandeau-icone{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;background:#0E6B47}
+.bandeau-texte{flex:1;white-space:pre-line;padding-top:1px}
+.bandeau-fermer{flex:none;border:0;background:none;color:#6B6254;font-size:20px;line-height:1;padding:0 4px;cursor:pointer}
+.bandeau.succes{border-left-color:#0E6B47;background:#F1F8F3}
+.bandeau.succes .bandeau-icone{background:#0E6B47}
+.bandeau.info{border-left-color:#C9962B;background:#FFFBF2}
+.bandeau.info .bandeau-icone{background:#C9962B}
+.bandeau.erreur{border-left-color:#B3412E;background:#FDF3F0}
+.bandeau.erreur .bandeau-icone{background:#B3412E}
+@keyframes bandeau-entree{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+@keyframes bandeau-sortie{to{opacity:0;transform:translateY(-16px)}}
+@media (prefers-reduced-motion:reduce){.bandeau,.bandeau.sortie{animation:none}}

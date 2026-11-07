@@ -386,7 +386,7 @@ else{ap.textContent="+ Choisir une photo";ap.style.background="#fff";}
 
 async function voirAjout(origine){
 const s=await sessionValide();
-if(!s||!s.user_id){alert('Connectez-vous dans Profil pour publier un produit.');montrer('profil');return;}
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour publier un produit.');montrer('profil');return;}
 origineAjout=origine||'accueil';
 editId=null;
 photoBlob=null;
@@ -404,7 +404,7 @@ function retourAjout(){retourVers(origineAjout);}
 async function modifierProduit(id){
 const s=await sessionValide();
 const p=distants.find(x=>x.id===id);
-if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez modifier que vos produits.');return;}
+if(!p||!s||p.user_id!==s.user_id){bandeau('Vous ne pouvez modifier que vos produits.','erreur');return;}
 editId=p.id;
 origineAjout='mesproduits';
 photoBlob=null;
@@ -422,7 +422,7 @@ montrer('ajout');
 async function supprimerProduit(id){
 const s=await sessionValide();
 const p=distants.find(x=>x.id===id);
-if(!p||!s||p.user_id!==s.user_id){alert('Vous ne pouvez supprimer que vos produits.');return;}
+if(!p||!s||p.user_id!==s.user_id){bandeau('Vous ne pouvez supprimer que vos produits.','erreur');return;}
 if(!confirm('Supprimer « '+p.nom+' » ?')) return;
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id+'&user_id=eq.'+s.user_id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=representation'}});
@@ -431,7 +431,7 @@ const lignes=await r.json();
 // Supabase répond "OK" même si la règle de sécurité a bloqué : on vérifie qu'une ligne a bien été supprimée
 if(!lignes.length) throw new Error('refusé');
 }catch(e){
-alert('Suppression impossible. Réessayez.');
+bandeau('Suppression impossible. Réessayez.','erreur');
 return;
 }
 await supprimerPhotoStockee(p.photo,s);
@@ -442,7 +442,7 @@ async function choisirPhoto(e){
 const f=e.target.files[0];
 e.target.value='';
 if(!f) return;
-if(!f.type.startsWith('image/')){alert('Choisissez une photo (image).');return;}
+if(!f.type.startsWith('image/')){bandeau('Choisissez une photo (image).','erreur');return;}
 try{
 const img=await chargerImageDepuis(f);
 photoBlob=await reduireImage(img,800,0.75);
@@ -451,7 +451,7 @@ if(!photoBlob||!photoMiniBlob) throw new Error('image');
 }catch(err){
 photoBlob=null;
 photoMiniBlob=null;
-alert('Cette photo ne peut pas être lue. Essayez-en une autre.');
+bandeau('Cette photo ne peut pas être lue. Essayez-en une autre.','erreur');
 return;
 }
 if(apercuUrl) URL.revokeObjectURL(apercuUrl);

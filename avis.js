@@ -100,7 +100,7 @@ return p;
 }
 
 async function voirAvis(){
-if(!avisVendeurCourant){alert('Ce produit de démonstration ne peut pas recevoir d\'avis.');return;}
+if(!avisVendeurCourant){bandeau('Ce produit de démonstration ne peut pas recevoir d\'avis.');return;}
 // Retour : vers "Mes achats" si on vient de là, sinon vers la fiche produit
 const ach=document.getElementById('achats-detail');
 const retour=(ach&&ach.style.display==='block')?"afficherPageAchats('achats-detail')":"montrer('fiche')";
