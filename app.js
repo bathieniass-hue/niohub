@@ -423,7 +423,7 @@ async function supprimerProduit(id){
 const s=await sessionValide();
 const p=distants.find(x=>x.id===id);
 if(!p||!s||p.user_id!==s.user_id){bandeau('Vous ne pouvez supprimer que vos produits.','erreur');return;}
-if(!confirm('Supprimer « '+p.nom+' » ?')) return;
+if(!(await confirmer('« '+p.nom+' » sera retiré de NioHub. Cette action est définitive.',{titre:'Supprimer ce produit ?',ok:'Supprimer',danger:true}))) return;
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id+'&user_id=eq.'+s.user_id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=representation'}});
 if(!r.ok) throw new Error(r.status);

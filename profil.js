@@ -90,8 +90,8 @@ mettreAJourSession({nom:nom,telephone:tel,adresse:adresse||null});
 voirProfil();
 }
 
-function deconnecter(){
-if(!confirm('Voulez-vous vous déconnecter ?')) return;
+async function deconnecter(){
+if(!(await confirmer('Vous devrez vous reconnecter pour publier, commander ou voir vos messages.',{titre:'Se déconnecter ?',ok:'Se déconnecter'}))) return;
 oublierSession();
 if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect();
 location.reload();

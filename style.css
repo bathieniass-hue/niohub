@@ -102,3 +102,19 @@ html,body{overflow-anchor:none}
 @keyframes bandeau-entree{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
 @keyframes bandeau-sortie{to{opacity:0;transform:translateY(-16px)}}
 @media (prefers-reduced-motion:reduce){.bandeau,.bandeau.sortie{animation:none}}
+
+/* ---- Fenêtre de confirmation (remplace confirm() du navigateur) ---- */
+.confirm-fond{position:fixed;inset:0;z-index:1001;background:rgba(30,26,20,.45);display:flex;align-items:center;justify-content:center;padding:24px;animation:confirm-fondu .2s ease-out}
+.confirm-fond.sortie{animation:confirm-fondu .2s ease-in reverse forwards}
+.confirm-boite{width:100%;max-width:360px;background:#FBF7EE;border-radius:18px;padding:22px 20px 18px;box-shadow:0 12px 40px rgba(30,26,20,.3);animation:confirm-entree .22s ease-out}
+.confirm-titre{font-size:18px;font-weight:bold;color:#1E1A14}
+.confirm-texte{font-size:15px;line-height:1.5;color:#6B6254;margin-top:8px;white-space:pre-line}
+.confirm-actions{display:flex;gap:10px;margin-top:20px}
+.confirm-actions button{flex:1;height:48px;border-radius:12px;font-size:15px;font-weight:bold;cursor:pointer}
+.confirm-non{border:1px solid #E6DECB;background:#fff;color:#1E1A14}
+.confirm-oui{border:0;background:#0E6B47;color:#fff}
+.confirm-oui.danger{background:#B3412E}
+.confirm-actions button:focus-visible{outline:3px solid #F2B233;outline-offset:2px}
+@keyframes confirm-fondu{from{opacity:0}to{opacity:1}}
+@keyframes confirm-entree{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.confirm-fond,.confirm-fond.sortie,.confirm-boite{animation:none}}

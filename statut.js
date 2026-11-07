@@ -44,7 +44,7 @@ const c=commandesCache[i];
 if(!c) return;
 const actuel=STATUTS.includes(c.statut)?c.statut:'À préparer';
 if(!(SUIVANTS[actuel]||[]).includes(nouveau)) return;
-if(nouveau==='Annulée'&&!confirm('Annuler cette commande ? Cette action est définitive.')) return;
+if(nouveau==='Annulée'&&!(await confirmer('Le client verra que sa commande est annulée. Cette action est définitive.',{titre:'Annuler cette commande ?',ok:'Oui, annuler',annuler:'Garder',danger:true}))) return;
 const msg=document.getElementById('statut-msg');
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');return;}
