@@ -118,3 +118,11 @@ html,body{overflow-anchor:none}
 @keyframes confirm-fondu{from{opacity:0}to{opacity:1}}
 @keyframes confirm-entree{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.confirm-fond,.confirm-fond.sortie,.confirm-boite{animation:none}}
+
+/* ---- Accueil sans produits ---- */
+.vide{grid-column:1/-1;text-align:center;color:#6B6254;font-size:14px;line-height:1.5;padding:40px 16px}
+.accueil-vide{grid-column:1/-1;background:#fff;border:1px solid #EDE5D3;border-radius:18px;padding:28px 22px 18px;text-align:center;margin-top:6px}
+.accueil-vide-logo{width:64px;height:64px;border-radius:16px;background:#0E6B47;object-fit:contain;padding:10px}
+.accueil-vide-titre{font-size:20px;font-weight:bold;color:#0E6B47;margin-top:14px}
+.accueil-vide-texte{font-size:14px;line-height:1.55;color:#6B6254;margin:8px 0 20px}
+.accueil-vide-lien{border:0;background:none;color:#0E6B47;font-size:14px;font-weight:bold;padding:14px 8px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}

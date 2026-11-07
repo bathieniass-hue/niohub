@@ -237,7 +237,14 @@ grille.innerHTML=`<div class="vide">Impossible de charger les produits. Vérifie
 }else if(categorieActive){
 grille.innerHTML=`<div class="vide">Aucun produit dans la catégorie « ${esc(categorieActive)} »</div>`;
 }else{
-grille.innerHTML=`<div class="vide">Aucun produit pour l'instant.</div>`;
+// Catalogue vide : message d'accueil qui invite à publier le premier produit
+grille.innerHTML=`<div class="accueil-vide">
+<img src="logo-n.png" alt="" class="accueil-vide-logo">
+<div class="accueil-vide-titre">Bienvenue sur NioHub</div>
+<div class="accueil-vide-texte">Aucun produit n'est encore en vente près de chez vous. Lancez le marché : publiez le premier article, il sera vu par tous les visiteurs.</div>
+<button class="btn" type="button" onclick="voirAjout('accueil')">Publier un produit</button>
+<button class="accueil-vide-lien" type="button" onclick="voirBoutique()">Créer ma boutique</button>
+</div>`;
 }
 }
 
