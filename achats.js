@@ -1,6 +1,7 @@
 const PAGE_ACHATS='achats-page';
 const PAGE_ACHAT_DETAIL='achats-detail';
 let achatsCache=[];
+let origineAchats='accueil';
 
 const montrerAvantAchats=montrer;
 montrer=function(vue){
@@ -26,6 +27,10 @@ if(el) el.style.display='block';
 window.scrollTo(0,0);
 }
 
+function retourAchats(){
+montrer(origineAchats==='profil'?'profil':'accueil');
+}
+
 function couleurStatut(st){
 if(st==='Livrée') return '#0E6B47';
 if(st==='Expédiée') return '#1B5FA8';
@@ -34,10 +39,11 @@ return '#B4541A';
 }
 
 async function voirAchats(){
+origineAchats=(typeof vueCourante!=='undefined'&&vueCourante==='profil')?'profil':'accueil';
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');montrer('profil');return;}
 const p=pageAchats(PAGE_ACHATS);
-p.innerHTML=`<header><button class="retour" onclick="voirProfil()">←</button><span style="font-weight:bold;font-size:20px">Mes achats</span><span></span></header><div id="liste-achats" class="liste" style="margin-top:0">Chargement…</div>`;
+p.innerHTML=`<header><button class="retour" onclick="retourAchats()">←</button><span style="font-weight:bold;font-size:20px">Mes achats</span><span></span></header><div id="liste-achats" class="liste" style="margin-top:0">Chargement…</div>`;
 afficherPageAchats(PAGE_ACHATS);
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=*&acheteur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
