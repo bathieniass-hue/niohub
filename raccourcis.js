@@ -1,5 +1,4 @@
 VUES.push('favoris');
-VUES_MENU.favoris=0;
 
 const styleRaccourcis=document.createElement('style');
 styleRaccourcis.textContent=`
@@ -53,10 +52,17 @@ else return;
 dessinerFiltres();
 }
 
+function centrerCategorieActive(){
+const actif=document.querySelector('#filtres .filtre.on');
+if(!actif||!actif.scrollIntoView) return;
+actif.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+}
+
 function choisirCategorie(c){
 categorieActive=c;
 dessinerFiltres();
 afficherGrille();
+centrerCategorieActive();
 }
 
 document.addEventListener('DOMContentLoaded',installerFiltres);
@@ -129,3 +135,22 @@ function voirFavoris(){
 rendreFavoris();
 montrer('favoris');
 }
+
+// ---------- Retour avec le bouton Android ----------
+let retourTelephoneEnCours=false;
+const montrerAvantHistorique=montrer;
+montrer=function(vue){
+montrerAvantHistorique(vue);
+if(!retourTelephoneEnCours&&vue!=='accueil'){
+try{history.pushState({vue:vue},'','#'+vue);}catch(e){}
+}
+retourTelephoneEnCours=false;
+};
+
+window.addEventListener('popstate',e=>{
+const vue=(e.state&&e.state.vue)||'accueil';
+retourTelephoneEnCours=true;
+montrer(vue);
+});
+
+try{history.replaceState({vue:'accueil'},'','#accueil');}catch(e){}
