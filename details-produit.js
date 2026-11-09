@@ -1,4 +1,4 @@
-const CATEGORIES_PRODUIT=["Mode","Tech","Maison","Beauté","Alimentation","Autres"];
+const CATEGORIES_PRODUIT=["Mode & accessoires","Téléphone & high-tech","Maison & décoration","Beauté & hygiène","Alimentation","Sport et loisir","Électroménager","Bébé & enfants","École & bureau","Auto & moto","Autres"];
 const ETATS_PRODUIT=["Neuf","Comme neuf","Bon état","Occasion"];
 const COULEURS_PRODUIT=[
 {nom:"Vert",hex:"#1E9E4A"},
@@ -219,7 +219,7 @@ const lignes=await r.json();
 if(!lignes.length) throw new Error('refusé');
 }
 }catch(e){
-// Échec après l'envoi de la photo : on la retire pour ne pas laisser de fichier orphelin
+// Échec après l'envoi de la photo : on la retire pour ne pas laisser un fichier orphelin
 if(nouvelleUrl) await supprimerPhotoStockee(nouvelleUrl,s);
 bandeau('Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.','erreur');
 if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
