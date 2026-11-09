@@ -32,7 +32,6 @@ zone.innerHTML=`
 afficherRaccourcis();
 
 // Filtre par catégorie : "Tout" + les catégories de details-produit.js.
-// Dessiné après le chargement de tous les scripts (CATEGORIES_PRODUIT est défini plus loin).
 function dessinerFiltres(){
 const zone=document.getElementById('filtres');
 if(!zone) return;
@@ -45,7 +44,6 @@ const haut=document.getElementById('haut');
 const cats=document.getElementById('cats');
 const zone=document.createElement('div');
 zone.id='filtres';
-// Les filtres restent dans la barre fixe du haut, sous la recherche, même quand le reste se replie
 if(haut) haut.appendChild(zone);
 else if(cats) cats.insertAdjacentElement('afterend',zone);
 else return;
@@ -67,16 +65,16 @@ centrerCategorieActive();
 
 document.addEventListener('DOMContentLoaded',installerFiltres);
 
-// ---------- Barre du haut : elle se replie quand on descend, réapparaît dès qu'on remonte ----------
-const SEUIL_DEFILEMENT=8;      // un petit pas vers le haut suffit pour tout faire réapparaître
-const HAUTEUR_MIN_REPLI=120;   // on ne replie qu'après avoir un peu descendu
+// ---------- Barre du haut : repli au défilement ----------
+const SEUIL_DEFILEMENT=8;
+const HAUTEUR_MIN_REPLI=120;
 let dernierY=0,verrouBarre=0;
 
 function basculerBarre(compact){
 const haut=document.getElementById('haut');
 if(!haut) return;
 haut.classList.toggle('compact',compact);
-verrouBarre=Date.now()+350;  // ignore les mouvements causés par le repli lui-même
+verrouBarre=Date.now()+350;
 }
 
 window.addEventListener('scroll',()=>{
@@ -98,7 +96,6 @@ else if(dy<0&&compact) basculerBarre(false);
 dernierY=y;
 },{passive:true});
 
-// Retour à l'accueil depuis un autre écran : la barre est dépliée si on est tout en haut
 const montrerAvantBarre=montrer;
 montrer=function(vue){
 montrerAvantBarre(vue);
@@ -136,21 +133,43 @@ rendreFavoris();
 montrer('favoris');
 }
 
-// ---------- Retour avec le bouton Android ----------
+// ---------- Retour Android : identique au bouton ← de l’écran ----------
+let sentinelleHistoire=false;
 let retourTelephoneEnCours=false;
-const montrerAvantHistorique=montrer;
-montrer=function(vue){
-montrerAvantHistorique(vue);
-if(!retourTelephoneEnCours&&vue!=='accueil'){
-try{history.pushState({vue:vue},'','#'+vue);}catch(e){}
+
+function pousserSentinelle(){
+if(sentinelleHistoire) return;
+try{
+history.pushState({niohub:true},'','#niohub');
+sentinelleHistoire=true;
+}catch(e){}
 }
+
+const montrerAvantRetourAndroid=montrer;
+montrer=function(vue){
+const precedent=vueCourante;
+if(retourTelephoneEnCours){
 retourTelephoneEnCours=false;
+montrerAvantRetourAndroid(vue);
+if(vue!=='accueil') pousserSentinelle();
+return;
+}
+if(vue==='accueil'&&sentinelleHistoire){
+sentinelleHistoire=false;
+try{history.back();}catch(e){}
+montrerAvantRetourAndroid(vue);
+return;
+}
+montrerAvantRetourAndroid(vue);
+if(vue!==precedent&&vue!=='accueil') pousserSentinelle();
 };
 
-window.addEventListener('popstate',e=>{
-const vue=(e.state&&e.state.vue)||'accueil';
+window.addEventListener('popstate',()=>{
+if(vueCourante==='accueil') return;
 retourTelephoneEnCours=true;
-montrer(vue);
+const page=document.getElementById(vueCourante);
+const bouton=page&&(page.querySelector('.retour')||page.querySelector('.retour-carre'));
+if(bouton){bouton.click();return;}
+if(vueCourante==='boutique'||vueCourante==='profil'){montrer('accueil');return;}
+montrer('accueil');
 });
-
-try{history.replaceState({vue:'accueil'},'','#accueil');}catch(e){}
