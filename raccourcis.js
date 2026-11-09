@@ -9,6 +9,12 @@ styleRaccourcis.textContent=`
 #filtres::-webkit-scrollbar{display:none}
 .filtre{flex-shrink:0;padding:8px 14px;border:1px solid #E6DECB;border-radius:18px;background:#fff;color:#1E1A14;font-size:13px;font-family:sans-serif}
 .filtre.on{background:#0E6B47;border-color:#0E6B47;color:#fff;font-weight:bold}
+#categories-fond{position:fixed;inset:0;z-index:1002;background:rgba(30,26,20,.45);display:none;align-items:flex-end;justify-content:center}
+#categories-boite{width:100%;max-width:430px;background:#FBF7EE;border-radius:24px 24px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(30,26,20,.25)}
+#categories-titre{font-size:18px;font-weight:bold;color:#1E1A14;margin-bottom:12px}
+#categories-liste{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.categorie-item{padding:12px 10px;border:1px solid #E6DECB;border-radius:14px;background:#fff;color:#1E1A14;font-size:13px;font-weight:bold;font-family:sans-serif;text-align:left}
+.categorie-item.on{background:#0E6B47;border-color:#0E6B47;color:#fff}
 `;
 document.head.appendChild(styleRaccourcis);
 
@@ -16,7 +22,7 @@ const ICONES={
 messages:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><circle cx="8.5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="15.5" cy="12" r=".6"/></svg>',
 favoris:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
 achats:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
-boutique:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 6 0 2.5 2.5 0 0 0 5 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></svg>'
+categories:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
 };
 
 function afficherRaccourcis(){
@@ -27,11 +33,37 @@ zone.innerHTML=`
 <button class="raccourci" onclick="voirConversations()">${ICONES.messages}<span>Messages</span><span class="badge" id="badge-messages"></span></button>
 <button class="raccourci" onclick="voirFavoris()">${ICONES.favoris}<span>Favoris</span></button>
 <button class="raccourci" onclick="voirAchats()">${ICONES.achats}<span>Mes achats</span></button>
-<button class="raccourci" onclick="voirBoutique()">${ICONES.boutique}<span>Ma boutique</span></button>`;
+<button class="raccourci" onclick="ouvrirCategories()">${ICONES.categories}<span>Catégories</span></button>`;
 }
 afficherRaccourcis();
 
-// Filtre par catégorie : "Tout" + les catégories de details-produit.js.
+function creerFenetreCategories(){
+if(document.getElementById('categories-fond')) return;
+const fond=document.createElement('div');
+fond.id='categories-fond';
+fond.innerHTML=`<div id="categories-boite"><div id="categories-titre">Choisir une catégorie</div><div id="categories-liste"></div></div>`;
+fond.onclick=e=>{if(e.target.id==='categories-fond') fermerCategories();};
+document.body.appendChild(fond);
+}
+
+function ouvrirCategories(){
+creerFenetreCategories();
+const liste=document.getElementById('categories-liste');
+liste.innerHTML=[''].concat(CATEGORIES_PRODUIT).map(c=>`<button type="button" class="categorie-item${c===categorieActive?' on':''}" onclick="choisirCategorieModal('${esc(c)}')">${c?esc(c):'Tout'}</button>`).join('');
+document.getElementById('categories-fond').style.display='flex';
+}
+
+function fermerCategories(){
+const fond=document.getElementById('categories-fond');
+if(fond) fond.style.display='none';
+}
+
+function choisirCategorieModal(c){
+choisirCategorie(c);
+fermerCategories();
+montrer('accueil');
+}
+
 function dessinerFiltres(){
 const zone=document.getElementById('filtres');
 if(!zone) return;
@@ -134,14 +166,13 @@ montrer('favoris');
 }
 
 // ---------- Retour Android : identique au bouton ← de l’écran ----------
-let sentinelleHistoire=false;
+let profondeurHistoire=0;
 let retourTelephoneEnCours=false;
 
 function pousserSentinelle(){
-if(sentinelleHistoire) return;
 try{
 history.pushState({niohub:true},'','#niohub');
-sentinelleHistoire=true;
+profondeurHistoire++;
 }catch(e){}
 }
 
@@ -151,12 +182,15 @@ const precedent=vueCourante;
 if(retourTelephoneEnCours){
 retourTelephoneEnCours=false;
 montrerAvantRetourAndroid(vue);
-if(vue!=='accueil') pousserSentinelle();
+if(vue==='accueil'){
+try{history.replaceState({niohub:false},'','#accueil');}catch(e){}
+}
 return;
 }
-if(vue==='accueil'&&sentinelleHistoire){
-sentinelleHistoire=false;
-try{history.back();}catch(e){}
+if(vue==='accueil'&&profondeurHistoire>0){
+const n=profondeurHistoire;
+profondeurHistoire=0;
+try{history.go(-n);}catch(e){}
 montrerAvantRetourAndroid(vue);
 return;
 }
@@ -166,10 +200,10 @@ if(vue!==precedent&&vue!=='accueil') pousserSentinelle();
 
 window.addEventListener('popstate',()=>{
 if(vueCourante==='accueil') return;
+profondeurHistoire=Math.max(0,profondeurHistoire-1);
 retourTelephoneEnCours=true;
 const page=document.getElementById(vueCourante);
 const bouton=page&&(page.querySelector('.retour')||page.querySelector('.retour-carre'));
 if(bouton){bouton.click();return;}
-if(vueCourante==='boutique'||vueCourante==='profil'){montrer('accueil');return;}
 montrer('accueil');
 });
