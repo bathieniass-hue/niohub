@@ -32,12 +32,12 @@ let signatureCatalogue='';
 let vueCourante='accueil';
 let origineFiche=null;
 let restaurationScroll=false;
+const CLE_CATALOGUE='niohub_catalogue_v1';
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
 
 // Accepte uniquement une image en base64 ou un fichier de notre Supabase Storage.
-// Tout le reste est refusé : impossible de sortir de l'attribut style.
 function urlSure(u){
 const t=String(u||'');
 if(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(t)) return t;
@@ -50,16 +50,13 @@ return s?'url('+s+') center/cover no-repeat':defaut;
 }
 function fond(p){return fondImage(p.photo,p.couleur);}
 
-// ---- Photos stockées dans Supabase Storage (bucket "photos") ----
 const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
 
-// Aperçu local (blob:) créé par l'application elle-même, jamais venant de la base
 function urlLocale(u){
 const t=String(u||'');
 return /^blob:[A-Za-z0-9:\/.\-]+$/.test(t)?t:'';
 }
 
-// Chaque photo de produit existe en deux tailles : abc.jpg (fiche) et abc_m.jpg (miniature des listes)
 function urlMiniature(u){
 const t=String(u||'');
 return t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')?t.replace(/\.jpg$/,'_m.jpg'):t;
@@ -90,8 +87,6 @@ const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'PO
 if(!r.ok) throw new Error(r.status);
 }
 
-// Envoie la photo (et sa miniature si fournie) dans le dossier de l'utilisateur.
-// Retourne l'adresse publique de la grande photo.
 async function televerserPhoto(blob,mini,s){
 const base=s.user_id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 await televerserFichier(base+'.jpg',blob,s);
@@ -102,7 +97,6 @@ catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.jpg',s);throw e;}
 return PREFIXE_PHOTOS+base+'.jpg';
 }
 
-// Supprime une photo de Storage (et sa miniature). Sans effet pour les anciennes photos stockées dans la base.
 async function supprimerPhotoStockee(url,s){
 const t=String(url||'');
 if(!t.startsWith(PREFIXE_PHOTOS)) return;
@@ -139,6 +133,7 @@ boutiquesCache=await r.json();
 }
 
 async function chargerProduits(){
+let echec=false;
 try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
@@ -155,22 +150,32 @@ categorie:l.categorie||null,
 etat:l.etat||null,
 couleurs:l.couleurs||null
 }));
-chargementEchoue=false;
 }catch(e){
-console.log(e);
+echec=true;
+}
+if(echec){
 chargementEchoue=true;
+try{
+const c=JSON.parse(localStorage.getItem(CLE_CATALOGUE)||'null');
+if(c){
+distants=c.produits||[];
+boutiquesCache=c.boutiques||[];
+}
+}catch(e){}
+}else{
+chargementEchoue=false;
+try{localStorage.setItem(CLE_CATALOGUE,JSON.stringify({produits:distants,boutiques:boutiquesCache}));}catch(e){}
 }
 await chargerBoutiquesCache();
 const notes=await chargerNotesVendeurs();
 if(notes) notesVendeurs=notes;
-// On ne redessine la grille que si quelque chose a changé : pas de clignotement pendant l'actualisation automatique
 const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
 if(signature===signatureCatalogue) return;
 signatureCatalogue=signature;
 afficherGrille();
+majBandeauReseau();
 }
 
-// Note moyenne de chaque vendeur (vue SQL notes_vendeurs). Si la vue n'existe pas encore : pas d'étoiles, rien ne casse.
 async function chargerNotesVendeurs(){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/notes_vendeurs?select=vendeur_id,moyenne,nb',{headers:{apikey:SUPABASE_KEY}});
@@ -181,7 +186,6 @@ return m;
 }catch(e){return null;}
 }
 
-// ---- Carte produit (accueil et favoris) : photo, prix, puis la boutique avec sa note et son adresse ----
 const ICONE_LIEU='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
 
 function blocVendeurCarte(p){
@@ -200,7 +204,6 @@ function carteProduitHTML(p,i){
 const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
 return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
 }
-
 
 function requeteRecherche(){
 const el=document.getElementById('q');
@@ -237,7 +240,6 @@ grille.innerHTML=`<div class="vide">Impossible de charger les produits. Vérifie
 }else if(categorieActive){
 grille.innerHTML=`<div class="vide">Aucun produit dans la catégorie « ${esc(categorieActive)} »</div>`;
 }else{
-// Catalogue vide : message d'accueil qui invite à publier le premier produit
 grille.innerHTML=`<div class="accueil-vide">
 <img src="logo-n.png" alt="" class="accueil-vide-logo">
 <div class="accueil-vide-titre">Bienvenue sur NioHub</div>
@@ -333,9 +335,35 @@ st.textContent=`
 .tag-p{background:#FFF1CC;color:#8A5A00}
 .titre-section{font-size:14px;font-weight:bold;margin:8px 0 6px;color:#6B6254}
 .vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
+#bandeau-reseau{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;display:none;padding:10px 14px;border-radius:14px;background:#8A5A00;color:#fff;font-size:13px;font-weight:bold;box-shadow:0 8px 20px rgba(30,26,20,.2)}
 `;
 document.head.appendChild(st);
 }
+
+function creerBandeauReseau(){
+if(document.getElementById('bandeau-reseau')) return;
+const b=document.createElement('div');
+b.id='bandeau-reseau';
+document.body.appendChild(b);
+}
+
+function majBandeauReseau(){
+creerBandeauReseau();
+const b=document.getElementById('bandeau-reseau');
+if(!b) return;
+if(!navigator.onLine){
+b.textContent='Vous êtes hors ligne. Les produits déjà vus restent affichés.';
+b.style.display='block';
+}else if(chargementEchoue){
+b.textContent='Connexion lente : certains produits peuvent ne pas s\'afficher.';
+b.style.display='block';
+}else{
+b.style.display='none';
+}
+}
+
+window.addEventListener('online',majBandeauReseau);
+window.addEventListener('offline',majBandeauReseau);
 
 function ouvrir(i){
 const p=tous()[i];
@@ -347,13 +375,11 @@ document.getElementById('fdesc').textContent=p.desc;
 montrer('fiche');
 }
 
-// Ouvre un produit par son identifiant : reste correct même si la liste change entre-temps
 function ouvrirParId(id){
 const i=tous().findIndex(x=>x.id===id);
 if(i>=0) ouvrir(i);
 }
 
-// Fermer une fiche produit : on revient là où on était (accueil, favoris, boutique, conversation...) à la même hauteur
 function fermerFiche(){
 const o=origineFiche;
 origineFiche=null;
@@ -435,7 +461,6 @@ try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id+'&user_id=eq.'+s.user_id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=representation'}});
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
-// Supabase répond "OK" même si la règle de sécurité a bloqué : on vérifie qu'une ligne a bien été supprimée
 if(!lignes.length) throw new Error('refusé');
 }catch(e){
 bandeau('Suppression impossible. Réessayez.','erreur');
@@ -465,8 +490,6 @@ if(apercuUrl) URL.revokeObjectURL(apercuUrl);
 apercuUrl=URL.createObjectURL(photoBlob);
 remettreApercu(apercuUrl);
 }
-
-// publier() est définie dans details-produit.js (catégorie, état, couleurs).
 
 styleAccueil();
 installerRecherche();
