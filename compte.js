@@ -6,7 +6,6 @@ function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s
 function oublierSession(){localStorage.removeItem(CLE_SESSION);}
 function nomComplet(){const s=lireSession();return (s&&s.nom)||'';}
 
-// Met à jour le profil gardé en mémoire sur le téléphone (nom, téléphone, adresse)
 function mettreAJourSession(champs){
 const s=lireSession();
 if(!s) return;
@@ -16,25 +15,20 @@ enregistrerSession(s);
 
 const MESSAGE_TEL='Numéro sénégalais invalide : 9 chiffres commençant par 7 (ex. 77 123 45 67).';
 
-// Tous les chiffres d'un numéro, sans l'indicatif +221 / 00221 s'il a été collé
 function normaliserTelephone(t){
 let n=String(t||'').replace(/\D/g,'');
 if(n.startsWith('00221')) n=n.slice(5);
 else if(n.startsWith('221')&&(n.length>9||n[3]==='7')) n=n.slice(3);
 return n;
 }
-// Les 9 premiers chiffres (pour l'affichage dans le champ)
 function chiffresTelephone(t){return normaliserTelephone(t).slice(0,9);}
-// 771234567 -> "77 123 45 67"
 function formaterTelephone(t){
 const n=chiffresTelephone(t);
 return [n.slice(0,2),n.slice(2,5),n.slice(5,7),n.slice(7,9)].filter(Boolean).join(' ');
 }
-// Numéro sénégalais : toujours 9 chiffres, commençant par 7
 function telephoneValide(t){return /^7\d{8}$/.test(normaliserTelephone(t));}
 function lienAppel(t){const n=chiffresTelephone(t);return n?'tel:+221'+n:'#';}
 
-// Les espaces s'écrivent tout seuls dans tous les champs téléphone, sans déplacer le curseur
 document.addEventListener('input',e=>{
 const el=e.target;
 if(!el||el.tagName!=='INPUT'||el.type!=='tel') return;
@@ -76,15 +70,16 @@ if(s.expires_at-60>Date.now()/1000) return s;
 try{
 const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
 if(!r.ok){
-// On ne déconnecte que si le jeton est vraiment refusé, pas pour une panne passagère du serveur
 if(r.status===400||r.status===401||r.status===403){oublierSession();return null;}
 return s;
 }
 return sauverTokens(await r.json());
-}catch(e){return s;}
+}catch(e){
+// Erreur réseau : on garde la session existante plutôt que d’afficher la connexion
+return s;
+}
 }
 
-// Distingue "pas de profil" d'une "erreur réseau" pour ne jamais redemander un profil qui existe déjà
 async function chargerProfil(s){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
@@ -94,7 +89,6 @@ return {profil:lignes[0]||null};
 }catch(e){return {erreur:true};}
 }
 
-// Retourne 'ok', 'creer' (aucun profil) ou 'erreur' (réseau)
 async function assurerProfil(s){
 if(s.nom) return 'ok';
 const res=await chargerProfil(s);
@@ -155,7 +149,7 @@ montrerOriginal(estAuth?'__aucune__':vue);
 
 function chargerGoogle(){
 return new Promise((ok,ko)=>{
-if(window.google&&google.accounts&&google.accounts.id) return ok();
+if(window.google&&window.google.accounts&&window.google.accounts.id) return ok();
 const s=document.createElement('script');
 s.src='https://accounts.google.com/gsi/client';
 s.onload=()=>ok();
@@ -233,12 +227,17 @@ if(msg) msg.textContent='Connexion impossible. Réessayez.';
 }
 
 async function verifierAcces(){
+try{
+if(!navigator.onLine){afficherErreurReseau();return;}
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
 const etat=await assurerProfil(s);
 if(etat==='erreur'){afficherErreurReseau();return;}
 if(etat==='creer'){afficherCompletion();return;}
 montrer('accueil');
+}catch(e){
+afficherErreurReseau();
+}
 }
 
 let profilEnCours=false;
@@ -246,7 +245,7 @@ let profilEnCours=false;
 async function creerProfil(){
 if(profilEnCours) return;
 const msg=document.getElementById('c-msg');
-msg.textContent='';
+if(msg) msg.textContent='';
 const prenom=document.getElementById('p-prenom').value.trim();
 const nom=document.getElementById('p-nom').value.trim();
 const tel=formaterTelephone(document.getElementById('p-tel').value);
@@ -261,9 +260,8 @@ profilEnCours=true;
 if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
 const fin=()=>{profilEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent='Enregistrer mon profil';}};
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null})});
+let r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null})});
 if(r.status===409){
-// Le profil existe déjà (double envoi ou autre appareil) : on le récupère au lieu d'échouer
 const res=await chargerProfil(s);
 if(res.profil){
 enregistrerSession(Object.assign(s,{nom:res.profil.nom,telephone:res.profil.telephone,adresse:res.profil.adresse||null}));
@@ -298,14 +296,13 @@ return;
 }
 const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
 const photo=urlSure(s.photo);
-// Photo pas encore connue sur ce téléphone : on la récupère une fois
 if(s.photo===undefined) chargerProfil(s).then(res=>{if(res.profil){mettreAJourSession({photo:res.profil.photo||null});if(res.profil.photo&&vueCourante==='profil') afficherProfilCarte();}});
 zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?'+221 '+formaterTelephone(s.telephone):'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
 }
 
 function seDeconnecter(){
 oublierSession();
-if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect();
+if(window.google&&window.google.accounts&&window.google.accounts.id) window.google.accounts.id.disableAutoSelect();
 verifierAcces();
 }
 
