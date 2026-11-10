@@ -2,9 +2,10 @@ VUES.push('favoris');
 
 const styleRaccourcis=document.createElement('style');
 styleRaccourcis.textContent=`
-.raccourci{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;min-height:92px;background:#fff;border:1px solid #E6DECB;border-radius:16px;padding:14px 2px 8px;font-size:13px;font-weight:bold;line-height:1.15;color:#1E1A14;font-family:sans-serif;text-align:center}
-.raccourci svg{width:28px;height:28px;stroke:#0E6B47;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.badge{position:absolute;top:6px;right:8px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#D7263D;color:#fff;font-size:12px;font-weight:bold;line-height:20px;text-align:center;display:none}
+.raccourci{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:76px;border-radius:16px;background:linear-gradient(160deg,#10301F,#050B07);border:1.5px solid #3BBF4B;box-shadow:0 2px 8px rgba(15,107,70,.3),inset 0 0 10px rgba(80,220,90,.25);padding:0;font-size:11px;font-weight:600;line-height:1.15;color:#fff;font-family:sans-serif;text-align:center;white-space:nowrap}
+.gl{width:40px;height:40px;background:url(icones-accueil.png) no-repeat 0 0/120px 40px;background-position:calc(var(--i)*-40px) 0}
+.gn{width:40px;height:40px;background:url(icones-favoris.png) no-repeat 0 0/80px 40px;background-position:calc(var(--i)*-40px) 0}
+.badge{position:absolute;top:6px;right:8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E0A52E;color:#2A1B00;font-size:11px;font-weight:bold;line-height:18px;text-align:center;display:none}
 #filtres{display:flex;gap:8px;overflow-x:auto;padding:0 20px 6px;margin:0 0 4px;scrollbar-width:none}
 #filtres::-webkit-scrollbar{display:none}
 .filtre{flex-shrink:0;padding:8px 14px;border:1px solid #E6DECB;border-radius:18px;background:#fff;color:#1E1A14;font-size:13px;font-family:sans-serif}
@@ -19,10 +20,10 @@ styleRaccourcis.textContent=`
 document.head.appendChild(styleRaccourcis);
 
 const ICONES={
-messages:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><circle cx="8.5" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="15.5" cy="12" r=".6"/></svg>',
-favoris:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
-achats:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
-categories:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
+messages:'<span class="gl" style="--i:1" aria-hidden="true"></span>',
+favoris:'<span class="gn" style="--i:0" aria-hidden="true"></span>',
+achats:'<span class="gl" style="--i:2" aria-hidden="true"></span>',
+categories:'<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><g fill="#2FB344" stroke="#EAF6EA" stroke-width="1.2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></g></svg>'
 };
 
 function afficherRaccourcis(){

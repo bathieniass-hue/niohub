@@ -96,10 +96,12 @@ return;
 }
 bouton.style.display='';
 zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
-actions.innerHTML=`<button class="btn" style="margin-top:14px" onclick="voirMesProduits()">Mes produits</button>
-<button class="btn2" onclick="voirAjout('boutique')">Ajouter un produit</button>
-<button class="btn2" onclick="voirCommandes()">Commandes</button>
-<button class="btn2" onclick="voirMessages()">Messages</button>`;
+actions.innerHTML=`<div class="tuiles">
+<button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages</button>
+<button class="tuile" onclick="voirCommandes()"><span class="gb-ic" style="--i:2" aria-hidden="true"></span>Commandes</button>
+<button class="tuile" onclick="voirAjout('boutique')"><span class="gb-ic" style="--i:4" aria-hidden="true"></span>Ajouter</button>
+<button class="tuile large" onclick="voirMesProduits()"><span class="gb-ic" style="--i:3" aria-hidden="true"></span>Mes produits</button>
+</div>`;
 }
 
 async function voirBoutique(){

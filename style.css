@@ -11,15 +11,16 @@ h1{margin:0;color:#0E6B47;font-size:26px}
 .search{margin:0 20px;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;color:#6B6254}
 .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 20px}
 .cat{height:64px;border-radius:14px;display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:bold}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 20px 90px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 20px 110px}
 .card{background:#fff;border:1px solid #EDE5D3;border-radius:14px;overflow:hidden;cursor:pointer}
 .img{height:120px}
 .info{padding:10px}
 .name{font-size:14px;font-weight:bold}
 .price{color:#0E6B47;font-weight:bold;margin-top:4px}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:#fff;border-top:1px solid #E6DECB}
-nav button{flex:1;height:60px;border:0;background:none;color:#6B6254;font-size:12px}
-nav button.on{color:#0E6B47;font-weight:bold}
+nav{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;height:68px;border-radius:26px;background:linear-gradient(160deg,#10301F,#050B07);border:1.5px solid #3BBF4B;box-shadow:0 4px 18px rgba(15,107,70,.35),inset 0 0 12px rgba(80,220,90,.2);display:flex;align-items:center;padding:0 8px;box-sizing:border-box;z-index:20}
+nav button{flex:1;height:56px;border:0;background:none;color:#A9C4B2;font-size:11px;font-weight:600;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;margin:0 2px;border-radius:20px}
+nav button.on{background:rgba(80,220,90,.16);color:#fff}
+.nav-ic{width:34px;height:34px;flex:none;background:url(icones-nav.png) no-repeat 0 0/102px 34px;background-position:calc(var(--i)*-34px) 0}
 .fiche{display:none;padding:0 0 100px}
 .fiche .photo{height:280px}
 .fiche .corps{padding:18px 20px}
@@ -30,7 +31,7 @@ nav button.on{color:#0E6B47;font-weight:bold}
 .bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 20px;background:#fff;border-top:1px solid #E6DECB}
 .btn{width:100%;height:52px;border:0;border-radius:12px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold}
 .retour{border:0;background:none;font-size:24px;padding:0 4px}
-.page{display:none;padding:0 20px 110px}
+.page{display:none;padding:0 20px 120px}
 .page header{padding:16px 0}
 .page label{display:block;font-size:13px;font-weight:bold;margin:14px 0 6px}
 .page input,.page textarea{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
@@ -126,3 +127,11 @@ html,body{overflow-anchor:none}
 .accueil-vide-titre{font-size:20px;font-weight:bold;color:#0E6B47;margin-top:14px}
 .accueil-vide-texte{font-size:14px;line-height:1.55;color:#6B6254;margin:8px 0 20px}
 .accueil-vide-lien{border:0;background:none;color:#0E6B47;font-size:14px;font-weight:bold;padding:14px 8px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* ===== Icônes NioHub (planches de la maquette) ===== */
+.icone-liste{width:36px;height:36px;flex:none;border-radius:10px;background:url(icones-liste.png) no-repeat 0 0/576px 36px;background-position:calc(var(--i)*-36px) 0}
+#profil .ligne{min-height:60px;padding:12px 0}
+.tuiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.tuile{position:relative;height:76px;border-radius:16px;background:linear-gradient(160deg,#10301F,#050B07);border:1.5px solid #3BBF4B;box-shadow:0 2px 8px rgba(15,107,70,.3),inset 0 0 10px rgba(80,220,90,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0;font-size:11px;font-weight:600;font-family:inherit;color:#fff;white-space:nowrap}
+.tuile.large{grid-column:span 3;flex-direction:row;gap:12px;font-size:16px;font-weight:700}
+.gb-ic{width:40px;height:40px;flex:none;background:url(icones-boutique.png) no-repeat 0 0/200px 40px;background-position:calc(var(--i)*-40px) 0}
