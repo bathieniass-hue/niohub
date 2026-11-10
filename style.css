@@ -218,3 +218,10 @@ body.sombre .auth-carte p,body.sombre .auth-pied{color:#9DB5A5}
 body.sombre .g-enveloppe{background:#10301F;border-color:#24472F}
 body.sombre .auth-champs input{background:#0F2418;border-color:#24472F;color:#EAF3EC}
 body.sombre .auth-lien{color:#3BBF4B}
+
+/* ===== Paramètres : choix du thème ===== */
+.theme-choix{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.theme-opt{height:56px;border:1.5px solid #E6DECB;border-radius:14px;background:#fff;color:#1E1A14;font-size:15px;font-weight:bold;font-family:inherit}
+.theme-opt.on{border-color:#0E6B47;background:#E1F1E8;color:#0E6B47}
+body.sombre .theme-opt{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .theme-opt.on{border-color:#3BBF4B;box-shadow:inset 0 0 0 1px #3BBF4B;color:#3BBF4B}
