@@ -1,7 +1,7 @@
 // Service worker de NioHub : l'application s'ouvre même avec un réseau lent ou coupé.
 // Stratégie : réseau d'abord (toujours la dernière version), copie gardée en secours.
 // Les données (Supabase) et Google ne passent jamais par ce cache.
-const VERSION='niohub-f6d3dcde61'; // remplacé automatiquement à chaque livraison
+const VERSION='niohub-20261110-a'; // remplacé automatiquement à chaque livraison
 const FICHIERS=[
 './','index.html','style.css','manifest.json','conditions.html',
 'icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
