@@ -87,8 +87,9 @@ zone.style.display='block';
 corps.appendChild(zone);
 }
 
-const ouvrirAvantFiche=ouvrir;
-ouvrir=function(i){
-ouvrirAvantFiche(i);
-arrangerFiche(tous()[i]);
+const ouvrirParIdAvant=ouvrirParId;
+ouvrirParId=function(id){
+ouvrirParIdAvant(id);
+const i=tous().findIndex(x=>Number(x.id)===Number(id));
+if(i>=0) arrangerFiche(tous()[i]);
 };
