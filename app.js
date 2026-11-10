@@ -208,8 +208,9 @@ return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage
 
 function carteProduitHTML(p,i){
 const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
-const photo=urlMiniature(p.photo);
-return `<div class="card" onclick="${clic}"><div class="img" style="background:${p.couleur||'#D9B26F'}">${photo?`<img src="${esc(photo)}" loading="lazy" alt="">`:''}</div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
+const mini=urlMiniature(p.photo);
+const image=mini?`<img src="${esc(mini)}" loading="lazy" alt="">`:'';
+return `<div class="card" onclick="${clic}"><div class="img" style="background:${p.couleur||'#D9B26F'}">${image}</div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
 }
 
 function requeteRecherche(){

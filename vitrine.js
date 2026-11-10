@@ -89,8 +89,9 @@ zone.innerHTML='<div class="liste">Aucun produit publié pour l\'instant.</div>'
 return;
 }
 zone.innerHTML=`<div class="grid" style="padding:6px 0 0">${affichees.map(x=>{
-const photo=urlMiniature(x.photo);
-return `<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${x.couleur||'#D9B26F'}">${photo?`<img src="${esc(photo)}" loading="lazy" alt="">`:''}</div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`;
+const mini=urlMiniature(x.photo);
+const image=mini?`<img src="${esc(mini)}" loading="lazy" alt="">`:'';
+return `<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${x.couleur||'#D9B26F'}">${image}</div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`;
 }).join('')}</div>`;
 if(produitsVitrine.length>affichees.length){
 zone.insertAdjacentHTML('beforeend',`<button class="btn2" style="width:100%;margin:10px 0 30px" onclick="afficherPlusVitrine()">Afficher plus (${produitsVitrine.length-affichees.length} restants)</button>`);
