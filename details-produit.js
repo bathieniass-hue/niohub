@@ -169,6 +169,18 @@ if(p) remplirDetailsDepuis(p);
 }
 };
 
+async function lireErreurSupabase(r){
+let detail='';
+try{
+const j=await r.json();
+detail=j.message||j.error_description||j.error||j.msg||'';
+}catch(e){
+try{detail=await r.text();}catch(e2){}
+}
+detail=String(detail||'').slice(0,180);
+return 'Erreur ' + r.status + (detail?' : ' + detail:'');
+}
+
 publier=async function(){
 if(publicationEnCours) return;
 publicationEnCours=true;
@@ -207,18 +219,29 @@ corps.user_id=s.user_id;
 let nouvelleUrl=null;
 try{
 if(photoBlob){
+try{
 nouvelleUrl=await televerserPhoto(photoBlob,photoMiniBlob,s);
+}catch(e){
+bandeau('Envoi de la photo impossible. Vérifiez votre connexion ou réessayez avec une autre photo.','erreur');
+return;
+}
 corps.photo=nouvelleUrl;
 }
 const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'},body:JSON.stringify(corps)});
-if(!r.ok) throw new Error(r.status);
+if(!r.ok){
+const detail=await lireErreurSupabase(r);
+bandeau('Enregistrement impossible. ' + detail,'erreur');
+return;
+}
 if(modification){
 const lignes=await r.json();
-if(!lignes.length) throw new Error('refusé');
+if(!lignes.length){
+bandeau('Enregistrement impossible : produit non trouvé ou non autorisé.','erreur');
+return;
+}
 }
 }catch(e){
-if(nouvelleUrl) await supprimerPhotoStockee(nouvelleUrl,s);
-bandeau('Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.','erreur');
+bandeau('Enregistrement impossible. Vérifiez votre connexion et réessayez.','erreur');
 return;
 }
 if(modification&&nouvelleUrl&&photoExistante) await supprimerPhotoStockee(photoExistante,s);
