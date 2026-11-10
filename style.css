@@ -136,3 +136,46 @@ html,body{overflow-anchor:none}
 .tuile.large{grid-column:span 4;flex-direction:row;gap:12px;font-size:16px;font-weight:700}
 .gb-ic{width:40px;height:40px;flex:none;background:url(icones-boutique.png) no-repeat 0 0/200px 40px;background-position:calc(var(--i)*-40px) 0}
 .tuile .pastille{position:absolute;top:6px;right:8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E0A52E;color:#2A1B00;font-size:11px;font-weight:bold;line-height:18px;text-align:center}
+
+/* ===== Thème sombre (toutes les pages sauf l'accueil) : palette de la maquette ===== */
+html.sombre{background:#07130C}
+body.sombre{background:#07130C;color:#EAF3EC}
+body.sombre .page h1,body.sombre .nomboutique,body.sombre .fiche .titre,body.sombre #fnom,body.sombre .page .titre-ecran,body.sombre .entete-ecran .titre-ecran{color:#EAF3EC}
+body.sombre .retour{color:#EAF3EC}
+body.sombre .retour-carre,body.sombre .chat-action{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .card,body.sombre .liste,body.sombre .boutique,body.sombre .chat-produit,body.sombre .accueil-vide{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .page input,body.sombre .page textarea,body.sombre .champ-tel,body.sombre .bulle.autre,body.sombre #chat .chat-saisie input,body.sombre #dp-card,body.sombre .dp-choix,body.sombre #dp-card #desc{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .page input::placeholder,body.sombre .page textarea::placeholder,body.sombre #chat .chat-saisie input::placeholder{color:#6F8A78}
+body.sombre .champ-tel input{background:transparent;color:#EAF3EC}
+body.sombre .champ-tel .indicatif{background:#10301F;color:#9DB5A5;border-right-color:#24472F}
+body.sombre .champ-tel:focus-within,body.sombre .page input:focus,body.sombre .page textarea:focus{border-color:#3BBF4B;outline:none}
+body.sombre .apercu{background:#0F2418;border-color:#3BBF4B;color:#3BBF4B}
+body.sombre .ligne{color:#EAF3EC;border-bottom-color:#24472F}
+body.sombre .conv{border-bottom-color:#24472F}
+body.sombre .conv-nom,body.sombre .conv.nonlu .conv-apercu,body.sombre .v-note,body.sombre .name{color:#EAF3EC}
+body.sombre .conv-apercu,body.sombre .conv-heure,body.sombre .chat-jour,body.sombre .chat-vide,body.sombre .fiche .desc,body.sombre .titre-section,body.sombre .vide,body.sombre #fcat,body.sombre #fd-desc-titre,body.sombre #fd-details .fd-label,body.sombre .dp-label,body.sombre .v-nb,body.sombre .v-lieu,body.sombre .accueil-vide-texte{color:#9DB5A5}
+body.sombre .fiche .prix,body.sombre #fprix,body.sombre .price,body.sombre .cp-prix,body.sombre .cp-voir,body.sombre .conv-produit,body.sombre .accueil-vide-titre,body.sombre .dp-choix.on{color:#3BBF4B}
+body.sombre .btn,body.sombre .btn-plein{background:linear-gradient(160deg,#10301F,#050B07);border:1.5px solid #3BBF4B;color:#fff;box-shadow:0 2px 8px rgba(15,107,70,.3),inset 0 0 10px rgba(80,220,90,.25)}
+body.sombre .btn2,body.sombre .petit{background:#0F2418;color:#3BBF4B;border-color:#3BBF4B}
+body.sombre .bar,body.sombre .chat-saisie,body.sombre .entete-ecran{background:#07130C;border-top-color:#24472F}
+body.sombre .msg,body.sombre .chat-saisie .chat-erreur{color:#FF8A7E}
+body.sombre .chat-sujet span{background:#10301F;color:#3BBF4B}
+body.sombre .chat-action.appel svg{stroke:#3BBF4B}
+body.sombre .dp-row,body.sombre #fd-details .fd-ligne{border-top-color:#24472F;color:#EAF3EC}
+body.sombre .dp-valeur,body.sombre .dp-chev,body.sombre .dp-sw,body.sombre .dp-choix,body.sombre #fd-details .fd-val{color:#EAF3EC}
+body.sombre .dp-choix,body.sombre #dp-card #desc{border-top-color:#24472F}
+body.sombre .dp-sw.on .dp-pastille{box-shadow:0 0 0 2px #07130C,0 0 0 3px #3BBF4B}
+body.sombre .bandeau{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .bandeau.succes{background:#10301F}
+body.sombre .bandeau.info{background:#2B2210}
+body.sombre .bandeau.erreur{background:#2E1511}
+body.sombre .bandeau-fermer{color:#9DB5A5}
+body.sombre .confirm-boite{background:#0F2418}
+body.sombre .confirm-titre{color:#EAF3EC}
+body.sombre .confirm-texte{color:#9DB5A5}
+body.sombre .confirm-non{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre [style*="color:#6B6254"]{color:#9DB5A5 !important}
+body.sombre [style*="color:#1E1A14"]{color:#EAF3EC !important}
+body.sombre [style*="color:#B4291A"]{color:#FF8A7E !important}
+body.sombre [style*="color:#0E6B47"]{color:#3BBF4B !important}
+body.sombre [style*="border-top:1px solid #EDE5D3"]{border-top-color:#24472F !important}
