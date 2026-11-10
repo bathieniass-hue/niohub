@@ -1,7 +1,6 @@
 const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
 const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 
-// Mettre true pour revoir les 4 produits de démonstration
 const AFFICHER_DEMO=false;
 
 const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
@@ -10,12 +9,7 @@ const VUES_MENU={accueil:0,boutique:1,mesproduits:1,'boutique-form':1,profil:2};
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
 
-const defauts=[
-{nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
-{nom:"Sac en cuir",prix:"18 000 FCFA",couleur:"#C98B6B",desc:"Sac en cuir véritable, fait à la main."},
-{nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
-{nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
-];
+const defauts=[];
 let distants=[];
 let boutiquesCache=[];
 let suggestionsEnCours=[];
@@ -33,11 +27,13 @@ let vueCourante='accueil';
 let origineFiche=null;
 let restaurationScroll=false;
 const CLE_CATALOGUE='niohub_catalogue_v1';
+let limiteAffichage=20;
+let derniereRecherche='';
+let derniereCategorie='';
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
 
-// Accepte uniquement une image en base64 ou un fichier de notre Supabase Storage.
 function urlSure(u){
 const t=String(u||'');
 if(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(t)) return t;
@@ -223,6 +219,11 @@ return bloc;
 
 function afficherGrille(){
 const q=requeteRecherche();
+if(q!==derniereRecherche||categorieActive!==derniereCategorie){
+limiteAffichage=20;
+derniereRecherche=q;
+derniereCategorie=categorieActive;
+}
 const grille=document.getElementById('grid');
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
@@ -231,8 +232,12 @@ bloc.innerHTML=trouvees.length
 ?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
-if(liste.length){
-grille.innerHTML=liste.map(x=>carteProduitHTML(x.p,x.i)).join('');
+const affichees=liste.slice(0,limiteAffichage);
+if(affichees.length){
+grille.innerHTML=affichees.map(x=>carteProduitHTML(x.p,x.i)).join('');
+if(liste.length>affichees.length){
+grille.insertAdjacentHTML('beforeend',`<button class="btn2" style="grid-column:1/-1;margin:10px 0 30px" onclick="afficherPlus()">Afficher plus (${liste.length-affichees.length} restants)</button>`);
+}
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
@@ -248,6 +253,11 @@ grille.innerHTML=`<div class="accueil-vide">
 <button class="accueil-vide-lien" type="button" onclick="voirBoutique()">Créer ma boutique</button>
 </div>`;
 }
+}
+
+function afficherPlus(){
+limiteAffichage+=20;
+afficherGrille();
 }
 
 function suggestions(q){

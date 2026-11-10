@@ -15,7 +15,9 @@ document.body.appendChild(p);
 }
 creerPageVitrine();
 
-// Distingue "boutique inexistante" d'une "erreur réseau"
+let limiteVitrine=20;
+let produitsVitrine=[];
+
 async function chargerBoutiqueDe(userId){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+encodeURIComponent(userId)+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
@@ -41,9 +43,10 @@ return;
 }
 const b=res.boutique;
 if(!b){zone.innerHTML='<div class="liste" style="margin-top:0">Cette boutique n\'est pas encore ouverte.</div>';return;}
-// Le catalogue est déjà en mémoire depuis l'accueil : on ne le recharge que s'il est vide
 if(!distants.length) await chargerProduits();
 const prods=distants.filter(x=>x.user_id===userId);
+produitsVitrine=prods;
+limiteVitrine=20;
 const tel=[b.telephone,b.telephone2].filter(Boolean);
 const note=avis.erreur
 ?''
@@ -69,10 +72,30 @@ zone.innerHTML=`
 </div>
 ${contact}
 <label>Produits (${prods.length})</label>
-${prods.length?`<div class="grid" style="padding:6px 0 30px">${prods.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${fondMini(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`:'<div class="liste">Aucun produit publié pour l\'instant.</div>'}
+<div id="vit-produits"></div>
 <label>Avis des clients</label>
 <div class="liste" style="margin-top:0">${listeAvis}</div>
 <div style="font-size:12px;color:#6B6254;margin-top:8px">Pour donner un avis, ouvrez un produit de cette boutique.</div>`;
+rendreProduitsVitrine();
+}
+
+function rendreProduitsVitrine(){
+const zone=document.getElementById('vit-produits');
+if(!zone) return;
+const affichees=produitsVitrine.slice(0,limiteVitrine);
+if(!affichees.length){
+zone.innerHTML='<div class="liste">Aucun produit publié pour l\'instant.</div>';
+return;
+}
+zone.innerHTML=`<div class="grid" style="padding:6px 0 0">${affichees.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${fondMini(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`;
+if(produitsVitrine.length>affichees.length){
+zone.insertAdjacentHTML('beforeend',`<button class="btn2" style="width:100%;margin:10px 0 30px" onclick="afficherPlusVitrine()">Afficher plus (${produitsVitrine.length-affichees.length} restants)</button>`);
+}
+}
+
+function afficherPlusVitrine(){
+limiteVitrine+=20;
+rendreProduitsVitrine();
 }
 
 function ouvrirProduitVitrine(id){
@@ -80,7 +103,6 @@ const i=tous().findIndex(x=>x.id===id);
 if(i>=0) ouvrir(i);
 }
 
-// Toucher la carte de la boutique sur une fiche produit ouvre la vitrine
 document.addEventListener('click',e=>{
 const cible=e.target;
 if(!cible.closest) return;
@@ -90,8 +112,6 @@ if(!zone) return;
 if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
 });
 
-// Sur la fiche produit : "Voir les avis" et "Voir la boutique ›" sur une même ligne.
-// Appelée une seule fois, juste après l'affichage de la carte (plus d'observateur ni de minuteurs).
 function rangerBlocBoutique(){
 const bloc=document.querySelector('#fiche .boutique');
 if(!bloc) return;
