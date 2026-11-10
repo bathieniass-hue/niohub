@@ -35,7 +35,7 @@ window.scrollTo(0,0);
 }
 
 function telephonesBoutique(b){
-return [b.telephone,b.telephone2].filter(Boolean).map(t=>esc('+221 '+formaterTelephone(t))).join(' · ');
+return [b.telephone,b.telephone2].filter(Boolean).map(t=>esc(formaterTelephone(t))).join(' · ');
 }
 
 function lienWhatsapp(tel){
