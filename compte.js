@@ -307,7 +307,7 @@ return;
 const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
 const photo=urlSure(s.photo);
 if(s.photo===undefined) chargerProfil(s).then(res=>{if(res.profil){mettreAJourSession({photo:res.profil.photo||null});if(res.profil.photo&&vueCourante==='profil') afficherProfilCarte();}});
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?'+221 '+formaterTelephone(s.telephone):'')}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div></div></div>`;
+zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?formaterTelephone(s.telephone):'')}</div></div></div>`;
 }
 
 function seDeconnecter(){
