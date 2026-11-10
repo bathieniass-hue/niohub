@@ -65,9 +65,9 @@ html,body{overflow-anchor:none}
 /* ===== La boutique sur les cartes produits : logo, nom, étoiles et note, adresse ===== */
 .vendeur{display:flex;gap:8px;align-items:center;margin-top:8px}
 .v-avatar{width:30px;height:30px;border-radius:15px;flex-shrink:0;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px}
-.v-txt{min-width:0;flex:1}
-.v-nom{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.v-note{font-size:11px;color:#1E1A14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-txt{min-width:0;flex:1;display:flex;align-items:baseline;gap:6px}
+.v-nom{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+.v-note{font-size:11px;color:#1E1A14;white-space:nowrap;flex:none}
 .v-etoiles{color:#F2B233}
 .v-nb{color:#6B6254}
 .v-lieu{display:flex;gap:4px;align-items:center;margin-top:5px;font-size:12px;color:#6B6254}
