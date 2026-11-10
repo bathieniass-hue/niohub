@@ -13,7 +13,6 @@ const DELAI_RESEAU=5000;
 self.addEventListener('install',e=>{
 e.waitUntil((async()=>{
 const cache=await caches.open(VERSION);
-// Un fichier manquant n'empêche pas l'installation des autres
 await Promise.all(FICHIERS.map(f=>cache.add(new Request(f,{cache:'reload'})).catch(()=>{})));
 await self.skipWaiting();
 })());
@@ -31,13 +30,23 @@ self.addEventListener('fetch',e=>{
 const req=e.request;
 if(req.method!=='GET') return;
 const url=new URL(req.url);
+// Images Supabase : cache immédiat, mise à jour silencieuse en arrière-plan
+if(url.hostname.endsWith('supabase.co')&&url.pathname.startsWith('/storage/v1/object/public/photos/')){
+e.respondWith((async()=>{
+const cache=await caches.open(VERSION);
+const copie=await cache.match(req);
+const miseAJour=fetch(req).then(r=>{if(r&&r.ok)cache.put(req,r.clone());return r;}).catch(()=>null);
+if(copie) return copie;
+const r=await miseAJour;
+return r||Response.error();
+})());
+return;
+}
 if(url.origin!==self.location.origin) return;
-// Le contrôle de version va toujours directement sur le réseau
 if(url.pathname.endsWith('/version.json')) return;
 e.respondWith((async()=>{
 const cache=await caches.open(VERSION);
 try{
-// "no-cache" : on vérifie toujours auprès du serveur (et pas dans le cache de 10 minutes de GitHub)
 const rep=await Promise.race([
 fetch(req,{cache:'no-cache'}),
 new Promise((_,ko)=>setTimeout(()=>ko(new Error('delai')),DELAI_RESEAU))
