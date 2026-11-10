@@ -193,11 +193,11 @@ const b=p.user_id?boutiquesCache.find(x=>x.user_id===p.user_id):null;
 if(!b) return '';
 const n=notesVendeurs[b.user_id];
 const note=n&&n.nb
-?`<span class="v-etoiles">${etoiles(n.moyenne)}</span> <b>${n.moyenne.toFixed(1).replace('.',',')}</b> <span class="v-nb">(${n.nb})</span>`
+?`<span class="v-etoiles">★</span> <b>${n.moyenne.toFixed(1).replace('.',',')}</b> <span class="v-nb">(${n.nb})</span>`
 :'<span class="v-nb">Aucun avis</span>';
 const lieu=b.adresse?`<div class="v-lieu">${ICONE_LIEU}<span>${esc(b.adresse)}</span></div>`:'';
 const ini=esc((b.nom||'N').charAt(0).toUpperCase());
-return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':ini}</div><div class="v-txt"><div class="v-nom">${esc(b.nom)}</div><div class="v-note">${note}</div></div></div>${lieu}`;
+return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':ini}</div><div class="v-txt"><span class="v-nom">${esc(b.nom)}</span><span class="v-note">${note}</span></div></div>${lieu}`;
 }
 
 function carteProduitHTML(p,i){
