@@ -131,7 +131,8 @@ html,body{overflow-anchor:none}
 /* ===== Icônes NioHub (planches de la maquette) ===== */
 .icone-liste{width:36px;height:36px;flex:none;border-radius:10px;background:url(icones-liste.png) no-repeat 0 0/576px 36px;background-position:calc(var(--i)*-36px) 0}
 #profil .ligne{min-height:60px;padding:12px 0}
-.tuiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.tuiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
 .tuile{position:relative;height:76px;border-radius:16px;background:linear-gradient(160deg,#10301F,#050B07);border:1.5px solid #3BBF4B;box-shadow:0 2px 8px rgba(15,107,70,.3),inset 0 0 10px rgba(80,220,90,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0;font-size:11px;font-weight:600;font-family:inherit;color:#fff;white-space:nowrap}
-.tuile.large{grid-column:span 3;flex-direction:row;gap:12px;font-size:16px;font-weight:700}
+.tuile.large{grid-column:span 4;flex-direction:row;gap:12px;font-size:16px;font-weight:700}
 .gb-ic{width:40px;height:40px;flex:none;background:url(icones-boutique.png) no-repeat 0 0/200px 40px;background-position:calc(var(--i)*-40px) 0}
+.tuile .pastille{position:absolute;top:6px;right:8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E0A52E;color:#2A1B00;font-size:11px;font-weight:bold;line-height:18px;text-align:center}
