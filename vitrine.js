@@ -3,7 +3,6 @@ styleVitrine.textContent=`
 #fd-bas{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid #EDE5D3}
 #fd-bas .fd-avis{width:auto !important;margin:0 !important;padding:5px 12px !important;font-size:12px !important;line-height:1.2 !important;min-height:0 !important;height:auto !important;border:1px solid #0E6B47 !important;border-radius:14px !important;background:#fff !important;color:#0E6B47 !important;font-weight:bold !important;box-shadow:none !important}
 #fd-bas .fd-voirboutique{margin:0 !important;padding:0 !important;border:0 !important;background:none !important;font-size:13px;font-weight:bold;color:#0E6B47;font-family:sans-serif;cursor:pointer;white-space:nowrap}
-.img img{width:100%;height:100%;object-fit:cover;display:block}
 `;
 document.head.appendChild(styleVitrine);
 
@@ -16,9 +15,7 @@ document.body.appendChild(p);
 }
 creerPageVitrine();
 
-let limiteVitrine=20;
-let produitsVitrine=[];
-
+// Distingue "boutique inexistante" d'une "erreur réseau"
 async function chargerBoutiqueDe(userId){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+encodeURIComponent(userId)+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
@@ -44,10 +41,9 @@ return;
 }
 const b=res.boutique;
 if(!b){zone.innerHTML='<div class="liste" style="margin-top:0">Cette boutique n\'est pas encore ouverte.</div>';return;}
+// Le catalogue est déjà en mémoire depuis l'accueil : on ne le recharge que s'il est vide
 if(!distants.length) await chargerProduits();
 const prods=distants.filter(x=>x.user_id===userId);
-produitsVitrine=prods;
-limiteVitrine=20;
 const tel=[b.telephone,b.telephone2].filter(Boolean);
 const note=avis.erreur
 ?''
@@ -73,34 +69,10 @@ zone.innerHTML=`
 </div>
 ${contact}
 <label>Produits (${prods.length})</label>
-<div id="vit-produits"></div>
+${prods.length?`<div class="grid" style="padding:6px 0 30px">${prods.map(x=>`<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${fondMini(x)}"></div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`).join('')}</div>`:'<div class="liste">Aucun produit publié pour l\'instant.</div>'}
 <label>Avis des clients</label>
 <div class="liste" style="margin-top:0">${listeAvis}</div>
 <div style="font-size:12px;color:#6B6254;margin-top:8px">Pour donner un avis, ouvrez un produit de cette boutique.</div>`;
-rendreProduitsVitrine();
-}
-
-function rendreProduitsVitrine(){
-const zone=document.getElementById('vit-produits');
-if(!zone) return;
-const affichees=produitsVitrine.slice(0,limiteVitrine);
-if(!affichees.length){
-zone.innerHTML='<div class="liste">Aucun produit publié pour l\'instant.</div>';
-return;
-}
-zone.innerHTML=`<div class="grid" style="padding:6px 0 0">${affichees.map(x=>{
-const mini=urlMiniature(x.photo);
-const image=mini?`<img src="${esc(mini)}" loading="lazy" alt="">`:'';
-return `<div class="card" onclick="ouvrirProduitVitrine(${Number(x.id)})"><div class="img" style="background:${x.couleur||'#D9B26F'}">${image}</div><div class="info"><div class="name">${esc(x.nom)}</div><div class="price">${esc(x.prix)}</div></div></div>`;
-}).join('')}</div>`;
-if(produitsVitrine.length>affichees.length){
-zone.insertAdjacentHTML('beforeend',`<button class="btn2" style="width:100%;margin:10px 0 30px" onclick="afficherPlusVitrine()">Afficher plus (${produitsVitrine.length-affichees.length} restants)</button>`);
-}
-}
-
-function afficherPlusVitrine(){
-limiteVitrine+=20;
-rendreProduitsVitrine();
 }
 
 function ouvrirProduitVitrine(id){
@@ -108,6 +80,7 @@ const i=tous().findIndex(x=>x.id===id);
 if(i>=0) ouvrir(i);
 }
 
+// Toucher la carte de la boutique sur une fiche produit ouvre la vitrine
 document.addEventListener('click',e=>{
 const cible=e.target;
 if(!cible.closest) return;
@@ -117,6 +90,8 @@ if(!zone) return;
 if(typeof produitOuvert!=='undefined'&&produitOuvert&&produitOuvert.user_id) voirVitrine(produitOuvert.user_id);
 });
 
+// Sur la fiche produit : "Voir les avis" et "Voir la boutique ›" sur une même ligne.
+// Appelée une seule fois, juste après l'affichage de la carte (plus d'observateur ni de minuteurs).
 function rangerBlocBoutique(){
 const bloc=document.querySelector('#fiche .boutique');
 if(!bloc) return;

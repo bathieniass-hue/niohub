@@ -12,17 +12,11 @@ styleFicheDetails.textContent=`
 #fd-details .fd-pastille{display:inline-flex;align-items:center;gap:5px;font-size:13px}
 #fd-details .fd-rond{width:14px;height:14px;border-radius:7px;border:1px solid #8A8170;display:inline-block;box-sizing:border-box;flex-shrink:0}
 #fd-desc-titre{font-size:13px;color:#6B6254;margin:0 0 4px}
-#similaires{margin-top:14px}
-.sim-titre{font-size:14px;font-weight:bold;margin:0 0 8px;color:#1E1A14}
-.sim-grille{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.sim-carte{background:#fff;border:1px solid #E6DECB;border-radius:12px;overflow:hidden;cursor:pointer}
-.sim-img{height:110px;background:#D9B26F}
-.sim-img img{width:100%;height:100%;object-fit:cover;display:block}
-.sim-info{padding:8px}
-.sim-nom{font-size:13px;font-weight:bold;color:#1E1A14;line-height:1.2}
-.sim-prix{font-size:12px;color:#0E6B47;font-weight:bold;margin-top:2px}
 `;
 document.head.appendChild(styleFicheDetails);
+
+// La catégorie, l'état et les couleurs sont déjà chargés avec les produits par app.js :
+// plus d'appel réseau supplémentaire, et plus de rechargement du catalogue au démarrage.
 
 function arrangerFiche(p){
 const corps=document.querySelector('#fiche .corps');
@@ -62,34 +56,10 @@ corps.appendChild(zone);
 corps.appendChild(titreDesc);
 if(desc) corps.appendChild(desc);
 if(boutique) corps.appendChild(boutique);
-afficherSimilaires(p);
 }
 
-function afficherSimilaires(p){
-const corps=document.querySelector('#fiche .corps');
-if(!corps) return;
-let zone=document.getElementById('similaires');
-if(!zone){
-zone=document.createElement('div');
-zone.id='similaires';
-}
-const liste=tous().filter(x=>x.id&&x.id!==p.id&&x.categorie&&x.categorie===p.categorie).slice(0,6);
-if(!liste.length){
-zone.style.display='none';
-return;
-}
-zone.innerHTML=`<div class="sim-titre">Produits similaires</div><div class="sim-grille">${liste.map(x=>{
-const mini=urlMiniature(x.photo);
-const image=mini?`<img src="${esc(mini)}" loading="lazy" alt="">`:'';
-return `<div class="sim-carte" onclick="ouvrirParId(${Number(x.id)})"><div class="sim-img" style="background:${x.couleur||'#D9B26F'}">${image}</div><div class="sim-info"><div class="sim-nom">${esc(x.nom)}</div><div class="sim-prix">${esc(x.prix)}</div></div></div>`;
-}).join('')}</div>`;
-zone.style.display='block';
-corps.appendChild(zone);
-}
-
-const ouvrirParIdAvant=ouvrirParId;
-ouvrirParId=function(id){
-ouvrirParIdAvant(id);
-const i=tous().findIndex(x=>Number(x.id)===Number(id));
-if(i>=0) arrangerFiche(tous()[i]);
+const ouvrirAvantFiche=ouvrir;
+ouvrir=function(i){
+ouvrirAvantFiche(i);
+arrangerFiche(tous()[i]);
 };

@@ -39,11 +39,10 @@ return [b.telephone,b.telephone2].filter(Boolean).map(t=>esc('+221 '+formaterTel
 }
 
 function lienWhatsapp(tel){
-let num=String(tel||'').replace(/\D/g,'');
-if(num.startsWith('00221')) num=num.slice(5);
-else if(num.startsWith('221')&&num.length===12) num=num.slice(3);
-if(!/^7\d{8}$/.test(num)) return '#';
-return 'https://wa.me/221'+num;
+const num=String(tel||'').replace(/\D/g,'');
+if(!num) return '#';
+const intl=num.length===9?'221'+num:num;
+return 'https://wa.me/'+intl;
 }
 
 function ajouterChampTel2(){
@@ -62,6 +61,7 @@ document.getElementById('boutique').innerHTML=`
 <div id="boutique-actions"></div>`;
 }
 
+// Distingue "pas de boutique" d'une "erreur réseau" pour ne jamais proposer d'en recréer une qui existe déjà
 async function chargerMaBoutique(s){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
@@ -142,6 +142,10 @@ return `<div class="ligne" style="cursor:pointer" onclick="voirCommandeDetail(${
 :"Aucune commande pour l'instant.";
 }catch(e){document.getElementById('liste-commandes').textContent='Erreur de chargement. Vérifiez votre connexion.';}
 }
+
+// voirCommandeDetail() est définie dans statut.js (détail + changement de statut).
+
+// voirMessages() est définie dans messages.js (conversations).
 
 async function ouvrirFormBoutique(){
 const s=await sessionValide();
@@ -226,6 +230,7 @@ if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
 const fin=()=>{boutiqueEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}};
 let nouveauLogo=null;
 try{
+// Le logo part d'abord dans Supabase Storage ; la base ne garde que son adresse
 if(logoBlob){
 nouveauLogo=await televerserPhoto(logoBlob,null,s);
 corps.logo=nouveauLogo;
@@ -235,10 +240,12 @@ if(modification){
 r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?id=eq.'+encodeURIComponent(boutiqueActuelle.id)+'&user_id=eq.'+s.user_id,{method:'PATCH',headers:entetes,body:JSON.stringify(corps)});
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
+// Supabase répond "OK" même si la règle de sécurité bloque : on vérifie qu'une ligne a bien été modifiée
 if(!lignes.length) throw new Error('refusé');
 }else{
 r=await fetch(SUPABASE_URL+'/rest/v1/boutiques',{method:'POST',headers:entetes,body:JSON.stringify(corps)});
 if(r.status===409){
+// Une boutique existe déjà pour ce compte : on la recharge au lieu d'en créer une 2e
 if(nouveauLogo) await supprimerPhotoStockee(nouveauLogo,s);
 fin();
 await voirBoutique();
@@ -252,7 +259,10 @@ fin();
 msg.textContent='Erreur, enregistrement impossible. Vérifiez votre connexion et réessayez.';
 return;
 }
+// Logo remplacé : l'ancien est supprimé de Storage
 if(modification&&nouveauLogo&&boutiqueActuelle&&boutiqueActuelle.logo) await supprimerPhotoStockee(boutiqueActuelle.logo,s);
 fin();
 await voirBoutique();
 }
+
+// afficherBoutiqueFiche() est définie dans avis.js (boutique + note sur la fiche produit).

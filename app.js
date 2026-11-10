@@ -1,6 +1,7 @@
 const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
 const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 
+// Mettre true pour revoir les 4 produits de démonstration
 const AFFICHER_DEMO=false;
 
 const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
@@ -9,7 +10,12 @@ const VUES_MENU={accueil:0,boutique:1,mesproduits:1,'boutique-form':1,profil:2};
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
 
-const defauts=[];
+const defauts=[
+{nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
+{nom:"Sac en cuir",prix:"18 000 FCFA",couleur:"#C98B6B",desc:"Sac en cuir véritable, fait à la main."},
+{nom:"Écouteurs",prix:"12 500 FCFA",couleur:"#8FB7C9",desc:"Écouteurs sans fil avec boîtier de charge."},
+{nom:"Huile de baobab",prix:"4 500 FCFA",couleur:"#A8C59A",desc:"Huile de baobab naturelle, 100 ml."}
+];
 let distants=[];
 let boutiquesCache=[];
 let suggestionsEnCours=[];
@@ -27,13 +33,11 @@ let vueCourante='accueil';
 let origineFiche=null;
 let restaurationScroll=false;
 const CLE_CATALOGUE='niohub_catalogue_v1';
-let limiteAffichage=20;
-let derniereRecherche='';
-let derniereCategorie='';
 
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tous(){return (AFFICHER_DEMO?defauts:[]).concat(distants);}
 
+// Accepte uniquement une image en base64 ou un fichier de notre Supabase Storage.
 function urlSure(u){
 const t=String(u||'');
 if(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(t)) return t;
@@ -55,9 +59,7 @@ return /^blob:[A-Za-z0-9:\/.\-]+$/.test(t)?t:'';
 
 function urlMiniature(u){
 const t=String(u||'');
-if(t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.webp')&&!t.endsWith('_m.webp')) return t.replace(/\.webp$/,'_m.webp');
-if(t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')) return t.replace(/\.jpg$/,'_m.jpg');
-return t;
+return t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')?t.replace(/\.jpg$/,'_m.jpg'):t;
 }
 function fondMini(p){return fondImage(urlMiniature(p.photo),p.couleur);}
 
@@ -77,29 +79,22 @@ const c=document.createElement('canvas');
 c.width=Math.max(1,Math.round(img.width*echelle));
 c.height=Math.max(1,Math.round(img.height*echelle));
 c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-return new Promise(ok=>{
-c.toBlob(webp=>{
-if(webp&&webp.type==='image/webp'){ok(webp);return;}
-c.toBlob(ok,'image/jpeg',qualite);
-},'image/webp',qualite);
-});
+return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
 }
 
 async function televerserFichier(chemin,blob,s){
-const type=blob.type==='image/webp'?'image/webp':'image/jpeg';
-const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':type,'cache-control':'max-age=31536000'},body:blob});
+const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
 if(!r.ok) throw new Error(r.status);
 }
 
 async function televerserPhoto(blob,mini,s){
-const ext=blob.type==='image/webp'?'webp':'jpg';
 const base=s.user_id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-await televerserFichier(base+'.'+ext,blob,s);
+await televerserFichier(base+'.jpg',blob,s);
 if(mini){
-try{await televerserFichier(base+'_m.'+ext,mini,s);}
-catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.'+ext,s);throw e;}
+try{await televerserFichier(base+'_m.jpg',mini,s);}
+catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.jpg',s);throw e;}
 }
-return PREFIXE_PHOTOS+base+'.'+ext;
+return PREFIXE_PHOTOS+base+'.jpg';
 }
 
 async function supprimerPhotoStockee(url,s){
@@ -107,7 +102,6 @@ const t=String(url||'');
 if(!t.startsWith(PREFIXE_PHOTOS)) return;
 const chemin=t.slice(PREFIXE_PHOTOS.length);
 const chemins=[chemin];
-if(chemin.endsWith('.webp')&&!chemin.endsWith('_m.webp')) chemins.push(chemin.replace(/\.webp$/,'_m.webp'));
 if(chemin.endsWith('.jpg')&&!chemin.endsWith('_m.jpg')) chemins.push(chemin.replace(/\.jpg$/,'_m.jpg'));
 try{
 await fetch(SUPABASE_URL+'/storage/v1/object/photos',{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({prefixes:chemins})});
@@ -208,9 +202,7 @@ return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage
 
 function carteProduitHTML(p,i){
 const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
-const mini=urlMiniature(p.photo);
-const image=mini?`<img src="${esc(mini)}" loading="lazy" alt="">`:'';
-return `<div class="card" onclick="${clic}"><div class="img" style="background:${p.couleur||'#D9B26F'}">${image}</div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
+return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
 }
 
 function requeteRecherche(){
@@ -231,11 +223,6 @@ return bloc;
 
 function afficherGrille(){
 const q=requeteRecherche();
-if(q!==derniereRecherche||categorieActive!==derniereCategorie){
-limiteAffichage=20;
-derniereRecherche=q;
-derniereCategorie=categorieActive;
-}
 const grille=document.getElementById('grid');
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
@@ -244,12 +231,8 @@ bloc.innerHTML=trouvees.length
 ?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
-const affichees=liste.slice(0,limiteAffichage);
-if(affichees.length){
-grille.innerHTML=affichees.map(x=>carteProduitHTML(x.p,x.i)).join('');
-if(liste.length>affichees.length){
-grille.insertAdjacentHTML('beforeend',`<button class="btn2" style="grid-column:1/-1;margin:10px 0 30px" onclick="afficherPlus()">Afficher plus (${liste.length-affichees.length} restants)</button>`);
-}
+if(liste.length){
+grille.innerHTML=liste.map(x=>carteProduitHTML(x.p,x.i)).join('');
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
@@ -265,11 +248,6 @@ grille.innerHTML=`<div class="accueil-vide">
 <button class="accueil-vide-lien" type="button" onclick="voirBoutique()">Créer ma boutique</button>
 </div>`;
 }
-}
-
-function afficherPlus(){
-limiteAffichage+=20;
-afficherGrille();
 }
 
 function suggestions(q){
@@ -357,7 +335,6 @@ st.textContent=`
 .tag-p{background:#FFF1CC;color:#8A5A00}
 .titre-section{font-size:14px;font-weight:bold;margin:8px 0 6px;color:#6B6254}
 .vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
-.img img{width:100%;height:100%;object-fit:cover;display:block}
 #bandeau-reseau{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;display:none;padding:10px 14px;border-radius:14px;background:#8A5A00;color:#fff;font-size:13px;font-weight:bold;box-shadow:0 8px 20px rgba(30,26,20,.2)}
 `;
 document.head.appendChild(st);
