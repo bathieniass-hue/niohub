@@ -1,1 +1,1 @@
-Version complète de app.js avec cartes produits en <img loading="lazy">, fond coloré conservé, et toutes les fonctionnalités existantes.
+RESTAURATION_COMPLETE_APP

@@ -1,1 +1,1 @@
-Version complète de vitrine.js avec cartes produits en <img loading="lazy">, fond coloré conservé, et pagination par 20 conservée.
+RESTAURATION_COMPLETE_VITRINE
