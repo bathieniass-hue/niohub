@@ -55,7 +55,9 @@ return /^blob:[A-Za-z0-9:\/.\-]+$/.test(t)?t:'';
 
 function urlMiniature(u){
 const t=String(u||'');
-return t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')?t.replace(/\.jpg$/,'_m.jpg'):t;
+if(t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.webp')&&!t.endsWith('_m.webp')) return t.replace(/\.webp$/,'_m.webp');
+if(t.startsWith(PREFIXE_PHOTOS)&&t.endsWith('.jpg')&&!t.endsWith('_m.jpg')) return t.replace(/\.jpg$/,'_m.jpg');
+return t;
 }
 function fondMini(p){return fondImage(urlMiniature(p.photo),p.couleur);}
 
@@ -75,22 +77,29 @@ const c=document.createElement('canvas');
 c.width=Math.max(1,Math.round(img.width*echelle));
 c.height=Math.max(1,Math.round(img.height*echelle));
 c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
+return new Promise(ok=>{
+c.toBlob(webp=>{
+if(webp&&webp.type==='image/webp'){ok(webp);return;}
+c.toBlob(ok,'image/jpeg',qualite);
+},'image/webp',qualite);
+});
 }
 
 async function televerserFichier(chemin,blob,s){
-const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
+const type=blob.type==='image/webp'?'image/webp':'image/jpeg';
+const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':type,'cache-control':'max-age=31536000'},body:blob});
 if(!r.ok) throw new Error(r.status);
 }
 
 async function televerserPhoto(blob,mini,s){
+const ext=blob.type==='image/webp'?'webp':'jpg';
 const base=s.user_id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-await televerserFichier(base+'.jpg',blob,s);
+await televerserFichier(base+'.'+ext,blob,s);
 if(mini){
-try{await televerserFichier(base+'_m.jpg',mini,s);}
-catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.jpg',s);throw e;}
+try{await televerserFichier(base+'_m.'+ext,mini,s);}
+catch(e){await supprimerPhotoStockee(PREFIXE_PHOTOS+base+'.'+ext,s);throw e;}
 }
-return PREFIXE_PHOTOS+base+'.jpg';
+return PREFIXE_PHOTOS+base+'.'+ext;
 }
 
 async function supprimerPhotoStockee(url,s){
@@ -98,6 +107,7 @@ const t=String(url||'');
 if(!t.startsWith(PREFIXE_PHOTOS)) return;
 const chemin=t.slice(PREFIXE_PHOTOS.length);
 const chemins=[chemin];
+if(chemin.endsWith('.webp')&&!chemin.endsWith('_m.webp')) chemins.push(chemin.replace(/\.webp$/,'_m.webp'));
 if(chemin.endsWith('.jpg')&&!chemin.endsWith('_m.jpg')) chemins.push(chemin.replace(/\.jpg$/,'_m.jpg'));
 try{
 await fetch(SUPABASE_URL+'/storage/v1/object/photos',{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({prefixes:chemins})});
