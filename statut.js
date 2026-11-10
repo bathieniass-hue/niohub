@@ -26,8 +26,8 @@ ouvrirDetail('commandes-page','Commande',[
 ['Quantité',String(c.quantite)],
 ['Total',total],
 ['Client',c.nom_client],
-['Téléphone',tel?'+221 '+formaterTelephone(tel):''],
 ['Adresse',c.adresse||'Non indiquée'],
+['Téléphone',tel?formaterTelephone(tel):''],
 ['Paiement',c.paiement||'Non indiqué'],
 ['Statut',statut],
 ['Date',new Date(c.created_at).toLocaleString('fr-FR')]
