@@ -1,21 +1,21 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="sombre">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>NioHub</title>
 <meta name="description" content="Achetez et vendez près de chez vous, en toute confiance.">
-<meta name="theme-color" content="#0E6B47">
+<meta name="theme-color" content="#07130C">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NioHub">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="sombre">
 
 <div id="accueil">
 <div id="haut">
@@ -76,7 +76,7 @@
 </div>
 
 <div id="boutique" class="page">
-<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="petit" onclick="ouvrirFormBoutique()">Modifier</button></header>
+<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="btn-modif" onclick="ouvrirFormBoutique()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
 <div id="infos-boutique"></div>
 <button class="btn" style="margin-top:14px" onclick="montrer('mesproduits');voirMesProduits()">Mes produits</button>
 <button class="btn2" onclick="voirAjout('boutique')">Ajouter un produit</button>
@@ -111,7 +111,7 @@
 </div>
 
 <div id="profil" class="page">
-<header><span style="font-weight:bold;font-size:20px">Profil</span><button class="petit" onclick="modifierProfil()">Modifier</button></header>
+<header><span style="font-weight:bold;font-size:20px">Profil</span><button class="btn-modif" onclick="modifierProfil()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
 <div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center">
 <div class="avatar">N</div>
 <div><div class="nomboutique" id="profil-nom" style="font-size:18px">Utilisateur test</div><div style="font-size:13px;color:#6B6254">Mode test, sans compte</div></div>

@@ -179,3 +179,42 @@ body.sombre [style*="color:#1E1A14"]{color:#EAF3EC !important}
 body.sombre [style*="color:#B4291A"]{color:#FF8A7E !important}
 body.sombre [style*="color:#0E6B47"]{color:#3BBF4B !important}
 body.sombre [style*="border-top:1px solid #EDE5D3"]{border-top-color:#24472F !important}
+
+/* ===== Bouton Modifier (maquette) ===== */
+.btn-modif{height:44px;padding:0 16px 0 10px;border:0;border-radius:14px;background:#0F2418;box-shadow:inset 0 0 0 1.5px #3BBF4B;color:#3BBF4B;font-size:15px;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:6px}
+.crayon{width:28px;height:28px;flex:none;background:url(icone-crayon.png) no-repeat center/contain}
+
+/* ===== Accueil en sombre (tout NioHub est maintenant sombre) ===== */
+body.sombre #haut{background:#07130C}
+body.sombre #haut.compact{box-shadow:0 2px 10px rgba(0,0,0,.45)}
+body.sombre #accueil h1{color:#EAF3EC}
+body.sombre .plus{background:#0F2418;box-shadow:inset 0 0 0 1.5px #3BBF4B;color:#3BBF4B}
+body.sombre .search,body.sombre #q{background:#0F2418;border-color:#24472F;color:#9DB5A5}
+body.sombre #q{color:#EAF3EC}
+body.sombre #q::placeholder{color:#6F8A78}
+body.sombre #q:focus{border-color:#3BBF4B}
+body.sombre #suggest{background:#0F2418;border-color:#24472F;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+body.sombre #suggest button{background:#0F2418;border-bottom-color:#24472F;color:#EAF3EC}
+body.sombre #suggest b{color:#3BBF4B}
+body.sombre .tag-b{background:#10301F;color:#3BBF4B}
+body.sombre .tag-p{background:#2B2210;color:#E0A52E}
+body.sombre .filtre{background:#0F2418;color:#EAF3EC;box-shadow:0 0 0 1px #24472F}
+body.sombre .filtre.on{background:linear-gradient(160deg,#10301F,#050B07);box-shadow:inset 0 0 0 1.5px #3BBF4B;color:#fff}
+body.sombre .cat-tout{stroke:#3BBF4B}
+body.sombre .on .cat-tout{stroke:#fff}
+body.sombre #categories-fond{background:rgba(0,0,0,.6)}
+body.sombre #categories-boite{background:#07130C;box-shadow:0 -12px 40px rgba(0,0,0,.6)}
+body.sombre #categories-titre{color:#EAF3EC}
+body.sombre .categorie-item{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .categorie-item.on{background:linear-gradient(160deg,#10301F,#050B07);border-color:#3BBF4B;color:#fff}
+body.sombre .bandeau-install{background:#10301F;border-color:#24472F}
+body.sombre .accueil-vide-logo{background:#10301F}
+
+/* ===== Écran de connexion en sombre (l'en-tête vert de la marque reste) ===== */
+body.sombre #auth{background:#07130C}
+body.sombre .auth-carte{background:#0F2418;border-color:#24472F;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+body.sombre .auth-carte h2{color:#EAF3EC}
+body.sombre .auth-carte p,body.sombre .auth-pied{color:#9DB5A5}
+body.sombre .g-enveloppe{background:#10301F;border-color:#24472F}
+body.sombre .auth-champs input{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .auth-lien{color:#3BBF4B}

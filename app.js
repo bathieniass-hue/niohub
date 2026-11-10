@@ -118,9 +118,6 @@ menu.style.display='flex';
 menu.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===VUES_MENU[vue]));
 }
 vueCourante=vue;
-const sombre=vue!=='accueil';
-document.body.classList.toggle('sombre',sombre);
-document.documentElement.classList.toggle('sombre',sombre);
 window.scrollTo(0,0);
 }
 

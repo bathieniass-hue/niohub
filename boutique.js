@@ -56,7 +56,7 @@ ajouterChampTel2();
 
 function construireBoutique(){
 document.getElementById('boutique').innerHTML=`
-<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="petit" style="display:none" onclick="ouvrirFormBoutique()">Modifier</button></header>
+<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="btn-modif" style="display:none" onclick="ouvrirFormBoutique()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
 <div id="infos-boutique">Chargement…</div>
 <div id="boutique-actions"></div>`;
 }
