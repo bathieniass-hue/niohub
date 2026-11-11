@@ -132,7 +132,7 @@ async function chargerBoutiquesCache(){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc',{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
-boutiquesCache=await r.json();
+boutiquesCache=(await r.json()).filter(b=>!b.statut||b.statut==='validee');
 }catch(e){}
 }
 

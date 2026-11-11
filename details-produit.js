@@ -208,6 +208,7 @@ if(bouton){bouton.disabled=true;bouton.textContent='Envoi en cours…';}
 try{
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
+if(boutiqueActuelle&&boutiqueActuelle.statut&&boutiqueActuelle.statut!=='validee'){bandeau(boutiqueActuelle.statut==='suspendue'?'Votre boutique est suspendue : vous ne pouvez pas publier.':'Votre boutique est en attente de validation.','erreur');return;}
 const nom=document.getElementById('nom').value.trim();
 const prixSaisi=String(document.getElementById('prix').value).replace(/\D/g,'');
 const desc=document.getElementById('desc').value.trim();

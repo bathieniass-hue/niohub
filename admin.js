@@ -139,28 +139,36 @@ dessinerListe();
 chargerPage();
 }
 
-async function compter(table){
+async function compter(table,filtre){
 try{
-const r=await api(table+'?select=*',{entetes:{Prefer:'count=exact',Range:'0-0'}});
+const r=await api(table+'?select=*'+(filtre?'&'+filtre:''),{entetes:{Prefer:'count=exact',Range:'0-0'}});
+if(!r.ok&&r.status!==206) return null;
 const cr=r.headers.get('content-range')||'';
 const n=Number(cr.split('/')[1]);
 return isNaN(n)?'?':n;
-}catch(e){return '?';}
+}catch(e){return null;}
 }
 async function tableauDeBord(){
 const c=document.getElementById('contenu');
 c.replaceChildren(h('p',{class:'vide'},'Chargement…'));
 const cles=Object.keys(TABLES);
 const nombres=await Promise.all(cles.map(compter));
-c.replaceChildren(h('div',{class:'grille'},cles.map((k,i)=>
-h('button',{class:'compteur',onclick:()=>ouvrirOnglet(k)},h('b',null,nombres[i]),h('span',null,TABLES[k].titre)))));
+const attente=await compter('boutiques','statut=eq.en_attente');
+const suspendues=await compter('boutiques','statut=eq.suspendue');
+const cartes=cles.map((k,i)=>h('button',{class:'compteur',onclick:()=>ouvrirOnglet(k)},h('b',null,nombres[i]===null?'?':nombres[i]),h('span',null,TABLES[k].titre)));
+if(attente!==null){
+cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.suspendue','Boutiques suspendues')},h('b',null,suspendues),h('span',null,'Boutiques suspendues')));
+cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.en_attente','Boutiques à valider')},h('b',{style:attente?'color:#E0A52E':''},attente),h('span',null,'Boutiques à valider')));
+}
+c.replaceChildren(h('div',{class:'grille'},cartes));
 }
 
 // ---------- listes ----------
+const STATUTS={validee:'Validée',en_attente:'En attente',suspendue:'Suspendue'};
 function resume(table,r){
 const titre=r.nom||r.produit||r.titre||r.email||r.statut||('#'+court(r.id||r.user_id||'',8));
-const champs=table==='produits'?['prix','categorie','etat']:table==='boutiques'?['adresse','ville','telephone']:table==='profils'?['telephone','adresse','email']:table==='commandes'?['statut','total','prix','mode_livraison']:table==='avis'?['note','texte']:['expediteur','texte'];
-const sous=champs.filter(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='').map(k=>k==='prix'||k==='total'?prixTexte(r[k]):String(r[k])).join(' · ');
+const champs=table==='produits'?['prix','categorie','etat']:table==='boutiques'?['statut','adresse','ville','telephone']:table==='profils'?['telephone','adresse','email']:table==='commandes'?['statut','total','prix','mode_livraison']:table==='avis'?['note','texte']:['expediteur','texte'];
+const sous=champs.filter(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='').map(k=>k==='prix'||k==='total'?prixTexte(r[k]):(k==='statut'&&table==='boutiques'?(STATUTS[r[k]]||r[k]):String(r[k]))).join(' · ');
 return {titre:court(titre,60),sous:court(sous,90)};
 }
 function vignette(table,r){
@@ -170,6 +178,51 @@ if(cle) v.style.backgroundImage="url('"+urlImage(r[cle])+"')";
 else v.textContent=(String(resume(table,r).titre).charAt(0)||'?').toUpperCase();
 return v;
 }
+function sqlStatut(){
+return `-- Validation et suspension des boutiques
+-- 1) Colonne « statut » : validee, en_attente ou suspendue (les boutiques existantes restent validées)
+alter table public.boutiques add column if not exists statut text not null default 'validee';
+alter table public.boutiques drop constraint if exists boutiques_statut_check;
+alter table public.boutiques add constraint boutiques_statut_check check (statut in ('en_attente','validee','suspendue'));
+
+-- 2) Seul l'administrateur peut changer le statut (un vendeur ne peut pas se valider lui-même)
+create or replace function public.proteger_statut_boutique() returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+if auth.uid() is not null and not public.est_admin() then
+if tg_op = 'INSERT' then
+-- Remplacez 'validee' par 'en_attente' si vous voulez valider chaque nouvelle boutique à la main
+new.statut := 'validee';
+else
+new.statut := old.statut;
+end if;
+end if;
+return new;
+end $$;
+drop trigger if exists trg_proteger_statut on public.boutiques;
+create trigger trg_proteger_statut before insert or update on public.boutiques
+for each row execute function public.proteger_statut_boutique();
+
+-- 3) Les produits d'une boutique non validée ne sont visibles que par son propriétaire et l'administrateur
+create or replace function public.boutique_bloquee(uid uuid) returns boolean
+language sql security definer set search_path = public stable
+as $$ select exists (select 1 from public.boutiques b where b.user_id = uid and b.statut <> 'validee') $$;
+drop policy if exists "boutique validee seulement" on public.produits;
+create policy "boutique validee seulement" on public.produits as restrictive for select
+using (user_id = auth.uid() or public.est_admin() or not public.boutique_bloquee(user_id));
+drop policy if exists "boutique validee pour publier" on public.produits;
+create policy "boutique validee pour publier" on public.produits as restrictive for insert
+with check (public.est_admin() or not public.boutique_bloquee(user_id));`;
+}
+function panneauStatut(){
+const sql=sqlStatut();
+return h('div',{class:'config',style:'margin-bottom:12px'},
+h('h2',null,'Activer la validation des boutiques'),
+h('p',null,'Pour valider ou suspendre des boutiques, collez ce texte dans SQL Editor (Supabase), appuyez sur Run, puis actualisez cette page.'),
+h('pre',null,sql),
+h('button',{onclick:async()=>{try{await navigator.clipboard.writeText(sql);toast('Copié');}catch(e){toast('Copie impossible : sélectionnez le texte à la main.',true);}}},'Copier le texte'));
+}
 function dessinerListe(){
 const c=document.getElementById('contenu');
 const t=etat.table;
@@ -177,6 +230,8 @@ const q=etat.recherche.trim().toLowerCase();
 const visibles=etat.lignes.filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));
 c.replaceChildren(
 h('div',{class:'barre'},h('input',{type:'search',placeholder:'Rechercher dans '+TABLES[t].titre.toLowerCase()+'…',value:etat.recherche,oninput:e=>{etat.recherche=e.target.value;majLignes();}})),
+(t==='boutiques'&&etat.lignes.length&&etat.lignes[0].statut===undefined)?panneauStatut():null,
+(t==='boutiques'&&etat.lignes.length&&etat.lignes[0].statut!==undefined&&!etat.filtre)?h('div',{class:'liens'},h('button',{onclick:()=>ouvrirOnglet('boutiques','statut=eq.en_attente','Boutiques à valider')},'À valider'),h('button',{onclick:()=>ouvrirOnglet('boutiques','statut=eq.suspendue','Boutiques suspendues')},'Suspendues')):null,
 etat.filtre?h('div',{class:'filtre-actif'},h('span',null,etat.libelleFiltre||'Liste filtrée'),h('button',{onclick:()=>ouvrirOnglet(t)},'Tout afficher')):null,
 h('div',{id:'lignes'}),
 h('div',{id:'pied'})
@@ -219,7 +274,8 @@ if(lignes.length<PAGE) etat.fini=true;
 toast('Chargement impossible. Vérifiez la connexion.',true);
 }
 etat.chargement=false;
-majLignes();
+// Pour les boutiques, l'en-tête (raccourcis ou activation du statut) dépend des lignes chargées
+if(t==='boutiques'&&etat.table===t&&etat.debut<=PAGE) dessinerListe(); else majLignes();
 }
 
 // ---------- fiche : voir, modifier, supprimer ----------
@@ -233,6 +289,11 @@ return 'texte';
 function liensFiche(table,r){
 const l=[];
 const uid=r.user_id;
+if(table==='boutiques'&&r.statut!==undefined){
+if(r.statut!=='validee') l.push(['Valider la boutique',()=>changerStatut(table,r,'validee')]);
+if(r.statut!=='suspendue') l.push(['Suspendre',()=>changerStatut(table,r,'suspendue')]);
+if(r.statut==='validee') l.push(['Remettre en attente',()=>changerStatut(table,r,'en_attente')]);
+}
 if(table==='boutiques'&&uid){l.push(['Ses produits',()=>{fermerFiche();ouvrirOnglet('produits','user_id=eq.'+uid,'Produits de cette boutique');}]);l.push(['Son profil',()=>{fermerFiche();ouvrirOnglet('profils','user_id=eq.'+uid,'Profil du propriétaire');}]);}
 if(table==='produits'&&uid){l.push(['Sa boutique',()=>{fermerFiche();ouvrirOnglet('boutiques','user_id=eq.'+uid,'Boutique du vendeur');}]);l.push(['Son profil',()=>{fermerFiche();ouvrirOnglet('profils','user_id=eq.'+uid,'Profil du vendeur');}]);}
 if(table==='profils'&&uid){l.push(['Sa boutique',()=>{fermerFiche();ouvrirOnglet('boutiques','user_id=eq.'+uid,'Boutique de ce profil');}]);l.push(['Ses produits',()=>{fermerFiche();ouvrirOnglet('produits','user_id=eq.'+uid,'Produits de ce profil');}]);}
@@ -240,6 +301,25 @@ if(table==='commandes'||table==='avis'||table==='messages'){
 if(r.produit_id) l.push(['Le produit',()=>{fermerFiche();ouvrirOnglet('produits','id=eq.'+r.produit_id,'Produit concerné');}]);
 }
 return l;
+}
+async function changerStatut(table,r,statut){
+const pk=cle(table,r);
+if(!pk) return;
+if(statut==='suspendue'&&!confirm('Suspendre « '+resume(table,r).titre+' » ? Ses produits ne seront plus visibles par les acheteurs.')) return;
+try{
+const r2=await api(table+'?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'PATCH',corps:{statut:statut},entetes:{Prefer:'return=representation'}});
+if(!r2.ok){const t=await r2.text();throw new Error(t.slice(0,160));}
+const res=await r2.json();
+if(!res.length){toast('Rien n\'a été modifié : droits administrateur manquants ?',true);return;}
+Object.assign(r,res[0]);
+const i=etat.lignes.findIndex(x=>x[pk]===r[pk]);
+if(i>=0) Object.assign(etat.lignes[i],res[0]);
+toast(statut==='validee'?'Boutique validée':statut==='suspendue'?'Boutique suspendue':'Remise en attente');
+fermerFiche();
+if(etat.table===table) majLignes();
+}catch(e){
+toast('Changement impossible : '+(e.message||'erreur'),true);
+}
 }
 function fermerFiche(){const f=document.getElementById('fiche');f.hidden=true;f.replaceChildren();document.body.style.overflow='';}
 function ouvrirFiche(table,r){

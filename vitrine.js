@@ -44,6 +44,10 @@ if(!b){
 page.innerHTML=entete+'<div style="margin-top:14px">Cette boutique est introuvable pour le moment. Vérifiez votre connexion.</div>';
 return;
 }
+if(b.statut&&b.statut!=='validee'){
+page.innerHTML=entete+'<div style="margin-top:14px">Cette boutique n\'est pas disponible pour le moment.</div>';
+return;
+}
 const n=notesVendeurs[userId];
 const note=n&&n.nb
 ?`<span style="color:#F2B233;font-size:14px">★</span> <b>${n.moyenne.toFixed(1).replace('.',',')}</b> <span style="font-size:12px;color:#6B6254">(${n.nb} avis)</span>`

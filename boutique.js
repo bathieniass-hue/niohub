@@ -96,6 +96,10 @@ return;
 }
 bouton.style.display='';
 zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
+if(b.statut&&b.statut!=='validee'){
+const susp=b.statut==='suspendue';
+zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#B4291A"><b>'+(susp?'Votre boutique est suspendue.':'Votre boutique est en attente de validation.')+'</b><br>'+(susp?'Vos produits ne sont plus visibles par les acheteurs. Contactez NioHub pour en savoir plus.':'Vos produits seront visibles dès qu\'elle sera validée.')+'</div>');
+}
 actions.innerHTML=`<div class="tuiles">
 <button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages</button>
 <button id="tuile-avis" class="tuile" onclick="voirAvisRecus()"><span class="gb-ic" style="--i:1" aria-hidden="true"></span>Avis reçus</button>
