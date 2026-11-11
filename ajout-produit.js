@@ -60,9 +60,11 @@ e1.appendChild(el('div','ep-aide','Jusqu\'à '+PHOTOS_MAX+' photos. La première
 
 const e2=el('div','etape');
 e2.id='ep2';
-const photoNom=el('div','ep-grande');
+const photoNom=el('div','apercu');
+const miniNom=el('div','ap-miniatures');
 const etiquetteNom=el('label','', 'Nom du produit');
 e2.appendChild(photoNom);
+e2.appendChild(miniNom);
 e2.appendChild(etiquetteNom);
 e2.appendChild(champNom);
 
@@ -87,6 +89,7 @@ bSuivant.type='button';
 bSuivant.id='ajout-suivant';
 barre.appendChild(bGauche);
 barre.appendChild(bSuivant);
+boutonPublier.style.margin='0';
 barre.appendChild(boutonPublier);
 
 pageAjout.appendChild(indicateur);
@@ -147,7 +150,11 @@ miniatures.appendChild(el('span','ap-legende','Ajouter d\'autres photos'));
 }
 // Écrans 2 et 3
 photoNom.style.background=fondPhoto(premiere);
-photoNom.style.display=premiere?'block':'none';
+photoNom.style.borderStyle='solid';
+photoNom.style.display=premiere?'flex':'none';
+miniNom.innerHTML='';
+photosAjout.forEach(ph=>{const c=el('div','ap-case');c.style.background=fondPhoto(ph);miniNom.appendChild(c);});
+miniNom.style.display=photosAjout.length>1?'flex':'none';
 photoRecap.style.background=fondPhoto(premiere);
 photoRecap.style.display=premiere?'block':'none';
 petitesRecap.innerHTML='';
@@ -264,3 +271,17 @@ zone.appendChild(b);
 }
 
 allerEtape(1);
+
+// Pendant la saisie (clavier ouvert), la barre du bas disparaît pour ne rien cacher ; elle revient ensuite.
+pageAjout.addEventListener('focusin',ev=>{
+const t=ev.target;
+if(!t.matches||!t.matches('input,textarea')) return;
+pageAjout.classList.add('clavier');
+setTimeout(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}},320);
+});
+pageAjout.addEventListener('focusout',()=>{
+setTimeout(()=>{
+const a=document.activeElement;
+if(!a||!pageAjout.contains(a)||!a.matches('input,textarea')) pageAjout.classList.remove('clavier');
+},150);
+});

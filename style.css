@@ -264,7 +264,7 @@ body.sombre .roue{border-color:#3BBF4B;border-top-color:transparent}
 .ap-legende{font-size:13px;color:#6B6254;flex:1;min-width:110px}
 .ep-aide{font-size:12px;color:#6B6254;margin-top:10px}
 .ep-grande{width:100%;height:240px;border-radius:16px;margin-top:6px}
-#ep2 .ep-grande{height:200px}
+
 .ep-petites{display:flex;gap:8px;margin-top:8px}
 .ap-petite{width:64px;height:64px;border-radius:10px;flex:none}
 .ep-nom{font-size:22px;font-weight:800;margin:14px 0 4px;word-break:break-word}
@@ -278,3 +278,6 @@ body.sombre .ap-plus{background:#0F2418;border-color:#3BBF4B;color:#3BBF4B}
 body.sombre .ep-nom{color:#EAF3EC}
 body.sombre .ep-barre{background:#07130C;border-top-color:#24472F}
 body.sombre .fphoto-mini.on{border-color:#3BBF4B}
+#ajout.clavier .ep-barre{display:none}
+.ep-barre{align-items:center}
+.ep-barre>button{margin:0 !important;height:50px;box-sizing:border-box}
