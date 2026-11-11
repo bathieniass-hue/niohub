@@ -12,6 +12,11 @@ let chatOrigine='liste';  // 'liste' ou 'fiche' : où revient la flèche
 let chatSignature='';
 let chatTimer=null;
 let envoiEnCours=false;
+let chatLignes=[];            // messages du serveur pour la discussion ouverte
+let dernierChargementChat=0;
+const CLE_FILE='niohub_file_messages_v1';
+let fileMessages=[];          // messages écrits mais pas encore envoyés (gardés même si on ferme l'appli)
+try{fileMessages=JSON.parse(localStorage.getItem(CLE_FILE)||'[]')||[];}catch(e){fileMessages=[];}
 
 const styleMessagerie=document.createElement('style');
 styleMessagerie.textContent=`
@@ -190,7 +195,7 @@ afficherBadge((await r.json()).length);
 }catch(e){}
 }
 setTimeout(majNonLus,2500);
-setInterval(()=>{if(document.visibilityState==='visible') majNonLus();},30000);
+setInterval(()=>{if(document.visibilityState==='visible'){majNonLus();assurerTempsReel();}},12000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') majNonLus();});
 
 // ---------- Liste des conversations ----------
@@ -279,7 +284,9 @@ chatMoi=s.user_id;
 chatCourant=Object.assign({},ctx);
 chatOrigine=origine;
 chatMessages=[];
+chatLignes=[];
 chatSignature='';
+assurerTempsReel();
 if(ctx.vendeurId===s.user_id&&!contactsAcheteurs[ctx.acheteurId]) chargerContactsAcheteurs(s).then(()=>{if(chatCourant&&chatCourant.acheteurId===ctx.acheteurId) dessinerEnteteChat();});
 if(!boutiquesCache.length) await chargerBoutiquesCache();
 dessinerEnteteChat();
@@ -290,7 +297,11 @@ document.getElementById('chat-texte').value='';
 montrer('chat');
 await chargerChat(true);
 clearInterval(chatTimer);
-chatTimer=setInterval(()=>{if(vueCourante==='chat'&&document.visibilityState==='visible'&&chatCourant) chargerChat(false);},5000);
+chatTimer=setInterval(()=>{
+if(vueCourante!=='chat'||document.visibilityState!=='visible'||!chatCourant) return;
+if(rtOk&&Date.now()-dernierChargementChat<15000) return; // le direct fonctionne : simple vérification de temps en temps
+chargerChat(false);
+},2500);
 }
 
 function dessinerProduitChat(){
@@ -314,22 +325,46 @@ function filtreConversation(c){
 return 'acheteur_id=eq.'+c.acheteurId+'&vendeur_id=eq.'+c.vendeurId;
 }
 
+function cleCacheChat(c){return 'niohub_chat_'+c.acheteurId+'_'+c.vendeurId;}
+function sauverCacheChat(c){try{localStorage.setItem(cleCacheChat(c),JSON.stringify(chatLignes.slice(-60)));}catch(e){}}
+function lireCacheChat(c){try{return JSON.parse(localStorage.getItem(cleCacheChat(c))||'null');}catch(e){return null;}}
+
+function pendingPourChat(){
+const c=chatCourant;
+if(!c) return [];
+return fileMessages.filter(q=>q.acheteur_id===c.acheteurId&&q.vendeur_id===c.vendeurId).map(q=>({id:'attente-'+q.cle,texte:q.texte,created_at:q.created_at,expediteur_id:q.expediteur_id,produit_id:q.produit_id,produit:q.produit,_attente:true}));
+}
+function recomposerChat(descendre){
+chatMessages=chatLignes.concat(pendingPourChat());
+dessinerFil(descendre);
+}
+
 async function chargerChat(initial){
 const c=chatCourant;
 if(!c) return;
 const s=await sessionValide();
 if(!s||!s.user_id) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&'+filtreConversation(c)+'&order=created_at.asc&limit=300',{headers:entetesAuth(s)});
+// Après le premier chargement, on ne demande que les messages récents (plus rapide, moins de données)
+const dernier=(!initial&&chatLignes.length)?chatLignes[chatLignes.length-1].created_at:null;
+const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&'+filtreConversation(c)+(dernier?'&created_at=gte.'+encodeURIComponent(dernier):'')+'&order=created_at.asc&limit=300',{headers:entetesAuth(s)});
 if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
+const recus=await r.json();
 if(c!==chatCourant) return; // on a changé de conversation entre-temps
-chatMessages=lignes.concat(chatMessages.filter(m=>m._attente));
+dernierChargementChat=Date.now();
+if(!dernier) chatLignes=recus;
+else{
+const ids=new Set(chatLignes.map(m=>m.id));
+recus.forEach(m=>{if(!ids.has(m.id)){chatLignes.push(m);ids.add(m.id);}});
+chatLignes.sort((x,y)=>String(x.created_at).localeCompare(String(y.created_at)));
+}
+const lignes=chatLignes;
 const sig=lignes.map(m=>m.id+':'+m.lu).join(',');
 if(initial||sig!==chatSignature){
 chatSignature=sig;
-dessinerFil(initial);
+recomposerChat(initial);
 }
+if(initial) sauverCacheChat(c);
 if(c.acheteurId!==s.user_id){
 const a=lignes.find(m=>m.expediteur_id===c.acheteurId);
 if(a&&!c.nomAcheteur){c.nomAcheteur=a.expediteur;dessinerEnteteChat();}
@@ -342,7 +377,11 @@ if(der){c.produitId=der.produit_id;c.produitNom=der.produit;dessinerProduitChat(
 if(lignes.some(m=>m.expediteur_id!==s.user_id&&!m.lu)) await marquerLus(s,c,lignes);
 }catch(e){
 if(initial&&c===chatCourant){
-document.getElementById('chat-fil').innerHTML='<div class="chat-vide">Impossible de charger la conversation. Vérifiez votre connexion.<br><button class="auth-lien" style="width:auto" onclick="chargerChat(true)">Réessayer</button></div>';
+// Pas de connexion : on montre la dernière version gardée sur le téléphone, avec les messages en attente
+const cache=lireCacheChat(c);
+if(cache&&cache.length) chatLignes=cache;
+if(chatLignes.length||pendingPourChat().length) recomposerChat(true);
+else document.getElementById('chat-fil').innerHTML='<div class="chat-vide">Impossible de charger la conversation. Vérifiez votre connexion.<br><button class="auth-lien" style="width:auto" onclick="chargerChat(true)">Réessayer</button></div>';
 }
 }
 }
@@ -373,7 +412,7 @@ html+=`<div class="chat-sujet${pr?' cliquable':''}"><span${pr?` onclick="ouvrirP
 }
 sujetPrec=sujet;
 const miens=m.expediteur_id===chatMoi;
-html+=`<div class="bulle ${miens?'moi':'autre'}${m._attente?' attente':''}">${typoFr(esc(m.texte))}<div class="heure">${m._attente?'…':esc(heureMsg(m.created_at))}</div></div>`;
+html+=`<div class="bulle ${miens?'moi':'autre'}${m._attente?' attente':''}">${typoFr(esc(m.texte))}<div class="heure">${m._attente?(navigator.onLine?'Envoi…':'En attente de connexion'):esc(heureMsg(m.created_at))}</div></div>`;
 });
 if(!chatMessages.length){
 const moiAcheteur=chatCourant&&chatCourant.acheteurId===chatMoi;
@@ -384,40 +423,74 @@ if(descendre||proche) window.scrollTo(0,document.body.scrollHeight);
 }
 
 async function envoyerChat(){
-if(envoiEnCours||!chatCourant) return;
+if(!chatCourant) return;
 const champ=document.getElementById('chat-texte');
 const erreur=document.getElementById('chat-erreur');
 const texte=champ.value.trim();
 if(!texte) return;
 erreur.textContent='';
-const s=await sessionValide();
-if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
 const c=chatCourant;
 if(!c.produitId){erreur.textContent='Cette discussion est trop ancienne pour recevoir une réponse ici. Utilisez les boutons Appel ou WhatsApp en haut.';return;}
-envoiEnCours=true;
+if(!chatMoi){
+const s=await sessionValide();
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour envoyer un message.');montrer('profil');return;}
+chatMoi=s.user_id;
+}
+const session=lireSession()||{};
 champ.value='';
-const temp={id:'attente-'+Date.now(),texte:texte,created_at:new Date().toISOString(),expediteur_id:s.user_id,produit_id:c.produitId,produit:c.produitNom||'',_attente:true};
-chatMessages.push(temp);
-dessinerFil(true);
-try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages',{method:'POST',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=representation'}),body:JSON.stringify({produit_id:c.produitId,produit:c.produitNom||'',vendeur_id:c.vendeurId,acheteur_id:c.acheteurId,expediteur_id:s.user_id,expediteur:s.nom||'Client',texte:texte})});
-if(!r.ok) throw new Error(r.status);
-const lignes=await r.json();
-const i=chatMessages.indexOf(temp);
-if(i>=0&&lignes[0]) chatMessages[i]=lignes[0];
-else if(i>=0) temp._attente=false;
-chatSignature='';
-dessinerFil(true);
-}catch(e){
-const i=chatMessages.indexOf(temp);
-if(i>=0) chatMessages.splice(i,1);
-dessinerFil(false);
-champ.value=texte;
-erreur.textContent='Message non envoyé. Vérifiez votre connexion et réessayez.';
-}
-envoiEnCours=false;
+fileMessages.push({cle:Date.now()+'-'+Math.random().toString(36).slice(2,7),texte:texte,created_at:new Date().toISOString(),expediteur_id:chatMoi,expediteur:session.nom||'Client',produit_id:c.produitId,produit:c.produitNom||'',vendeur_id:c.vendeurId,acheteur_id:c.acheteurId});
+sauverFile();
+recomposerChat(true);
 champ.focus();
+viderFile();
 }
+
+function sauverFile(){try{localStorage.setItem(CLE_FILE,JSON.stringify(fileMessages));}catch(e){}}
+
+let fileEnCours=false;
+let minuteurFile=null;
+function planifierFile(){clearTimeout(minuteurFile);minuteurFile=setTimeout(viderFile,4000);}
+
+// Envoie les messages en attente, dans l'ordre. Si la connexion est mauvaise, ils restent en attente et on réessaie.
+async function viderFile(){
+if(fileEnCours||!fileMessages.length) return;
+if(!navigator.onLine){planifierFile();return;}
+fileEnCours=true;
+let reessayer=false;
+try{
+while(fileMessages.length){
+const q=fileMessages[0];
+const s=await sessionValide();
+if(!s||!s.user_id||s.user_id!==q.expediteur_id){reessayer=true;break;}
+let r;
+try{
+r=await fetch(SUPABASE_URL+'/rest/v1/messages',{method:'POST',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=representation'}),body:JSON.stringify({produit_id:q.produit_id,produit:q.produit||'',vendeur_id:q.vendeur_id,acheteur_id:q.acheteur_id,expediteur_id:q.expediteur_id,expediteur:q.expediteur||'Client',texte:q.texte})});
+}catch(e){reessayer=true;break;}
+if(r.ok){
+let ligne=null;
+try{ligne=(await r.json())[0]||null;}catch(e){}
+fileMessages.shift();
+sauverFile();
+const c=chatCourant;
+if(ligne&&c&&c.acheteurId===q.acheteur_id&&c.vendeurId===q.vendeur_id&&!chatLignes.some(m=>m.id===ligne.id)) chatLignes.push(ligne);
+chatSignature='';
+if(chatCourant) recomposerChat(false);
+}else if(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429&&r.status!==401){
+// Refusé pour de bon : inutile de réessayer
+fileMessages.shift();
+sauverFile();
+bandeau('Un message n\'a pas pu être envoyé.','erreur');
+if(chatCourant) recomposerChat(false);
+}else{reessayer=true;break;}
+}
+}finally{
+fileEnCours=false;
+}
+if(reessayer||fileMessages.length) planifierFile();
+}
+window.addEventListener('online',()=>{viderFile();assurerTempsReel();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){viderFile();assurerTempsReel();}});
+setTimeout(viderFile,3000);
 
 function fermerChat(){
 clearInterval(chatTimer);
@@ -426,3 +499,65 @@ chatCourant=null;
 if(chatOrigine==='fiche') montrer('fiche');
 else{montrer('conversations');rafraichirListe();}
 }
+
+// ---------- Messages en direct (Supabase Realtime) ----------
+// Dès qu'un message arrive pour moi, on actualise tout de suite (discussion, liste, pastille).
+// Si le direct n'est pas disponible, l'appli continue de vérifier toute seule toutes les quelques secondes.
+let rtSocket=null;
+let rtOk=false;
+let rtHb=null;
+let rtEssais=0;
+let rtRelance=null;
+let rtDeclenche=null;
+
+function declencherMajMessages(){
+clearTimeout(rtDeclenche);
+rtDeclenche=setTimeout(()=>{
+if(vueCourante==='chat'&&chatCourant) chargerChat(false);
+majNonLus();
+if(vueCourante==='conversations') rafraichirListe();
+},120);
+}
+
+async function assurerTempsReel(){
+if(rtSocket&&(rtSocket.readyState===0||rtSocket.readyState===1)) return;
+if(typeof WebSocket==='undefined'||!navigator.onLine) return;
+const s=await sessionValide();
+if(!s||!s.user_id) return;
+let ws;
+try{ws=new WebSocket(SUPABASE_URL.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SUPABASE_KEY)+'&vsn=1.0.0');}catch(e){return;}
+rtSocket=ws;
+rtOk=false;
+const envoyer=(topic,event,payload,ref)=>{try{ws.send(JSON.stringify({topic:topic,event:event,payload:payload,ref:String(ref)}));}catch(e){}};
+ws.onopen=()=>{
+envoyer('realtime:niohub-messages','phx_join',{config:{broadcast:{ack:false,self:false},presence:{key:''},postgres_changes:[
+{event:'INSERT',schema:'public',table:'messages',filter:'acheteur_id=eq.'+s.user_id},
+{event:'INSERT',schema:'public',table:'messages',filter:'vendeur_id=eq.'+s.user_id}
+]},access_token:s.access_token},1);
+clearInterval(rtHb);
+rtHb=setInterval(()=>envoyer('phoenix','heartbeat',{},'hb'),25000);
+};
+ws.onmessage=ev=>{
+let m;
+try{m=JSON.parse(ev.data);}catch(e){return;}
+if(m.event==='phx_reply'&&m.topic==='realtime:niohub-messages'){
+if(m.payload&&m.payload.status==='ok'){rtOk=true;rtEssais=0;}else rtOk=false;
+}else if(m.event==='postgres_changes'){
+declencherMajMessages();
+}else if(m.event==='system'&&m.payload&&m.payload.status==='error'){
+rtOk=false; // la table n'est pas ouverte au direct : on garde la vérification rapide
+}else if(m.event==='phx_error'||m.event==='phx_close'){
+rtOk=false;
+}
+};
+ws.onclose=()=>{
+rtOk=false;
+clearInterval(rtHb);
+if(rtSocket===ws) rtSocket=null;
+rtEssais++;
+clearTimeout(rtRelance);
+rtRelance=setTimeout(assurerTempsReel,Math.min(30000,2000*rtEssais));
+};
+ws.onerror=()=>{try{ws.close();}catch(e){}};
+}
+setTimeout(assurerTempsReel,3000);
