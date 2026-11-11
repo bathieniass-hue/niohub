@@ -31,6 +31,7 @@ let notesVendeurs={};
 let signatureCatalogue='';
 let vueCourante='accueil';
 let origineFiche=null;
+try{history.scrollRestoration='manual';}catch(e){}
 let restaurationScroll=false;
 const CLE_CATALOGUE='niohub_catalogue_v1';
 
@@ -390,7 +391,14 @@ restaurationScroll=!!(o&&cible===o.vue&&o.y>0);
 montrer(cible);
 const pageCible=document.getElementById(cible);
 if(pageCible&&pageCible.style.display==='none') pageCible.style.display='block';
-if(restaurationScroll){window.scrollTo(0,o.y);restaurationScroll=false;}
+if(restaurationScroll){
+const y=o.y;
+restaurationScroll=false;
+window.scrollTo(0,y);
+requestAnimationFrame(()=>window.scrollTo(0,y));
+setTimeout(()=>window.scrollTo(0,y),80);
+setTimeout(()=>window.scrollTo(0,y),250);
+}
 }
 
 function retourVers(v){
