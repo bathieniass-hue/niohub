@@ -273,6 +273,32 @@ zone.appendChild(b);
 allerEtape(1);
 
 // Pendant la saisie (clavier ouvert), la barre du bas disparaît pour ne rien cacher ; elle revient ensuite.
+// Si le clavier se ferme tout seul (par exemple avec le bouton retour du téléphone) alors que le curseur reste dans la case,
+// on le détecte avec la hauteur visible de l'écran : la barre revient et le curseur disparaît.
+const vv=window.visualViewport||null;
+let hautMax=vv?Math.max(vv.height,window.innerHeight):window.innerHeight;
+let clavierOuvert=false;
+function champEnSaisie(){
+const a=document.activeElement;
+return !!(a&&pageAjout.contains(a)&&a.matches&&a.matches('input,textarea'));
+}
+function surveillerClavier(){
+if(!vv) return;
+if(vv.height>hautMax) hautMax=vv.height;
+const ouvert=vv.height<hautMax-120;
+if(ouvert&&!clavierOuvert){
+clavierOuvert=true;
+if(champEnSaisie()) pageAjout.classList.add('clavier');
+}else if(!ouvert&&clavierOuvert){
+clavierOuvert=false;
+pageAjout.classList.remove('clavier');
+if(champEnSaisie()){try{document.activeElement.blur();}catch(e){}}
+}
+}
+if(vv){
+vv.addEventListener('resize',surveillerClavier);
+window.addEventListener('orientationchange',()=>{hautMax=0;clavierOuvert=false;setTimeout(()=>{hautMax=vv.height;},400);});
+}
 pageAjout.addEventListener('focusin',ev=>{
 const t=ev.target;
 if(!t.matches||!t.matches('input,textarea')) return;
@@ -281,7 +307,9 @@ setTimeout(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(
 });
 pageAjout.addEventListener('focusout',()=>{
 setTimeout(()=>{
-const a=document.activeElement;
-if(!a||!pageAjout.contains(a)||!a.matches('input,textarea')) pageAjout.classList.remove('clavier');
+if(!champEnSaisie()) pageAjout.classList.remove('clavier');
 },150);
 });
+// Si l'écran change d'étape, la barre revient toujours
+const allerEtapeAvantClavier=allerEtape;
+allerEtape=function(n){pageAjout.classList.remove('clavier');allerEtapeAvantClavier(n);};
