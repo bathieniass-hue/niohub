@@ -225,3 +225,8 @@ body.sombre .auth-lien{color:#3BBF4B}
 .theme-opt.on{border-color:#0E6B47;background:#E1F1E8;color:#0E6B47}
 body.sombre .theme-opt{background:#0F2418;border-color:#24472F;color:#EAF3EC}
 body.sombre .theme-opt.on{border-color:#3BBF4B;box-shadow:inset 0 0 0 1px #3BBF4B;color:#3BBF4B}
+
+/* ===== Thème clair : icônes sans fond noir (avec un fin contour vert pour rester visibles) ===== */
+body:not(.sombre) .icone-liste{background-image:url(icones-liste-clair.png);border-radius:0;filter:drop-shadow(0 0 1px rgba(5,50,20,.85)) drop-shadow(0 0 1px rgba(5,50,20,.55))}
+body:not(.sombre) .icone-liste[style*="gradient"]{background:none !important;box-shadow:none !important;filter:none}
+body:not(.sombre) .cat-ic{background-image:url(icones-categories-clair.png);border-radius:0;filter:drop-shadow(0 0 1px rgba(5,50,20,.85)) drop-shadow(0 0 1px rgba(5,50,20,.55))}
