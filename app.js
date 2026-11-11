@@ -26,6 +26,9 @@ let apercuUrl=null;
 let editId=null;
 let origineAjout='accueil';
 let chargementEchoue=false;
+let chargementEnCours=true;
+let chargementLent=false;
+const PRODUITS_HORS_LIGNE=12;
 let categorieActive='';
 let notesVendeurs={};
 let signatureCatalogue='';
@@ -135,6 +138,7 @@ boutiquesCache=await r.json();
 
 async function chargerProduits(){
 let echec=false;
+const minuteurLent=setTimeout(()=>{if(chargementEnCours){chargementLent=true;afficherGrille();}},1200);
 try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
 if(!r.ok) throw new Error(r.status);
@@ -171,10 +175,13 @@ await chargerBoutiquesCache();
 const notes=await chargerNotesVendeurs();
 if(notes) notesVendeurs=notes;
 const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
-if(signature===signatureCatalogue) return;
+clearTimeout(minuteurLent);
+const etaitEnChargement=chargementEnCours||chargementLent;
+chargementEnCours=false;
+chargementLent=false;
+if(signature===signatureCatalogue&&!etaitEnChargement) return;
 signatureCatalogue=signature;
 afficherGrille();
-majBandeauReseau();
 }
 
 async function chargerNotesVendeurs(){
@@ -232,8 +239,15 @@ bloc.innerHTML=trouvees.length
 ?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
+const horsLigne=!navigator.onLine||chargementEchoue;
 if(liste.length){
-grille.innerHTML=liste.map(x=>carteProduitHTML(x.p,x.i)).join('');
+const quelques=(horsLigne&&!q&&!categorieActive)?liste.slice(0,PRODUITS_HORS_LIGNE):liste;
+let fin='';
+if(horsLigne) fin='<div class="fin-liste">'+(navigator.onLine?'La connexion est lente. Les autres produits arriveront dès qu\'elle reviendra.':'Vous êtes hors ligne. Reconnectez-vous pour voir tous les produits.')+'</div>';
+else if(chargementLent) fin='<div class="fin-liste"><span class="roue"></span>Chargement des produits…</div>';
+grille.innerHTML=quelques.map(x=>carteProduitHTML(x.p,x.i)).join('')+fin;
+}else if(chargementEnCours&&!q&&!categorieActive){
+grille.innerHTML=Array(6).fill('<div class="sk-carte"></div>').join('');
 }else if(q){
 grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
 }else if(chargementEchoue&&!distants.length){
@@ -336,35 +350,14 @@ st.textContent=`
 .tag-p{background:#FFF1CC;color:#8A5A00}
 .titre-section{font-size:14px;font-weight:bold;margin:8px 0 6px;color:#6B6254}
 .vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
-#bandeau-reseau{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;display:none;padding:10px 14px;border-radius:14px;background:#8A5A00;color:#fff;font-size:13px;font-weight:bold;box-shadow:0 8px 20px rgba(30,26,20,.2)}
+#bandeau-reseau-supprime{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;display:none;padding:10px 14px;border-radius:14px;background:#8A5A00;color:#fff;font-size:13px;font-weight:bold;box-shadow:0 8px 20px rgba(30,26,20,.2)}
 `;
 document.head.appendChild(st);
 }
 
-function creerBandeauReseau(){
-if(document.getElementById('bandeau-reseau')) return;
-const b=document.createElement('div');
-b.id='bandeau-reseau';
-document.body.appendChild(b);
-}
-
-function majBandeauReseau(){
-creerBandeauReseau();
-const b=document.getElementById('bandeau-reseau');
-if(!b) return;
-if(!navigator.onLine){
-b.textContent='Vous êtes hors ligne. Les produits déjà vus restent affichés.';
-b.style.display='block';
-}else if(chargementEchoue){
-b.textContent='Connexion lente : certains produits peuvent ne pas s\'afficher.';
-b.style.display='block';
-}else{
-b.style.display='none';
-}
-}
-
-window.addEventListener('online',majBandeauReseau);
-window.addEventListener('offline',majBandeauReseau);
+// Le bandeau « hors ligne / connexion lente » n'existe plus : l'état est montré à la fin de la liste des produits.
+window.addEventListener('online',afficherGrille);
+window.addEventListener('offline',afficherGrille);
 
 function ouvrir(i){
 const p=tous()[i];
@@ -503,5 +496,11 @@ remettreApercu(apercuUrl);
 
 styleAccueil();
 installerRecherche();
+(function(){
+try{
+const c=JSON.parse(localStorage.getItem(CLE_CATALOGUE)||'null');
+if(c&&c.produits&&c.produits.length){distants=c.produits;boutiquesCache=c.boutiques||[];afficherGrille();}
+}catch(e){}
+})();
 chargerProduits();
 montrer('accueil');

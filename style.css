@@ -241,3 +241,13 @@ body .page>header>.retour+span,body .fiche>header>.retour+span,body .entete-ecra
 body #chat .entete-ecran .titre-ecran{font-size:17px !important}
 body .entete-ecran{margin:0 -20px;padding:14px 20px 10px}
 body.sombre .page>header,body.sombre .fiche>header,body.sombre .page>.entete-ecran,body.sombre .entete-ecran{background:#07130C}
+
+/* ===== Chargement lent / hors ligne ===== */
+.sk-carte{height:230px;border-radius:14px;background:linear-gradient(90deg,#EDE5D3 25%,#F6F0E2 37%,#EDE5D3 63%);background-size:400% 100%;animation:sk-defile 1.4s ease infinite}
+body.sombre .sk-carte{background:linear-gradient(90deg,#0F2418 25%,#17331F 37%,#0F2418 63%);background-size:400% 100%}
+@keyframes sk-defile{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.fin-liste{grid-column:1/-1;text-align:center;color:#6B6254;font-size:14px;padding:18px 10px 6px;display:flex;align-items:center;justify-content:center;gap:8px}
+body.sombre .fin-liste{color:#9DB5A5}
+.roue{width:16px;height:16px;border-radius:50%;border:2px solid #0E6B47;border-top-color:transparent;animation:roue-tourne .8s linear infinite;flex:none}
+body.sombre .roue{border-color:#3BBF4B;border-top-color:transparent}
+@keyframes roue-tourne{to{transform:rotate(360deg)}}

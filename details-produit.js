@@ -1,17 +1,34 @@
 const CATEGORIES_PRODUIT=["Mode & accessoires","Téléphone & high-tech","Maison & décoration","Beauté & hygiène","Alimentation","Sport et loisir","Électroménager","Bébé & enfants","École & bureau","Auto & moto","Autres"];
 const ETATS_PRODUIT=["Neuf","Comme neuf","Bon état","Occasion"];
 const COULEURS_PRODUIT=[
-{nom:"Vert",hex:"#1E9E4A"},
-{nom:"Bleu",hex:"#1565C0"},
-{nom:"Rouge",hex:"#D32F2F"},
-{nom:"Jaune",hex:"#FBC02D"},
+{nom:"Multicolore",hex:"conic-gradient(#E53935,#FBC02D,#43A047,#1E88E5,#8E24AA,#E53935)"},
 {nom:"Noir",hex:"#111111"},
 {nom:"Blanc",hex:"#FFFFFF"},
-{nom:"Orange",hex:"#F57C00"},
-{nom:"Beige",hex:"#D7C4A3"},
-{nom:"Marron",hex:"#6D4C41"},
+{nom:"Bleu",hex:"#1565C0"},
+{nom:"Rouge",hex:"#D32F2F"},
+{nom:"Vert",hex:"#1E9E4A"},
+{nom:"Jaune",hex:"#FBC02D"},
+{nom:"Rose",hex:"#F48FB1"},
 {nom:"Gris",hex:"#9E9E9E"},
-{nom:"Rose",hex:"#F48FB1"}
+{nom:"Marron",hex:"#6D4C41"},
+{nom:"Beige",hex:"#D7C4A3"},
+{nom:"Orange",hex:"#F57C00"},
+{nom:"Violet",hex:"#7B1FA2"},
+{nom:"Bleu marine",hex:"#14224A"},
+{nom:"Bordeaux",hex:"#7B1E2B"},
+{nom:"Turquoise",hex:"#14B8A6"},
+{nom:"Doré",hex:"#D4AF37"},
+{nom:"Argenté",hex:"#C0C0C0"},
+{nom:"Bleu ciel",hex:"#7EC8F0"},
+{nom:"Kaki",hex:"#7A7A3A"},
+{nom:"Fuchsia",hex:"#D81B77"},
+{nom:"Corail",hex:"#FF7F6B"},
+{nom:"Crème",hex:"#F6EBCF"},
+{nom:"Camel",hex:"#B98A4E"},
+{nom:"Lavande",hex:"#B39DDB"},
+{nom:"Vert clair",hex:"#8FD694"},
+{nom:"Saumon",hex:"#F7A58B"},
+{nom:"Transparent",hex:"#EEF5F7"}
 ];
 const LARGEUR_LIBELLE=72;
 const PRIX_MAX=100000000;
