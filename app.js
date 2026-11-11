@@ -5,7 +5,7 @@ const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 const AFFICHER_DEMO=false;
 
 const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
-const VUES_MENU={accueil:0,boutique:1,mesproduits:1,'boutique-form':1,profil:2};
+const VUES_MENU={accueil:0,boutique:1,'boutique-form':1,profil:2};
 
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
 document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
@@ -388,6 +388,8 @@ if(cible==='chat'&&typeof chatCourant!=='undefined'&&!chatCourant) cible='accuei
 if(cible==='favoris'&&typeof rendreFavoris==='function') rendreFavoris();
 restaurationScroll=!!(o&&cible===o.vue&&o.y>0);
 montrer(cible);
+const pageCible=document.getElementById(cible);
+if(pageCible&&pageCible.style.display==='none') pageCible.style.display='block';
 if(restaurationScroll){window.scrollTo(0,o.y);restaurationScroll=false;}
 }
 

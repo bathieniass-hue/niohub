@@ -142,7 +142,7 @@ html.sombre{background:#07130C}
 body.sombre{background:#07130C;color:#EAF3EC}
 body.sombre .page h1,body.sombre .nomboutique,body.sombre .fiche .titre,body.sombre #fnom,body.sombre .page .titre-ecran,body.sombre .entete-ecran .titre-ecran{color:#EAF3EC}
 body.sombre .retour{color:#EAF3EC}
-body.sombre .retour-carre,body.sombre .chat-action{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .chat-action{background:#0F2418;border-color:#24472F;color:#EAF3EC}
 body.sombre .card,body.sombre .liste,body.sombre .boutique,body.sombre .chat-produit,body.sombre .accueil-vide{background:#0F2418;border-color:#24472F;color:#EAF3EC}
 body.sombre .page input,body.sombre .page textarea,body.sombre .champ-tel,body.sombre .bulle.autre,body.sombre #chat .chat-saisie input,body.sombre #dp-card,body.sombre .dp-choix,body.sombre #dp-card #desc{background:#0F2418;border-color:#24472F;color:#EAF3EC}
 body.sombre .page input::placeholder,body.sombre .page textarea::placeholder,body.sombre #chat .chat-saisie input::placeholder{color:#6F8A78}
@@ -230,3 +230,14 @@ body.sombre .theme-opt.on{border-color:#3BBF4B;box-shadow:inset 0 0 0 1px #3BBF4
 body:not(.sombre) .icone-liste{background-image:url(icones-liste-clair.png);border-radius:0;filter:drop-shadow(0 0 1px rgba(5,50,20,.85)) drop-shadow(0 0 1px rgba(5,50,20,.55))}
 body:not(.sombre) .icone-liste[style*="gradient"]{background:none !important;box-shadow:none !important;filter:none}
 body:not(.sombre) .cat-ic{background-image:url(icones-categories-clair.png);border-radius:0;filter:drop-shadow(0 0 1px rgba(5,50,20,.85)) drop-shadow(0 0 1px rgba(5,50,20,.55))}
+
+/* ===== Bouton retour (icône de la maquette) et en-têtes fixes ===== */
+body .retour,body .retour-carre{width:44px;height:44px;flex:none;padding:0;border:0;border-radius:14px;background:#0F2418 url(icone-retour.png) no-repeat center/32px;box-shadow:inset 0 0 0 1px #24472F;font-size:0;color:transparent}
+body .page>header,body .fiche>header,body .page>.entete-ecran{position:sticky;top:0;z-index:15;background:#FBF7EE;margin:0 -20px;padding:16px 20px 10px;min-height:44px;box-sizing:content-box}
+body .fiche>header{margin:0}
+body .page>header:has(>.retour){justify-content:flex-start;gap:14px}
+body .page>header>span:empty,body .fiche>header>span:empty{display:none}
+body .page>header>.retour+span,body .fiche>header>.retour+span,body .entete-ecran .titre-ecran{font-size:26px !important;font-weight:800 !important;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body #chat .entete-ecran .titre-ecran{font-size:17px !important}
+body .entete-ecran{margin:0 -20px;padding:14px 20px 10px}
+body.sombre .page>header,body.sombre .fiche>header,body.sombre .page>.entete-ecran,body.sombre .entete-ecran{background:#07130C}

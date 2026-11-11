@@ -1,5 +1,4 @@
 VUES.push('avis-recus');
-VUES_MENU['avis-recus']=1;
 
 function creerPageAvisRecus(){
 if(document.getElementById('avis-recus')) return;
