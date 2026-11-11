@@ -209,14 +209,15 @@ try{
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour publier.');montrer('profil');return;}
 const nom=document.getElementById('nom').value.trim();
-const prixSaisi=document.getElementById('prix').value.trim();
+const prixSaisi=String(document.getElementById('prix').value).replace(/\D/g,'');
 const desc=document.getElementById('desc').value.trim();
 if(!nom||!prixSaisi){bandeau('Indiquez au moins le nom et le prix.','erreur');return;}
 const prix=Math.round(Number(prixSaisi));
 if(!(prix>0)||prix>PRIX_MAX){bandeau('Le prix doit être un nombre entre 1 et '+PRIX_MAX.toLocaleString('fr-FR')+' FCFA.','erreur');return;}
 if(nom.length>100){bandeau('Le nom est trop long (100 caractères maximum).','erreur');return;}
 if(desc.length>2000){bandeau('La description est trop longue (2000 caractères maximum).','erreur');return;}
-if(photoBlob&&photoBlob.size>PHOTO_MAX){bandeau('Cette photo est trop lourde. Choisissez-en une plus légère.','erreur');return;}
+if(photosAjout.some(ph=>ph.blob&&ph.blob.size>PHOTO_MAX)){bandeau('Une photo est trop lourde. Choisissez-en une plus légère.','erreur');return;}
+if(editId===null&&!photosAjout.length){bandeau('Ajoutez au moins une photo.','erreur');return;}
 const corps={
 nom:nom,
 prix:prix.toLocaleString('fr-FR')+' FCFA',
@@ -235,35 +236,36 @@ methode='PATCH';
 corps.photo=null;
 corps.user_id=s.user_id;
 }
-let nouvelleUrl=null;
 try{
-if(photoBlob){
 try{
-nouvelleUrl=await televerserPhoto(photoBlob,photoMiniBlob,s);
+await televerserNouvellesPhotos(s);
 }catch(e){
-bandeau('Envoi de la photo impossible. Vérifiez votre connexion ou réessayez avec une autre photo.','erreur');
+await nettoyerTeleversees(s);
+bandeau('Envoi des photos impossible. Vérifiez votre connexion ou réessayez avec d\'autres photos.','erreur');
 return;
 }
-corps.photo=nouvelleUrl;
-}
+appliquerPhotosAuCorps(corps,modification);
 const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'},body:JSON.stringify(corps)});
 if(!r.ok){
 const detail=await lireErreurSupabase(r);
+await nettoyerTeleversees(s);
 bandeau('Enregistrement impossible. ' + detail,'erreur');
 return;
 }
 if(modification){
 const lignes=await r.json();
 if(!lignes.length){
+await nettoyerTeleversees(s);
 bandeau('Enregistrement impossible : produit non trouvé ou non autorisé.','erreur');
 return;
 }
 }
 }catch(e){
+await nettoyerTeleversees(s);
 bandeau('Enregistrement impossible. Vérifiez votre connexion et réessayez.','erreur');
 return;
 }
-if(modification&&nouvelleUrl&&photoExistante) await supprimerPhotoStockee(photoExistante,s);
+if(modification) await supprimerAnciennesPhotos(s);
 editId=null;
 await chargerProduits();
 retourVers(origineAjout);

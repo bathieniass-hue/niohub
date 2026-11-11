@@ -251,3 +251,30 @@ body.sombre .fin-liste{color:#9DB5A5}
 .roue{width:16px;height:16px;border-radius:50%;border:2px solid #0E6B47;border-top-color:transparent;animation:roue-tourne .8s linear infinite;flex:none}
 body.sombre .roue{border-color:#3BBF4B;border-top-color:transparent}
 @keyframes roue-tourne{to{transform:rotate(360deg)}}
+
+/* ===== Ajout de produit en 3 écrans ===== */
+.ep-etape{font-size:13px;font-weight:bold;color:#6B6254;margin:4px 0 8px}
+.etape{display:none}
+.etape.on{display:block}
+#ajout .apercu{height:260px}
+.ap-miniatures{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.ap-case{position:relative;width:72px;height:72px;border-radius:12px;border:0;flex:none}
+.ap-plus{border:2px dashed #0E6B47;background:#fff;color:#0E6B47;font-size:30px;font-weight:bold;display:flex;align-items:center;justify-content:center;padding:0}
+.ap-x{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:12px;border:0;background:#B4291A;color:#fff;font-size:16px;line-height:24px;padding:0}
+.ap-legende{font-size:13px;color:#6B6254;flex:1;min-width:110px}
+.ep-aide{font-size:12px;color:#6B6254;margin-top:10px}
+.ep-grande{width:100%;height:240px;border-radius:16px;margin-top:6px}
+#ep2 .ep-grande{height:200px}
+.ep-petites{display:flex;gap:8px;margin-top:8px}
+.ap-petite{width:64px;height:64px;border-radius:10px;flex:none}
+.ep-nom{font-size:22px;font-weight:800;margin:14px 0 4px;word-break:break-word}
+.ep-barre{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;box-sizing:border-box;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;background:#FBF7EE;border-top:1px solid #E6DECB;z-index:30}
+.ep-barre .btn,.ep-barre .btn2{flex:1;width:auto;margin:0;height:50px}
+.fphotos{display:none;gap:8px;padding:10px 20px 0}
+.fphoto-mini{width:56px;height:56px;border-radius:10px;border:2px solid transparent;padding:0;flex:none}
+.fphoto-mini.on{border-color:#0E6B47}
+body.sombre .ep-etape,body.sombre .ep-aide,body.sombre .ap-legende{color:#9DB5A5}
+body.sombre .ap-plus{background:#0F2418;border-color:#3BBF4B;color:#3BBF4B}
+body.sombre .ep-nom{color:#EAF3EC}
+body.sombre .ep-barre{background:#07130C;border-top-color:#24472F}
+body.sombre .fphoto-mini.on{border-color:#3BBF4B}

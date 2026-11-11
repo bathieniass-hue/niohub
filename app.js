@@ -150,6 +150,7 @@ nom:l.nom,
 prix:l.prix,
 desc:l.description||'Pas de description.',
 photo:l.photo||"",
+photos:l.photos||null,
 couleur:'#D9B26F',
 categorie:l.categorie||null,
 etat:l.etat||null,
@@ -174,7 +175,7 @@ try{localStorage.setItem(CLE_CATALOGUE,JSON.stringify({produits:distants,boutiqu
 await chargerBoutiquesCache();
 const notes=await chargerNotesVendeurs();
 if(notes) notesVendeurs=notes;
-const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
+const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.photos,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
 clearTimeout(minuteurLent);
 const etaitEnChargement=chargementEnCours||chargementLent;
 chargementEnCours=false;
@@ -363,6 +364,7 @@ function ouvrir(i){
 const p=tous()[i];
 if(vueCourante!=='fiche') origineFiche={vue:vueCourante,y:window.scrollY};
 document.getElementById('fphoto').style.background=fond(p);
+if(typeof dessinerPhotosFiche==='function') dessinerPhotosFiche(p);
 document.getElementById('fprix').textContent=p.prix;
 document.getElementById('fnom').textContent=p.nom;
 document.getElementById('fdesc').textContent=p.desc;
