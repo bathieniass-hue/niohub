@@ -186,6 +186,7 @@ b.textContent=n>=99?'99+':String(n);
 b.style.display=n>0?'block':'none';
 }
 async function majNonLus(){
+if(typeof majCompteurs==='function') return majCompteurs();
 const s=await sessionValide();
 if(!s||!s.user_id){afficherBadge(0);return;}
 try{

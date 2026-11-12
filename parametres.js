@@ -34,7 +34,8 @@ document.getElementById('parametres').innerHTML=
 +'<button type="button" class="theme-opt'+(t==='sombre'?' on':'')+'" onclick="choisirTheme(\'sombre\')">Sombre</button>'
 +'<button type="button" class="theme-opt'+(t==='clair'?' on':'')+'" onclick="choisirTheme(\'clair\')">Clair</button>'
 +'</div>'
-+'<div style="font-size:13px;color:#6B6254;margin-top:10px">Votre choix est gardé sur ce téléphone.</div>';
++'<div style="font-size:13px;color:#6B6254;margin-top:10px">Votre choix est gardé sur ce téléphone.</div>'
++(typeof blocNotificationsReglage==='function'?blocNotificationsReglage():'');
 }
 
 function voirParametres(){

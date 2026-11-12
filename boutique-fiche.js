@@ -25,8 +25,7 @@ const nom=document.querySelector('#infos-boutique .nomboutique');
 const actions=document.getElementById('boutique-actions');
 if(!nom||!actions) return;
 nom.insertAdjacentHTML('afterend',`<div style="color:#F2B233;font-size:14px;margin-top:2px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div>`);
-const tuile=document.getElementById('tuile-avis');
-if(tuile&&avis.length) tuile.insertAdjacentHTML('beforeend',`<span class="pastille">${avis.length}</span>`);
+
 }
 
 const voirBoutiqueAvantAvis=voirBoutique;

@@ -6,7 +6,7 @@ const FICHIERS=[
 './','index.html','style.css','manifest.json','conditions.html',
 'icones-nav.png','icones-accueil.png','icones-favoris.png','icones-boutique.png','icones-liste.png','icones-categories.png','icones-liste-clair.png','icones-categories-clair.png','icone-crayon.png','icone-retour.png','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
 'bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
-'vitrine.js','profil.js','parametres.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','ajout-produit.js','fiche-details.js','pwa.js'
+'vitrine.js','profil.js','parametres.js','notifications.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','ajout-produit.js','fiche-details.js','pwa.js'
 ];
 const DELAI_RESEAU=5000;
 
@@ -53,5 +53,15 @@ if(accueil) return accueil;
 }
 return Response.error();
 }
+})());
+});
+
+// Appui sur une notification du téléphone : on ramène l'application au premier plan
+self.addEventListener('notificationclick',e=>{
+e.notification.close();
+e.waitUntil((async()=>{
+const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
+for(const f of fenetres){if('focus' in f) return f.focus();}
+if(clients.openWindow) return clients.openWindow('./');
 })());
 });

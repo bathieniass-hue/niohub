@@ -101,9 +101,9 @@ const susp=b.statut==='suspendue';
 zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#B4291A"><b>'+(susp?'Votre boutique est suspendue.':'Votre boutique est en attente de validation.')+'</b><br>'+(susp?'Vos produits ne sont plus visibles par les acheteurs. Contactez NioHub pour en savoir plus.':'Vos produits seront visibles dès qu\'elle sera validée.')+'</div>');
 }
 actions.innerHTML=`<div class="tuiles">
-<button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages</button>
-<button id="tuile-avis" class="tuile" onclick="voirAvisRecus()"><span class="gb-ic" style="--i:1" aria-hidden="true"></span>Avis reçus</button>
-<button class="tuile" onclick="voirCommandes()"><span class="gb-ic" style="--i:2" aria-hidden="true"></span>Commandes</button>
+<button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages<span class="pastille" data-compteur="messages" style="display:none"></span></button>
+<button id="tuile-avis" class="tuile" onclick="voirAvisRecus()"><span class="gb-ic" style="--i:1" aria-hidden="true"></span>Avis reçus<span class="pastille" data-compteur="avis" style="display:none"></span></button>
+<button class="tuile" onclick="voirCommandes()"><span class="gb-ic" style="--i:2" aria-hidden="true"></span>Commandes<span class="pastille" data-compteur="commandes" style="display:none"></span></button>
 <button class="tuile" onclick="voirAjout('boutique')"><span class="gb-ic" style="--i:4" aria-hidden="true"></span>Ajouter</button>
 <button class="tuile large" onclick="voirMesProduits()"><span class="gb-ic" style="--i:3" aria-hidden="true"></span>Mes produits</button>
 </div>`;

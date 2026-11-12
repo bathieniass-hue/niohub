@@ -40,9 +40,9 @@ const zone=document.getElementById('cats');
 if(!zone) return;
 zone.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 20px;margin:12px 0;';
 zone.innerHTML=`
-<button class="raccourci" onclick="voirConversations()">${ICONES.messages}<span>Messages</span><span class="badge" id="badge-messages"></span></button>
-<button class="raccourci" onclick="voirFavoris()">${ICONES.favoris}<span>Favoris</span></button>
-<button class="raccourci" onclick="voirAchats()">${ICONES.achats}<span>Mes achats</span></button>
+<button class="raccourci" onclick="voirConversations()">${ICONES.messages}<span>Messages</span><span class="badge" id="badge-messages" data-compteur="messages"></span></button>
+<button class="raccourci" onclick="voirFavoris()">${ICONES.favoris}<span>Favoris</span><span class="badge" data-compteur="favoris"></span></button>
+<button class="raccourci" onclick="voirAchats()">${ICONES.achats}<span>Mes achats</span><span class="badge" data-compteur="achats"></span></button>
 <button class="raccourci" onclick="ouvrirCategories()">${ICONES.categories}<span>Catégories</span></button>`;
 }
 afficherRaccourcis();

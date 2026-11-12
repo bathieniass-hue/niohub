@@ -281,3 +281,18 @@ body.sombre .fphoto-mini.on{border-color:#3BBF4B}
 #ajout.clavier .ep-barre{display:none}
 .ep-barre{align-items:center}
 .ep-barre>button{margin:0 !important;height:50px;box-sizing:border-box}
+
+/* ===== Notifications : cloche, pastilles, liste ===== */
+.actions-haut{display:flex;align-items:center;gap:10px}
+.cloche{position:relative;width:44px;height:44px;border-radius:14px;border:1.5px solid #3BBF4B;background:linear-gradient(160deg,#10301F,#050B07);box-shadow:0 2px 8px rgba(15,107,70,.3),inset 0 0 10px rgba(80,220,90,.25);display:flex;align-items:center;justify-content:center;padding:0}
+.cloche-ic{width:30px;height:30px;background:url(icones-favoris.png) no-repeat 0 0/60px 30px;background-position:-30px 0}
+.pastille-cloche{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E0A52E;color:#2A1B00;font-size:11px;font-weight:bold;line-height:18px;text-align:center;border:2px solid #FBF7EE;box-sizing:content-box}
+body.sombre .pastille-cloche{border-color:#07130C}
+.pastille-liste{min-width:20px;height:20px;padding:0 6px;margin-right:6px;border-radius:10px;background:#E0A52E;color:#2A1B00;font-size:11px;font-weight:bold;line-height:20px;text-align:center}
+.notif-item{align-items:flex-start;gap:12px}
+.notif-point{width:10px;height:10px;border-radius:5px;background:#E0A52E;margin-top:5px;flex:none}
+.notif-texte{font-size:13px;color:#6B6254;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notif-heure{font-size:12px;color:#6B6254;flex:none;white-space:nowrap}
+.notif-tout{margin:12px 0 4px;height:40px;padding:0 14px;border-radius:12px;border:1px solid #0E6B47;background:none;color:#0E6B47;font-weight:bold;font-size:14px;font-family:inherit}
+body.sombre .notif-texte,body.sombre .notif-heure{color:#9DB5A5}
+body.sombre .notif-tout{border-color:#3BBF4B;color:#3BBF4B}
