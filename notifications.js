@@ -154,20 +154,78 @@ const titre=item?item.titre:'Nouveauté';
 const corps=item?item.texte:'';
 if(document.visibilityState==='visible'){
 if(typeof bandeau==='function') bandeau(titre+(corps?' : '+String(corps).slice(0,60):''));
-}else if(notifSysActive()&&navigator.serviceWorker){
+}else if(notifSysActive()&&!pushServeurActif()&&navigator.serviceWorker){
 navigator.serviceWorker.ready.then(reg=>reg.showNotification(titre,{body:corps,icon:'icon-192.png',badge:'icon-192.png',tag:'niohub-'+cle,renotify:true,data:{url:'./'}})).catch(()=>{});
 }
 }
+// ---------- Notifications même application fermée (Web Push) ----------
+const CLE_VAPID_PUBLIQUE='BGD0O90eHTnvelySaEXAcYBIZaTuUHTJtWFq9-82yw69R5m8xYYGODcLS97dChL6C13Rrax90-h8VKOCAzluTdg';
+function pushPossible(){return 'serviceWorker' in navigator&&'PushManager' in window&&typeof Notification!=='undefined';}
+function pushServeurActif(){try{return localStorage.getItem('niohub_push_actif')==='1';}catch(e){return false;}}
+function cleVersOctets(b64){
+const rempli=(b64+'='.repeat((4-b64.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/');
+const brut=atob(rempli);
+const sortie=new Uint8Array(brut.length);
+for(let i=0;i<brut.length;i++) sortie[i]=brut.charCodeAt(i);
+return sortie;
+}
+async function abonnerPush(){
+const reg=await navigator.serviceWorker.ready;
+let sub=await reg.pushManager.getSubscription();
+if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:cleVersOctets(CLE_VAPID_PUBLIQUE)});
+const j=sub.toJSON();
+const s=await sessionValide();
+if(!s||!s.user_id) throw new Error('session');
+const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/enregistrer_push',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_cle_auth:j.keys.auth})});
+if(!r.ok) throw new Error('serveur '+r.status);
+try{localStorage.setItem('niohub_push_actif','1');}catch(e){}
+}
+async function desabonnerPush(){
+try{
+const reg=await navigator.serviceWorker.ready;
+const sub=await reg.pushManager.getSubscription();
+if(sub){
+const s=await sessionValide();
+if(s&&s.user_id){
+try{await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_push',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_endpoint:sub.endpoint})});}catch(e){}
+}
+await sub.unsubscribe();
+}
+}catch(e){}
+try{localStorage.removeItem('niohub_push_actif');}catch(e){}
+}
+// À la déconnexion : ce téléphone ne reçoit plus les notifications de ce compte
+function retirerPushAuDepart(){
+try{
+const s=lireSession();
+if(!s||!s.access_token||!pushPossible()) return;
+navigator.serviceWorker.ready.then(reg=>reg.pushManager.getSubscription()).then(sub=>{
+if(!sub) return;
+return fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_push',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_endpoint:sub.endpoint})});
+}).catch(()=>{});
+}catch(e){}
+}
+// Touche sur une notification : on ouvre l'écran concerné
+function ouvrirDepuisNotif(cible){
+const f={messages:'voirConversations',commandes:'voirCommandes',achats:'voirAchats',avis:'voirAvisRecus',boutique:'voirBoutique'}[cible];
+if(f&&typeof window[f]==='function') window[f]();
+}
+
 async function basculerNotifSysteme(){
 if(typeof Notification==='undefined'){bandeau('Les notifications ne sont pas disponibles sur ce navigateur.');return;}
 try{
 if(localStorage.getItem('niohub_notif_sys')==='1'){
 localStorage.removeItem('niohub_notif_sys');
+await desabonnerPush();
 }else{
 let p=Notification.permission;
 if(p==='default') p=await Notification.requestPermission();
 if(p!=='granted'){bandeau('Notifications refusées. Autorisez-les dans les réglages du téléphone.','erreur');return;}
 localStorage.setItem('niohub_notif_sys','1');
+if(pushPossible()){
+try{await abonnerPush();bandeau('Notifications activées, même application fermée.');}
+catch(e){bandeau('Activées quand l\'application est ouverte. Le serveur de notifications n\'est pas encore prêt.','erreur');}
+}
 }
 }catch(e){}
 if(typeof dessinerParametres==='function') dessinerParametres();
@@ -179,7 +237,7 @@ return '<div class="titre-section" style="margin-top:22px">Notifications</div>'
 +(dispo
 ?'<button type="button" class="theme-opt'+(actif?' on':'')+'" style="width:100%" onclick="basculerNotifSysteme()">'+(actif?'Notifications du téléphone : activées':'Activer les notifications du téléphone')+'</button>'
 :'<div style="font-size:13px;color:#6B6254">Les notifications du téléphone ne sont pas disponibles sur ce navigateur.</div>')
-+'<div style="font-size:13px;color:#6B6254;margin-top:10px">Vous êtes prévenu d\'un nouveau message, d\'un avis ou d\'une commande quand l\'application est ouverte ou en arrière-plan.</div>';
++'<div style="font-size:13px;color:#6B6254;margin-top:10px">'+(pushServeurActif()?'Vous êtes prévenu d\'un nouveau message, d\'un avis ou d\'une commande, même quand l\'application est fermée.':'Vous êtes prévenu d\'un nouveau message, d\'un avis ou d\'une commande quand l\'application est ouverte ou en arrière-plan.')+'</div>';
 }
 
 // ---------- écran Notifications (la cloche) ----------
@@ -258,6 +316,13 @@ envelopperOuverture('voirBoutique','boutique');
 // la pastille « messages » existante est désormais gérée ici
 majCompteurs=function(){return recupererNotif(false);};
 recupererNotif(true);
+if(notifSysActive()&&pushPossible()&&pushServeurActif()) abonnerPush().catch(()=>{});
+// Ouverture depuis une notification (application fermée ou déjà ouverte)
+try{
+const cible=new URLSearchParams(location.search).get('ouvrir');
+if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible),900);}
+}catch(e){}
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir);});
 }
 function majCompteurs(){return recupererNotif(false);}
 if(document.readyState==='complete') demarrerNotif();

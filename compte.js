@@ -4,6 +4,7 @@ const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.google
 function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
 function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
 function oublierSession(){
+if(typeof retirerPushAuDepart==='function') retirerPushAuDepart();
 localStorage.removeItem(CLE_SESSION);
 try{
 Object.keys(localStorage).filter(k=>k.indexOf('niohub_chat_')===0||k==='niohub_file_messages_v1').forEach(k=>localStorage.removeItem(k));
