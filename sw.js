@@ -56,6 +56,17 @@ return Response.error();
 })());
 });
 
+// Pastille sur l'icône de l'application : nombre de notifications encore affichées (iPhone, et Android quand c'est possible)
+async function majPastilleApp(){
+try{
+const n=(await self.registration.getNotifications()).length;
+const nav=self.navigator;
+if(nav&&nav.setAppBadge){
+if(n>0) await nav.setAppBadge(n); else await nav.clearAppBadge();
+}
+}catch(e){}
+}
+
 // Notification reçue du serveur (même application fermée)
 self.addEventListener('push',e=>{
 let d={};
@@ -65,19 +76,35 @@ const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
 const ios=/iPhone|iPad|iPod/.test(self.navigator.userAgent||'');
 // Application ouverte devant l'utilisateur : elle s'affiche déjà elle-même (sauf sur iPhone, qui exige toujours une notification)
 if(!ios&&fenetres.some(f=>f.visibilityState==='visible')) return;
-await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.tag||'niohub',renotify:true,data:{ouvrir:d.ouvrir||''}});
+// Chaque notification est séparée : les anciennes ne sont plus remplacées
+await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:'icon-192.png',badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||''}});
+await majPastilleApp();
 })());
 });
+
+self.addEventListener('notificationclose',e=>{e.waitUntil(majPastilleApp());});
 
 // Appui sur une notification : on ramène l'application au premier plan, sur le bon écran
 self.addEventListener('notificationclick',e=>{
 e.notification.close();
 const cible=(e.notification.data&&e.notification.data.ouvrir)||'';
+const url='./'+(cible?'?ouvrir='+encodeURIComponent(cible):'');
 e.waitUntil((async()=>{
+await majPastilleApp();
 const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
-for(const f of fenetres){
-if('focus' in f){await f.focus();if(cible) f.postMessage({ouvrir:cible});return;}
+const f=fenetres.find(x=>x.visibilityState==='visible')||fenetres[0];
+if(f){
+if(f.visibilityState==='visible'){
+if(cible) f.postMessage({ouvrir:cible});
+try{await f.focus();}catch(err){}
+return;
 }
-if(clients.openWindow) return clients.openWindow('./'+(cible?'?ouvrir='+encodeURIComponent(cible):''));
+// Application en arrière-plan : on la recharge directement sur le bon écran (plus fiable qu'un simple message)
+try{await f.focus();}catch(err){}
+try{if(f.navigate&&cible){await f.navigate(url);return;}}catch(err){}
+if(cible) f.postMessage({ouvrir:cible});
+return;
+}
+if(clients.openWindow) return clients.openWindow(url);
 })());
 });

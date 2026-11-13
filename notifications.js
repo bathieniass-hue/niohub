@@ -138,6 +138,13 @@ if(typeof vueCourante!=='undefined'&&vueCourante==='notifications') dessinerNoti
 }
 
 function afficherCompteursNotif(){
+// Pastille sur l'icône de l'application (iPhone installé, Android…)
+try{
+if(navigator.setAppBadge){
+if((compteursNotif.total||0)>0) navigator.setAppBadge(compteursNotif.total).catch(()=>{});
+else if(navigator.clearAppBadge) navigator.clearAppBadge().catch(()=>{});
+}
+}catch(e){}
 document.querySelectorAll('[data-compteur]').forEach(el=>{
 const n=compteursNotif[el.getAttribute('data-compteur')]||0;
 el.textContent=n>99?'99+':String(n);
@@ -321,7 +328,7 @@ if(notifSysActive()&&pushPossible()) abonnerPush().catch(()=>{});
 // Ouverture depuis une notification (application fermée ou déjà ouverte)
 try{
 const cible=new URLSearchParams(location.search).get('ouvrir');
-if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible),900);}
+if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible),700);setTimeout(()=>ouvrirDepuisNotif(cible),1800);}
 }catch(e){}
 if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir);});
 }
