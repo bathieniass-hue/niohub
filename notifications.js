@@ -316,7 +316,8 @@ envelopperOuverture('voirBoutique','boutique');
 // la pastille « messages » existante est désormais gérée ici
 majCompteurs=function(){return recupererNotif(false);};
 recupererNotif(true);
-if(notifSysActive()&&pushPossible()&&pushServeurActif()) abonnerPush().catch(()=>{});
+// Un téléphone qui avait activé les notifications avant la mise en place du serveur (ou dont l'abonnement a été perdu) se réabonne tout seul
+if(notifSysActive()&&pushPossible()) abonnerPush().catch(()=>{});
 // Ouverture depuis une notification (application fermée ou déjà ouverte)
 try{
 const cible=new URLSearchParams(location.search).get('ouvrir');
