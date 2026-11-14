@@ -343,8 +343,7 @@ try{return JSON.parse(localStorage.getItem(CLE_DEMANDE)||'null')||{n:0,prochaine
 function reporterDemande(){
 const e=etatDemande();
 e.n=(e.n||0)+1;
-const jours=[1,3,7][Math.min(e.n-1,2)]; // demain, dans 3 jours, puis chaque semaine
-e.prochaine=Date.now()+jours*86400000;
+e.prochaine=Date.now()+86400000; // les notifications sont importantes : on redemande tous les jours
 try{localStorage.setItem(CLE_DEMANDE,JSON.stringify(e));}catch(x){}
 }
 function estIphone(){return /iPhone|iPad|iPod/.test(navigator.userAgent||'');}

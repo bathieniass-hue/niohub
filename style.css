@@ -321,3 +321,17 @@ body.sombre select option{background:#0F2418;color:#EAF3EC}
 body.sombre .dnotif-carte{background:#0F2418;border-color:#24472F}
 body.sombre .dnotif-titre{color:#EAF3EC}
 body.sombre .dnotif-texte,body.sombre .dnotif-non{color:#9DB5A5}
+
+/* ===== Fiche produit de l'accueil : comme dans la maquette (nom et prix serrés, adresse sous le nom de la boutique) ===== */
+body .card .info{padding:7px 8px 8px !important}
+body .card .name{font-size:15px;font-weight:600;line-height:1.2}
+body .card .price{font-size:20px;font-weight:800;line-height:1.1;margin-top:1px;margin-bottom:6px}
+body .card .vendeur{margin-top:0;gap:6px;align-items:center}
+body .card .v-avatar{width:32px;height:32px;border-radius:16px;font-size:12px}
+body .card .v-txt{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:1px;min-width:0;flex:1;line-height:14px}
+.v-ligne{display:flex;align-items:center;gap:4px;min-width:0}
+body .card .v-nom{font-size:13px;font-weight:600}
+body .card .v-note{font-size:12px;flex:none}
+body .card .v-lieu{margin-top:0;font-size:12px;line-height:14px}
+.v-nouveau{display:inline-block;background:#F6E6BF;color:#5A3F04;font-size:10px;line-height:14px;font-weight:700;padding:0 6px;border-radius:7px}
+body.sombre .v-nouveau{background:#2B2210;color:#E0A52E}
