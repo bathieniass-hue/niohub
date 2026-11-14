@@ -5,6 +5,7 @@ function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||
 function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
 function oublierSession(){
 if(typeof retirerPushAuDepart==='function') retirerPushAuDepart();
+if(typeof effacerDonneesHorsLigne==='function') effacerDonneesHorsLigne();
 localStorage.removeItem(CLE_SESSION);
 try{
 Object.keys(localStorage).filter(k=>k.indexOf('niohub_chat_')===0||k==='niohub_file_messages_v1').forEach(k=>localStorage.removeItem(k));

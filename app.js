@@ -141,7 +141,7 @@ let echec=false;
 const minuteurLent=setTimeout(()=>{if(chargementEnCours){chargementLent=true;afficherGrille();}},1200);
 try{
 const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok) throw new Error(r.status);
+if(!r.ok||r.headers.get('x-niohub-cache')==='1') throw new Error(r.status);
 const lignes=await r.json();
 distants=lignes.map(l=>({
 id:l.id,

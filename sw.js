@@ -5,10 +5,35 @@ const VERSION='niohub-f6d3dcde61'; // remplacé automatiquement à chaque livrai
 const FICHIERS=[
 './','index.html','style.css','manifest.json','conditions.html',
 'icones-nav.png','icones-accueil.png','icones-favoris.png','icones-boutique.png','icones-liste.png','icones-categories.png','icones-liste-clair.png','icones-categories-clair.png','icone-crayon.png','icone-retour.png','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
-'bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
+'donnees-hors-ligne.js','bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
 'vitrine.js','profil.js','parametres.js','notifications.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','ajout-produit.js','fiche-details.js','pwa.js'
 ];
 const DELAI_RESEAU=5000;
+const CACHE_PHOTOS='niohub-photos';   // photos des produits, boutiques et profils : gardées dans le téléphone
+const MAX_PHOTOS=400;
+
+function estPhoto(url,req){
+if(req.destination!=='image') return false;
+return (url.hostname.endsWith('.supabase.co')&&url.pathname.indexOf('/storage/v1/object/public/')===0)||url.hostname.endsWith('googleusercontent.com');
+}
+async function elaguerPhotos(cache){
+try{
+const cles=await cache.keys();
+if(cles.length>MAX_PHOTOS) for(const k of cles.slice(0,cles.length-MAX_PHOTOS)) await cache.delete(k);
+}catch(e){}
+}
+// Une photo ne change pas (même adresse = même image) : copie d'abord, réseau ensuite
+async function photoEnCache(req){
+const cache=await caches.open(CACHE_PHOTOS);
+const copie=await cache.match(req);
+if(copie) return copie;
+try{
+// Demande « normale » (CORS) : réponse lisible et peu coûteuse à garder
+const rep=await fetch(req.url,{mode:'cors',credentials:'omit'});
+if(rep&&rep.ok){cache.put(req,rep.clone());elaguerPhotos(cache);return rep;}
+}catch(e){}
+try{return await fetch(req);}catch(e){return Response.error();}
+}
 
 self.addEventListener('install',e=>{
 e.waitUntil((async()=>{
@@ -22,7 +47,7 @@ await self.skipWaiting();
 self.addEventListener('activate',e=>{
 e.waitUntil((async()=>{
 const noms=await caches.keys();
-await Promise.all(noms.filter(n=>n!==VERSION).map(n=>caches.delete(n)));
+await Promise.all(noms.filter(n=>n!==VERSION&&n!==CACHE_PHOTOS).map(n=>caches.delete(n)));
 await self.clients.claim();
 })());
 });
@@ -31,7 +56,10 @@ self.addEventListener('fetch',e=>{
 const req=e.request;
 if(req.method!=='GET') return;
 const url=new URL(req.url);
-if(url.origin!==self.location.origin) return;
+if(url.origin!==self.location.origin){
+if(estPhoto(url,req)) e.respondWith(photoEnCache(req));
+return;
+}
 // Le contrôle de version va toujours directement sur le réseau
 if(url.pathname.endsWith('/version.json')) return;
 e.respondWith((async()=>{
