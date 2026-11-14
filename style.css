@@ -304,3 +304,8 @@ body .pastille-cloche{top:-10px;right:-10px;min-width:20px;height:20px;padding:0
 body .pastille-liste{min-width:24px;height:24px;border-radius:12px;font-size:12px;line-height:24px}
 nav button{position:relative}
 .pastille-nav{position:absolute;top:0;left:calc(50% + 6px);min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#E0A52E;color:#2A1B00;font-size:12px;font-weight:bold;line-height:18px;text-align:center;border:2px solid #07130C;box-sizing:border-box}
+
+/* ===== Champs écrits directement dans le code avec un fond blanc (avis, choix du paiement…) : lisibles en thème sombre ===== */
+body.sombre #av-texte,body.sombre #cmd-paiement,body.sombre select,body.sombre [style*="background:#fff"]{background:#0F2418 !important;color:#EAF3EC !important;border-color:#24472F !important}
+body.sombre #av-texte::placeholder{color:#6F8A78}
+body.sombre select option{background:#0F2418;color:#EAF3EC}
