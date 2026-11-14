@@ -67,6 +67,43 @@ if(n>0) await nav.setAppBadge(n); else await nav.clearAppBadge();
 }catch(e){}
 }
 
+// Photo de la discussion avec le logo NioHub en bas à droite (Android ; l'iPhone affiche toujours le logo de l'application)
+async function iconeComposee(urlPhoto){
+try{
+if(!urlPhoto||typeof OffscreenCanvas==='undefined'||typeof createImageBitmap==='undefined') return null;
+const [rp,rl]=await Promise.all([fetch(urlPhoto,{mode:'cors'}),fetch('icon-192.png')]);
+if(!rp.ok||!rl.ok) return null;
+const [bp,bl]=await Promise.all([createImageBitmap(await rp.blob()),createImageBitmap(await rl.blob())]);
+const T=192;
+const c=new OffscreenCanvas(T,T);
+const g=c.getContext('2d');
+const m=Math.min(bp.width,bp.height);
+g.save();
+g.beginPath();g.arc(T/2,T/2,T/2,0,Math.PI*2);g.clip();
+g.drawImage(bp,(bp.width-m)/2,(bp.height-m)/2,m,m,0,0,T,T);
+g.restore();
+const L=76,x=T-L-4,y=T-L-4;
+g.beginPath();g.arc(x+L/2,y+L/2,L/2+4,0,Math.PI*2);g.fillStyle='#ffffff';g.fill();
+g.save();
+g.beginPath();g.arc(x+L/2,y+L/2,L/2,0,Math.PI*2);g.clip();
+g.drawImage(bl,x,y,L,L);
+g.restore();
+const blob=await c.convertToBlob({type:'image/png'});
+return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(blob);});
+}catch(e){return null;}
+}
+
+// Pastille sur l'icône de l'application : nombre de notifications encore affichées (iPhone, et Android quand c'est possible)
+async function majPastilleApp(){
+try{
+const n=(await self.registration.getNotifications()).length;
+const nav=self.navigator;
+if(nav&&nav.setAppBadge){
+if(n>0) await nav.setAppBadge(n); else await nav.clearAppBadge();
+}
+}catch(e){}
+}
+
 // Notification reçue du serveur (même application fermée)
 self.addEventListener('push',e=>{
 let d={};
@@ -76,33 +113,40 @@ const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
 const ios=/iPhone|iPad|iPod/.test(self.navigator.userAgent||'');
 // Application ouverte devant l'utilisateur : elle s'affiche déjà elle-même (sauf sur iPhone, qui exige toujours une notification)
 if(!ios&&fenetres.some(f=>f.visibilityState==='visible')) return;
+const icone=(await iconeComposee(d.photo))||'icon-192.png';
 // Chaque notification est séparée : les anciennes ne sont plus remplacées
-await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:'icon-192.png',badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||''}});
+await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:icone,badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||'',conv:d.conv||null}});
 await majPastilleApp();
 })());
 });
 
 self.addEventListener('notificationclose',e=>{e.waitUntil(majPastilleApp());});
 
-// Appui sur une notification : on ramène l'application au premier plan, sur le bon écran
+// Appui sur une notification : on ramène l'application au premier plan, sur le bon écran (la bonne discussion pour un message)
 self.addEventListener('notificationclick',e=>{
 e.notification.close();
-const cible=(e.notification.data&&e.notification.data.ouvrir)||'';
-const url='./'+(cible?'?ouvrir='+encodeURIComponent(cible):'');
+const data=e.notification.data||{};
+const cible=data.ouvrir||'';
+const conv=data.conv||null;
+let url='./';
+if(cible){
+url+='?ouvrir='+encodeURIComponent(cible);
+if(conv&&conv.v&&conv.a) url+='&p='+encodeURIComponent(conv.p==null?'':conv.p)+'&v='+encodeURIComponent(conv.v)+'&a='+encodeURIComponent(conv.a);
+}
 e.waitUntil((async()=>{
 await majPastilleApp();
 const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
 const f=fenetres.find(x=>x.visibilityState==='visible')||fenetres[0];
 if(f){
 if(f.visibilityState==='visible'){
-if(cible) f.postMessage({ouvrir:cible});
+if(cible) f.postMessage({ouvrir:cible,conv:conv});
 try{await f.focus();}catch(err){}
 return;
 }
 // Application en arrière-plan : on la recharge directement sur le bon écran (plus fiable qu'un simple message)
 try{await f.focus();}catch(err){}
 try{if(f.navigate&&cible){await f.navigate(url);return;}}catch(err){}
-if(cible) f.postMessage({ouvrir:cible});
+if(cible) f.postMessage({ouvrir:cible,conv:conv});
 return;
 }
 if(clients.openWindow) return clients.openWindow(url);

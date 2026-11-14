@@ -2,7 +2,7 @@
 // Une pastille compte ce qui est nouveau depuis la dernière ouverture de l'écran correspondant, puis disparaît.
 
 let brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null};
-let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,total:0};
+let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,total:0};
 let itemsNotif=[];
 let notifAutresLe=0;
 let notifPremiere=true;
@@ -27,6 +27,7 @@ else if(section==='favoris') vu.favoris=lireFavoris();
 else if(section==='boutique'&&brutNotif.boutique) vu.boutique=brutNotif.boutique.statut||'validee';
 }
 function marquerVu(section){
+fermerNotifsSysteme(d=>d.ouvrir===section);
 const uid=notifUid();
 if(!uid) return;
 const vu=lireVu(uid);
@@ -48,6 +49,19 @@ const v=(typeof vueCourante!=='undefined')?vueCourante:'';
 return ({conversations:'messages',chat:'messages','avis-recus':'avis','commandes-page':'commandes','achats-page':'achats',favoris:'favoris',boutique:'boutique'})[v]||null;
 }
 
+// ---------- notifications du téléphone : on les retire quand l'écran correspondant est ouvert ----------
+async function fermerNotifsSysteme(filtre){
+try{
+if(!('serviceWorker' in navigator)) return;
+const reg=await navigator.serviceWorker.ready;
+const liste=await reg.getNotifications();
+liste.forEach(n=>{if(filtre(n.data||{})) n.close();});
+}catch(e){}
+}
+function memeDiscussion(conv,ctx){
+return !!(conv&&ctx&&String(conv.v)===String(ctx.vendeurId)&&String(conv.a)===String(ctx.acheteurId)&&(!ctx.produitId||String(conv.p)===String(ctx.produitId)));
+}
+
 // ---------- récupération des données ----------
 async function recupererNotif(forcer){
 if(notifEnCours){notifRedemande=true;return;}
@@ -63,7 +77,7 @@ const uid=s.user_id;
 notifPret=true;
 const h=entetesAuth(s);
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id,expediteur,expediteur_id,texte,produit,created_at&lu=eq.false&expediteur_id=neq.'+uid+'&order=created_at.desc&limit=99',{headers:h});
+const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id,expediteur,expediteur_id,texte,produit,produit_id,vendeur_id,acheteur_id,created_at&lu=eq.false&expediteur_id=neq.'+uid+'&order=created_at.desc&limit=99',{headers:h});
 if(r.ok) brutNotif.messages=await r.json();
 }catch(e){}
 const maintenant=Date.now();
@@ -100,11 +114,16 @@ if(notifRedemande){notifRedemande=false;recupererNotif(false);}
 // ---------- calcul des nouveautés ----------
 function recalculerNotif(){
 const uid=notifUid();
-if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
+if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
 const vu=lireVu(uid);
 // Si l'écran concerné est ouvert en ce moment, ce qui arrive est déjà vu
 const ouverte=sectionOuverte();
-if(ouverte){noterVu(vu,ouverte);ecrireVu(uid,vu);}
+if(ouverte){
+noterVu(vu,ouverte);
+ecrireVu(uid,vu);
+if(ouverte==='messages'&&vueCourante==='chat'&&typeof chatCourant!=='undefined'&&chatCourant) fermerNotifsSysteme(d=>d.ouvrir==='messages'&&memeDiscussion(d.conv,chatCourant));
+else fermerNotifsSysteme(d=>d.ouvrir===ouverte);
+}
 const msg=brutNotif.messages.filter(m=>String(m.created_at)>(vu.messages||''));
 const avis=brutNotif.avis.filter(a=>vu.avis!==undefined&&String(a.created_at)>vu.avis);
 const cmd=brutNotif.commandes.filter(c=>vu.commandes!==undefined&&String(c.created_at)>vu.commandes);
@@ -113,11 +132,13 @@ const fav=lireFavoris().filter(id=>vu.favoris!==undefined&&!vu.favoris.includes(
 const bou=(brutNotif.boutique&&vu.boutique!==undefined&&vu.boutique!==brutNotif.boutique.statut)?[brutNotif.boutique]:[];
 const c={messages:msg.length,avis:avis.length,commandes:cmd.length,achats:ach.length,favoris:fav.length,boutique:bou.length};
 c.total=c.messages+c.avis+c.commandes+c.achats+c.boutique;
+// Pastille de l'icône Boutique (barre du bas) : tout ce qui arrive vers MA boutique
+c.boutiqueNav=c.avis+c.commandes+msg.filter(m=>String(m.vendeur_id)===String(uid)).length;
 // Liste pour la cloche
 const items=[];
 const parExp=new Map();
 msg.forEach(m=>{const k=m.expediteur_id||m.expediteur;if(!parExp.has(k)) parExp.set(k,[]);parExp.get(k).push(m);});
-parExp.forEach(l=>{const d=l[0];items.push({cle:'messages',titre:d.expediteur||'Nouveau message',texte:(l.length>1?l.length+' nouveaux messages · ':'')+(d.texte||''),date:d.created_at,aller:()=>voirConversations()});});
+parExp.forEach(l=>{const d=l[0];items.push({cle:'messages',titre:d.expediteur||'Nouveau message',texte:(l.length>1?l.length+' nouveaux messages · ':'')+(d.texte||''),date:d.created_at,aller:()=>{if(d.vendeur_id&&d.acheteur_id) ouvrirDiscussion({p:d.produit_id,v:d.vendeur_id,a:d.acheteur_id}); else voirConversations();}});});
 avis.forEach(a=>items.push({cle:'avis',titre:'Nouvel avis · '+(a.note||'?')+'/5',texte:(a.auteur?a.auteur+' : ':'')+(a.commentaire||''),date:a.created_at,aller:()=>voirAvisRecus()}));
 cmd.forEach(o=>items.push({cle:'commandes',titre:'Nouvelle commande',texte:(o.produit||'')+(o.quantite?' × '+o.quantite:''),date:o.created_at,aller:()=>voirCommandes()}));
 ach.forEach(o=>items.push({cle:'achats',titre:'Votre commande a changé',texte:(o.produit||'')+' : '+(o.statut||'À préparer'),date:o.created_at,aller:()=>voirAchats()}));
@@ -213,7 +234,12 @@ return fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_push',{method:'POST',headers:{
 }catch(e){}
 }
 // Touche sur une notification : on ouvre l'écran concerné
-function ouvrirDepuisNotif(cible){
+function ouvrirDiscussion(conv){
+const nombre=x=>/^\d+$/.test(String(x))?Number(x):x;
+ouvrirChat({produitId:conv.p?nombre(conv.p):null,produitNom:'',vendeurId:conv.v,acheteurId:conv.a},'liste');
+}
+function ouvrirDepuisNotif(cible,conv){
+if(cible==='messages'&&conv&&conv.v&&conv.a&&typeof ouvrirChat==='function'){ouvrirDiscussion(conv);return;}
 const f={messages:'voirConversations',commandes:'voirCommandes',achats:'voirAchats',avis:'voirAvisRecus',boutique:'voirBoutique'}[cible];
 if(f&&typeof window[f]==='function') window[f]();
 }
@@ -314,6 +340,12 @@ w.__notif=true;
 window[nom]=w;
 }
 function demarrerNotif(){
+const ouvrirChatAvant=window.ouvrirChat;
+if(typeof ouvrirChatAvant==='function'&&!ouvrirChatAvant.__notif){
+const w=function(ctx){try{fermerNotifsSysteme(d=>d.ouvrir==='messages'&&memeDiscussion(d.conv,ctx));}catch(e){}return ouvrirChatAvant.apply(this,arguments);};
+w.__notif=true;
+window.ouvrirChat=w;
+}
 envelopperOuverture('voirConversations','messages');
 envelopperOuverture('voirAvisRecus','avis');
 envelopperOuverture('voirCommandes','commandes');
@@ -327,10 +359,12 @@ recupererNotif(true);
 if(notifSysActive()&&pushPossible()) abonnerPush().catch(()=>{});
 // Ouverture depuis une notification (application fermée ou déjà ouverte)
 try{
-const cible=new URLSearchParams(location.search).get('ouvrir');
-if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible),700);setTimeout(()=>ouvrirDepuisNotif(cible),1800);}
+const q=new URLSearchParams(location.search);
+const cible=q.get('ouvrir');
+const conv=(q.get('v')&&q.get('a'))?{p:q.get('p'),v:q.get('v'),a:q.get('a')}:null;
+if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible,conv),700);setTimeout(()=>{if(!conv||typeof vueCourante==='undefined'||vueCourante!=='chat') ouvrirDepuisNotif(cible,conv);},1800);}
 }catch(e){}
-if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir);});
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir,ev.data.conv||null);});
 }
 function majCompteurs(){return recupererNotif(false);}
 if(document.readyState==='complete') demarrerNotif();

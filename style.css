@@ -296,3 +296,11 @@ body.sombre .pastille-cloche{border-color:#07130C}
 .notif-tout{margin:12px 0 4px;height:40px;padding:0 14px;border-radius:12px;border:1px solid #0E6B47;background:none;color:#0E6B47;font-weight:bold;font-size:14px;font-family:inherit}
 body.sombre .notif-texte,body.sombre .notif-heure{color:#9DB5A5}
 body.sombre .notif-tout{border-color:#3BBF4B;color:#3BBF4B}
+
+/* ===== Pastilles de nouveautés : un peu plus grandes, placées plus haut à droite ===== */
+body .badge{top:2px;right:2px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;font-size:12px;line-height:22px}
+body .tuile .pastille{top:2px;right:2px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;font-size:12px;line-height:22px}
+body .pastille-cloche{top:-10px;right:-10px;min-width:20px;height:20px;padding:0 5px;border-radius:12px;font-size:12px;line-height:20px}
+body .pastille-liste{min-width:24px;height:24px;border-radius:12px;font-size:12px;line-height:24px}
+nav button{position:relative}
+.pastille-nav{position:absolute;top:0;left:calc(50% + 6px);min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#E0A52E;color:#2A1B00;font-size:12px;font-weight:bold;line-height:18px;text-align:center;border:2px solid #07130C;box-sizing:border-box}
