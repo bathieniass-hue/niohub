@@ -7,6 +7,7 @@ let itemsNotif=[];
 let notifAutresLe=0;
 let notifPremiere=true;
 let notifPret=false;
+let notifDernierAbonnement=0;
 let notifPrecedent={messages:0,avis:0,commandes:0,achats:0,boutique:0};
 let notifEnCours=false;
 let notifRedemande=false;
@@ -75,6 +76,7 @@ return;
 }
 const uid=s.user_id;
 notifPret=true;
+if(notifSysActive()&&pushPossible()&&!pushServeurActif()&&Date.now()-notifDernierAbonnement>60000){notifDernierAbonnement=Date.now();abonnerPush().catch(()=>{});}
 const h=entetesAuth(s);
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id,expediteur,expediteur_id,texte,produit,produit_id,vendeur_id,acheteur_id,created_at&lu=eq.false&expediteur_id=neq.'+uid+'&order=created_at.desc&limit=99',{headers:h});
@@ -330,6 +332,87 @@ function voirNotifications(){
 dessinerNotifications();
 montrer('notifications');
 }
+
+
+// ---------- Fenêtre « Activez les notifications » ----------
+// Affichée dès la première visite (sur l'accueil), puis de temps en temps tant que les notifications ne sont pas activées.
+const CLE_DEMANDE='niohub_notif_demande';
+function etatDemande(){
+try{return JSON.parse(localStorage.getItem(CLE_DEMANDE)||'null')||{n:0,prochaine:0};}catch(e){return {n:0,prochaine:0};}
+}
+function reporterDemande(){
+const e=etatDemande();
+e.n=(e.n||0)+1;
+const jours=[1,3,7][Math.min(e.n-1,2)]; // demain, dans 3 jours, puis chaque semaine
+e.prochaine=Date.now()+jours*86400000;
+try{localStorage.setItem(CLE_DEMANDE,JSON.stringify(e));}catch(x){}
+}
+function estIphone(){return /iPhone|iPad|iPod/.test(navigator.userAgent||'');}
+function estInstallee(){
+try{return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;}catch(e){return false;}
+}
+function demandeNecessaire(){
+const iphoneNonInstalle=estIphone()&&!estInstallee();
+if(typeof Notification==='undefined'&&!iphoneNonInstalle) return false; // navigateur sans notifications
+if(!iphoneNonInstalle){
+if(notifSysActive()) return false;
+if(Notification.permission==='denied') return false; // refusé dans les réglages : inutile de redemander
+}
+return Date.now()>=etatDemande().prochaine;
+}
+function conditionsDemandeOk(){
+if(document.visibilityState!=='visible') return false;
+const auth=document.getElementById('auth');
+if(auth&&auth.style.display==='block') return false; // écran de connexion en cours
+return typeof vueCourante!=='undefined'&&vueCourante==='accueil';
+}
+function fermerDemandeNotif(){
+const f=document.getElementById('demande-notif');
+if(f) f.remove();
+}
+function afficherDemandeNotif(){
+if(document.getElementById('demande-notif')) return;
+const iphoneNonInstalle=estIphone()&&!estInstallee();
+const fond=document.createElement('div');
+fond.id='demande-notif';
+fond.className='dnotif-fond';
+const carte=document.createElement('div');
+carte.className='dnotif-carte';
+carte.setAttribute('role','dialog');
+carte.setAttribute('aria-modal','true');
+const ic=document.createElement('div');ic.className='dnotif-ic';
+const t=document.createElement('h2');t.className='dnotif-titre';
+const x=document.createElement('p');x.className='dnotif-texte';
+const oui=document.createElement('button');oui.type='button';oui.className='dnotif-oui';
+const non=document.createElement('button');non.type='button';non.className='dnotif-non';
+if(iphoneNonInstalle){
+t.textContent='Recevez les notifications sur iPhone';
+x.textContent='Ajoutez d\'abord NioHub à l\'écran d\'accueil : appuyez sur le bouton Partager de Safari, puis sur « Sur l\'écran d\'accueil ». Ouvrez ensuite NioHub depuis son icône pour activer les notifications.';
+oui.textContent='J\'ai compris';
+non.style.display='none';
+oui.onclick=()=>{reporterDemande();fermerDemandeNotif();};
+}else{
+t.textContent='Activez les notifications';
+x.textContent='Soyez prévenu tout de suite d\'un nouveau message, d\'une commande ou d\'un avis, même quand l\'application est fermée.';
+oui.textContent='Activer les notifications';
+non.textContent='Plus tard';
+oui.onclick=async()=>{
+oui.disabled=true;
+try{await basculerNotifSysteme();}catch(e){}
+if(!notifSysActive()) reporterDemande();
+fermerDemandeNotif();
+};
+non.onclick=()=>{reporterDemande();fermerDemandeNotif();};
+}
+carte.append(ic,t,x,oui,non);
+fond.append(carte);
+document.body.append(fond);
+}
+setInterval(()=>{
+if(document.getElementById('demande-notif')) return;
+if(!demandeNecessaire()||!conditionsDemandeOk()) return;
+afficherDemandeNotif();
+},4000);
 
 // ---------- branchements ----------
 function envelopperOuverture(nom,section){
