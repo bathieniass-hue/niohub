@@ -52,3 +52,13 @@ main{padding:14px 16px}
 .config p{color:var(--doux);font-size:14px;line-height:1.45}
 .config pre{background:#050B07;border:1px solid var(--bord);border-radius:12px;padding:12px;overflow:auto;font-size:12px;line-height:1.4;max-height:340px;white-space:pre-wrap;word-break:break-word}
 .config button,.config a.bouton{display:inline-block;margin-top:10px;height:44px;line-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--vert);background:#10301F;color:var(--vert);font:700 14px inherit;font-family:inherit;text-decoration:none}
+
+.ligne .pastille{min-width:24px;height:24px;border-radius:12px;background:#E0A52E;color:#2A1B00;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 6px;flex:none}
+.fil{position:absolute;top:calc(70px + env(safe-area-inset-top,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));left:0;right:0;overflow-y:auto;padding:6px 16px 10px}
+.fil .bulle{max-width:82%;padding:10px 14px;border-radius:18px;margin:8px 0;font-size:15px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.fil .bulle.client{background:var(--carte);border:1px solid var(--bord);margin-right:auto;border-bottom-left-radius:6px}
+.fil .bulle.moi{background:#0E6B47;color:#fff;margin-left:auto;border-bottom-right-radius:6px}
+.fil .heure{font-size:11px;opacity:.7;text-align:right;margin-top:4px}
+.saisie-barre{align-items:flex-end}
+.saisie-barre .saisie{flex:1;min-width:0;border-radius:14px;border:1px solid var(--bord);background:var(--carte);color:var(--texte);padding:12px;font-size:16px;font-family:inherit;resize:none;max-height:120px}
+.saisie-barre .btn-sauver{flex:none;width:100px}

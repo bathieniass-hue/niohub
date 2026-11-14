@@ -342,3 +342,11 @@ body .card .price.p18{font-size:18px}
 body .card .price.p17{font-size:17px}
 body .card .price.p15{font-size:15px}
 body .card .price.p13{font-size:13px}
+
+/* ===== Service client (Nous contacter) ===== */
+#contact-fil{padding-bottom:96px}
+#contact .chat-saisie input{flex:1;min-width:0;width:auto;height:52px;border-radius:26px;border:1px solid #E6DECB;background:#fff;padding:0 18px;font-size:16px}
+body.sombre #contact .chat-saisie input{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+.contact-qui{font-size:11px;font-weight:700;color:#0E6B47;margin-bottom:4px}
+body.sombre .contact-qui{color:#3BBF4B}
+body.sombre #contact .bulle.autre{background:#0F2418;border-color:#24472F;color:#EAF3EC}

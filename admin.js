@@ -126,7 +126,7 @@ let etat={table:null,lignes:[],debut:0,fini:false,filtre:'',recherche:''};
 
 function dessinerOnglets(){
 const nav=document.getElementById('onglets');
-nav.replaceChildren(...[['accueil','Tableau de bord']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).map(([k,t])=>
+nav.replaceChildren(...[['accueil','Tableau de bord'],['support','Service client']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).map(([k,t])=>
 h('button',{class:k===ongletCourant?'on':'',onclick:()=>ouvrirOnglet(k)},t)));
 }
 function ouvrirOnglet(k,filtre,libelleFiltre){
@@ -134,6 +134,7 @@ ongletCourant=k;
 dessinerOnglets();
 window.scrollTo(0,0);
 if(k==='accueil') return tableauDeBord();
+if(k==='support') return ecranSupport();
 etat={table:k,lignes:[],debut:0,fini:false,filtre:filtre||'',libelleFiltre:libelleFiltre||'',recherche:''};
 dessinerListe();
 chargerPage();
@@ -153,14 +154,169 @@ const c=document.getElementById('contenu');
 c.replaceChildren(h('p',{class:'vide'},'Chargement…'));
 const cles=Object.keys(TABLES);
 const nombres=await Promise.all(cles.map(compter));
+const clients=await compter('support_messages','expediteur_admin=eq.false&lu=eq.false');
 const attente=await compter('boutiques','statut=eq.en_attente');
 const suspendues=await compter('boutiques','statut=eq.suspendue');
 const cartes=cles.map((k,i)=>h('button',{class:'compteur',onclick:()=>ouvrirOnglet(k)},h('b',null,nombres[i]===null?'?':nombres[i]),h('span',null,TABLES[k].titre)));
+if(clients!==null) cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('support')},h('b',{style:clients?'color:#E0A52E':''},clients),h('span',null,'Messages clients à lire')));
 if(attente!==null){
 cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.suspendue','Boutiques suspendues')},h('b',null,suspendues),h('span',null,'Boutiques suspendues')));
 cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.en_attente','Boutiques à valider')},h('b',{style:attente?'color:#E0A52E':''},attente),h('span',null,'Boutiques à valider')));
 }
 c.replaceChildren(h('div',{class:'grille'},cartes));
+}
+
+// ---------- date et heure ----------
+function quand(iso){
+const d=new Date(iso);
+if(isNaN(d.getTime())) return '';
+return d.toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+// ---------- service client : les messages des utilisateurs, avec la réponse ----------
+function sqlSupport(){
+return `-- Service client (messages entre les utilisateurs et NioHub)
+create table if not exists public.support_messages (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  expediteur_admin boolean not null default false,
+  texte text not null check (char_length(texte) between 1 and 2000),
+  lu boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists support_messages_user on public.support_messages (user_id, created_at);
+alter table public.support_messages enable row level security;
+
+drop policy if exists "client lit sa conversation" on public.support_messages;
+create policy "client lit sa conversation" on public.support_messages for select using (user_id = auth.uid());
+drop policy if exists "client ecrit" on public.support_messages;
+create policy "client ecrit" on public.support_messages for insert with check (user_id = auth.uid() and expediteur_admin = false);
+drop policy if exists "admin lit tout support" on public.support_messages;
+create policy "admin lit tout support" on public.support_messages for select using (public.est_admin());
+drop policy if exists "admin repond" on public.support_messages;
+create policy "admin repond" on public.support_messages for insert with check (public.est_admin() and expediteur_admin = true);
+drop policy if exists "admin modifie support" on public.support_messages;
+create policy "admin modifie support" on public.support_messages for update using (public.est_admin()) with check (public.est_admin());
+drop policy if exists "admin supprime support" on public.support_messages;
+create policy "admin supprime support" on public.support_messages for delete using (public.est_admin());
+
+-- Un utilisateur marque comme lues les réponses de l'équipe
+create or replace function public.marquer_support_lus() returns void
+language sql security definer set search_path = public as $$
+  update public.support_messages set lu = true where user_id = auth.uid() and expediteur_admin = true and lu = false
+$$;
+grant execute on function public.marquer_support_lus() to authenticated;
+
+-- Protection contre l'abus : 20 messages maximum toutes les 10 minutes par utilisateur
+create or replace function public.limiter_support() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not new.expediteur_admin and (select count(*) from public.support_messages
+      where user_id = new.user_id and not expediteur_admin and created_at > now() - interval '10 minutes') >= 20 then
+    raise exception 'trop de messages';
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_limiter_support on public.support_messages;
+create trigger trg_limiter_support before insert on public.support_messages
+  for each row execute function public.limiter_support();`;
+}
+function panneauSupport(){
+const sql=sqlSupport();
+return h('div',{class:'config'},
+h('h2',null,'Activer le service client'),
+h('p',null,'Pour recevoir les messages des utilisateurs, collez ce texte dans SQL Editor (Supabase), appuyez sur Run, puis actualisez cette page.'),
+h('pre',null,sql),
+h('button',{onclick:async()=>{try{await navigator.clipboard.writeText(sql);toast('Copié');}catch(e){toast('Copie impossible : sélectionnez le texte à la main.',true);}}},'Copier le texte'));
+}
+async function ecranSupport(){
+const c=document.getElementById('contenu');
+c.replaceChildren(h('p',{class:'vide'},'Chargement…'));
+let lignes;
+try{
+const r=await api('support_messages?select=*&order=created_at.desc&limit=500');
+if(r.status===404||r.status===400){c.replaceChildren(panneauSupport());return;}
+if(r.status===401||r.status===403) return verifierAdmin(true);
+if(!r.ok) throw new Error(r.status);
+lignes=await r.json();
+}catch(e){
+c.replaceChildren(h('p',{class:'vide'},'Chargement impossible. Vérifiez la connexion.'));
+return;
+}
+const fils=new Map();
+lignes.forEach(m=>{
+if(!fils.has(m.user_id)) fils.set(m.user_id,{user_id:m.user_id,dernier:m,nonLus:0});
+if(!m.expediteur_admin&&!m.lu) fils.get(m.user_id).nonLus++;
+});
+const ids=[...fils.keys()];
+const noms={};
+if(ids.length){
+try{
+const r=await api('profils?select=user_id,nom,telephone&user_id=in.('+ids.join(',')+')');
+if(r.ok) (await r.json()).forEach(p=>{noms[p.user_id]=p.nom||p.telephone||'';});
+}catch(e){}
+}
+if(!ids.length){c.replaceChildren(h('p',{class:'vide'},'Aucun message de client pour le moment.'));return;}
+c.replaceChildren(...ids.map(id=>{
+const f=fils.get(id);
+const nom=noms[id]||('Utilisateur '+String(id).slice(0,8));
+const dernier=(f.dernier.expediteur_admin?'Vous : ':'')+f.dernier.texte;
+return h('button',{class:'ligne',onclick:()=>ouvrirFilSupport(id,nom)},
+h('div',{class:'vignette'},(nom.charAt(0)||'?').toUpperCase()),
+h('div',{class:'txt'},h('div',{class:'nom'},nom),h('div',{class:'sous'},court(dernier,70)),h('div',{class:'sous'},quand(f.dernier.created_at))),
+f.nonLus?h('span',{class:'pastille'},String(f.nonLus)):null);
+}));
+}
+let supportTimer=null;
+async function ouvrirFilSupport(userId,nom){
+const f=document.getElementById('fiche');
+const zone=h('div',{class:'fil'});
+const champ=h('textarea',{class:'saisie',placeholder:'Répondre à '+nom+'…',rows:'1'});
+const bEnvoyer=h('button',{class:'btn-sauver'},'Envoyer');
+let vus='';
+async function charger(){
+try{
+const r=await api('support_messages?select=*&user_id=eq.'+encodeURIComponent(userId)+'&order=created_at.asc&limit=500');
+if(!r.ok) return;
+const l=await r.json();
+const sig=l.map(m=>m.id+':'+m.lu).join(',');
+if(sig!==vus){
+vus=sig;
+const bas=zone.scrollHeight-zone.scrollTop-zone.clientHeight<80;
+zone.replaceChildren(...l.map(m=>h('div',{class:'bulle '+(m.expediteur_admin?'moi':'client')},m.texte,h('div',{class:'heure'},quand(m.created_at)))));
+if(bas||!zone.dataset.vu){zone.scrollTop=zone.scrollHeight;zone.dataset.vu='1';}
+}
+// les messages du client sont lus dès que la discussion est ouverte
+if(l.some(m=>!m.expediteur_admin&&!m.lu)){
+await api('support_messages?user_id=eq.'+encodeURIComponent(userId)+'&expediteur_admin=eq.false&lu=eq.false',{methode:'PATCH',corps:{lu:true}});
+}
+}catch(e){}
+}
+function fermer(){clearInterval(supportTimer);fermerFiche();if(ongletCourant==='support') ecranSupport();}
+bEnvoyer.onclick=async()=>{
+const t=champ.value.trim();
+if(!t) return;
+bEnvoyer.disabled=true;
+try{
+const r=await api('support_messages',{methode:'POST',corps:{user_id:userId,expediteur_admin:true,texte:t},entetes:{Prefer:'return=representation'}});
+if(!r.ok){const x=await r.text();throw new Error(x.slice(0,120));}
+champ.value='';
+vus='';
+await charger();
+}catch(e){toast('Envoi impossible : '+(e.message||'erreur'),true);}
+bEnvoyer.disabled=false;
+};
+f.replaceChildren(
+h('div',{class:'fiche-entete'},h('button',{onclick:fermer,'aria-label':'Retour'},'←'),h('h2',null,nom)),
+zone,
+h('div',{class:'actions saisie-barre'},champ,bEnvoyer)
+);
+f.hidden=false;
+f.scrollTop=0;
+document.body.style.overflow='hidden';
+await charger();
+clearInterval(supportTimer);
+supportTimer=setInterval(()=>{if(!f.hidden&&document.visibilityState==='visible') charger(); else if(f.hidden) clearInterval(supportTimer);},6000);
 }
 
 // ---------- listes ----------

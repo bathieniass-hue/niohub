@@ -1,8 +1,8 @@
 // Notifications : pastilles de nouveautés sur les icônes, cloche avec la liste, et notifications du téléphone.
 // Une pastille compte ce qui est nouveau depuis la dernière ouverture de l'écran correspondant, puis disparaît.
 
-let brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null};
-let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,total:0};
+let brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[]};
+let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,total:0};
 let itemsNotif=[];
 let notifAutresLe=0;
 let notifPremiere=true;
@@ -23,6 +23,7 @@ function noterVu(vu,section){
 if(section==='messages') vu.messages=plusRecent(vu.messages,derniereDate(brutNotif.messages));
 else if(section==='avis') vu.avis=plusRecent(vu.avis,derniereDate(brutNotif.avis));
 else if(section==='commandes') vu.commandes=plusRecent(vu.commandes,derniereDate(brutNotif.commandes));
+else if(section==='support') vu.support=plusRecent(vu.support,derniereDate(brutNotif.support));
 else if(section==='achats') vu.achats=statutsAchats();
 else if(section==='favoris') vu.favoris=lireFavoris();
 else if(section==='boutique'&&brutNotif.boutique) vu.boutique=brutNotif.boutique.statut||'validee';
@@ -40,14 +41,14 @@ function marquerToutVu(){
 const uid=notifUid();
 if(!uid) return;
 const vu=lireVu(uid);
-['messages','avis','commandes','achats','boutique'].forEach(k=>noterVu(vu,k));
+['messages','avis','commandes','achats','boutique','support'].forEach(k=>noterVu(vu,k));
 ecrireVu(uid,vu);
 recalculerNotif();
 if(typeof voirNotifications==='function'&&vueCourante==='notifications') dessinerNotifications();
 }
 function sectionOuverte(){
 const v=(typeof vueCourante!=='undefined')?vueCourante:'';
-return ({conversations:'messages',chat:'messages','avis-recus':'avis','commandes-page':'commandes','achats-page':'achats',favoris:'favoris',boutique:'boutique'})[v]||null;
+return ({conversations:'messages',chat:'messages','avis-recus':'avis','commandes-page':'commandes','achats-page':'achats',favoris:'favoris',boutique:'boutique',contact:'support'})[v]||null;
 }
 
 // ---------- notifications du téléphone : on les retire quand l'écran correspondant est ouvert ----------
@@ -70,7 +71,7 @@ notifEnCours=true;
 try{
 const s=await sessionValide();
 if(!s||!s.user_id){
-brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null};
+brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[]};
 recalculerNotif();
 return;
 }
@@ -81,6 +82,10 @@ const h=entetesAuth(s);
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id,expediteur,expediteur_id,texte,produit,produit_id,vendeur_id,acheteur_id,created_at&lu=eq.false&expediteur_id=neq.'+uid+'&order=created_at.desc&limit=99',{headers:h});
 if(r.ok) brutNotif.messages=await r.json();
+}catch(e){}
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/support_messages?select=id,texte,created_at&user_id=eq.'+uid+'&expediteur_admin=eq.true&lu=eq.false&order=created_at.desc&limit=50',{headers:h});
+if(r.ok) brutNotif.support=await r.json();
 }catch(e){}
 const maintenant=Date.now();
 if(forcer||maintenant-notifAutresLe>60000){
@@ -116,7 +121,7 @@ if(notifRedemande){notifRedemande=false;recupererNotif(false);}
 // ---------- calcul des nouveautés ----------
 function recalculerNotif(){
 const uid=notifUid();
-if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
+if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
 const vu=lireVu(uid);
 // Si l'écran concerné est ouvert en ce moment, ce qui arrive est déjà vu
 const ouverte=sectionOuverte();
@@ -132,8 +137,9 @@ const cmd=brutNotif.commandes.filter(c=>vu.commandes!==undefined&&String(c.creat
 const ach=brutNotif.achats.filter(c=>vu.achats!==undefined&&vu.achats[c.id]!==(c.statut||'À préparer'));
 const fav=lireFavoris().filter(id=>vu.favoris!==undefined&&!vu.favoris.includes(id));
 const bou=(brutNotif.boutique&&vu.boutique!==undefined&&vu.boutique!==brutNotif.boutique.statut)?[brutNotif.boutique]:[];
-const c={messages:msg.length,avis:avis.length,commandes:cmd.length,achats:ach.length,favoris:fav.length,boutique:bou.length};
-c.total=c.messages+c.avis+c.commandes+c.achats+c.boutique;
+const sup=brutNotif.support.filter(m=>String(m.created_at)>(vu.support||''));
+const c={messages:msg.length,avis:avis.length,commandes:cmd.length,achats:ach.length,favoris:fav.length,boutique:bou.length,support:sup.length};
+c.total=c.messages+c.avis+c.commandes+c.achats+c.boutique+c.support;
 // Pastille de l'icône Boutique (barre du bas) : tout ce qui arrive vers MA boutique
 c.boutiqueNav=c.avis+c.commandes+msg.filter(m=>String(m.vendeur_id)===String(uid)).length;
 // Liste pour la cloche
@@ -144,16 +150,17 @@ parExp.forEach(l=>{const d=l[0];items.push({cle:'messages',titre:d.expediteur||'
 avis.forEach(a=>items.push({cle:'avis',titre:'Nouvel avis · '+(a.note||'?')+'/5',texte:(a.auteur?a.auteur+' : ':'')+(a.commentaire||''),date:a.created_at,aller:()=>voirAvisRecus()}));
 cmd.forEach(o=>items.push({cle:'commandes',titre:'Nouvelle commande',texte:(o.produit||'')+(o.quantite?' × '+o.quantite:''),date:o.created_at,aller:()=>voirCommandes()}));
 ach.forEach(o=>items.push({cle:'achats',titre:'Votre commande a changé',texte:(o.produit||'')+' : '+(o.statut||'À préparer'),date:o.created_at,aller:()=>voirAchats()}));
+sup.length&&items.push({cle:'support',titre:'Service client NioHub',texte:(sup.length>1?sup.length+' nouvelles réponses · ':'')+(sup[0].texte||''),date:sup[0].created_at,aller:()=>voirContact()});
 bou.forEach(b=>items.push({cle:'boutique',titre:b.statut==='validee'?'Votre boutique est validée':b.statut==='suspendue'?'Votre boutique est suspendue':'Votre boutique est en attente de validation',texte:b.nom||'',date:new Date().toISOString(),aller:()=>voirBoutique()}));
 items.sort((x,y)=>String(y.date).localeCompare(String(x.date)));
 // Annonce de ce qui vient d'arriver (pas au premier chargement)
 if(notifPret&&!notifPremiere){
-['messages','avis','commandes','achats','boutique'].forEach(k=>{
-if(c[k]>notifPrecedent[k]) annoncerNotif(k,items.find(i=>i.cle===k));
+['messages','avis','commandes','achats','boutique','support'].forEach(k=>{
+if(c[k]>(notifPrecedent[k]||0)) annoncerNotif(k,items.find(i=>i.cle===k));
 });
 }
 if(notifPret) notifPremiere=false;
-['messages','avis','commandes','achats','boutique'].forEach(k=>{notifPrecedent[k]=c[k];});
+['messages','avis','commandes','achats','boutique','support'].forEach(k=>{notifPrecedent[k]=c[k];});
 compteursNotif=c;
 itemsNotif=items;
 afficherCompteursNotif();
@@ -242,7 +249,7 @@ ouvrirChat({produitId:conv.p?nombre(conv.p):null,produitNom:'',vendeurId:conv.v,
 }
 function ouvrirDepuisNotif(cible,conv){
 if(cible==='messages'&&conv&&conv.v&&conv.a&&typeof ouvrirChat==='function'){ouvrirDiscussion(conv);return;}
-const f={messages:'voirConversations',commandes:'voirCommandes',achats:'voirAchats',avis:'voirAvisRecus',boutique:'voirBoutique'}[cible];
+const f={messages:'voirConversations',commandes:'voirCommandes',achats:'voirAchats',avis:'voirAvisRecus',boutique:'voirBoutique',support:'voirContact'}[cible];
 if(f&&typeof window[f]==='function') window[f]();
 }
 
@@ -434,6 +441,7 @@ envelopperOuverture('voirCommandes','commandes');
 envelopperOuverture('voirAchats','achats');
 envelopperOuverture('voirFavoris','favoris');
 envelopperOuverture('voirBoutique','boutique');
+envelopperOuverture('voirContact','support');
 // la pastille « messages » existante est désormais gérée ici
 majCompteurs=function(){return recupererNotif(false);};
 recupererNotif(true);
