@@ -211,7 +211,10 @@ return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage
 
 function carteProduitHTML(p,i){
 const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
-return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
+// Le prix rétrécit un peu quand il est long, pour toujours tenir sur une seule ligne (jusqu'à 100 000 000 FCFA)
+const L=String(p.prix||'').length;
+const taillePrix=L<=11?'':L<=13?' p18':L<=14?' p17':L<=16?' p15':' p13';
+return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price${taillePrix}">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
 }
 
 function requeteRecherche(){
