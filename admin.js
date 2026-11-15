@@ -15,6 +15,7 @@ avis:{titre:'Avis',img:[]},
 messages:{titre:'Messages',img:[]}
 };
 const SANS_MODIF=['id','created_at','updated_at'];
+const LIBELLE_DATE={produits:'Publié le',boutiques:'Créée le',profils:'Inscrit le',commandes:'Passée le',avis:'Publié le',messages:'Envoyé le'};
 
 // ---------- petits outils ----------
 function h(tag,attrs,...enfants){
@@ -129,8 +130,27 @@ const nav=document.getElementById('onglets');
 nav.replaceChildren(...[['accueil','Tableau de bord'],['support','Service client']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).map(([k,t])=>
 h('button',{class:k===ongletCourant?'on':'',onclick:()=>ouvrirOnglet(k)},t)));
 }
-function ouvrirOnglet(k,filtre,libelleFiltre){
+let pile=[];
+function descripteurCourant(){return {k:ongletCourant,filtre:etat.filtre||'',lib:etat.libelleFiltre||''};}
+function majBoutonRetour(){const b=document.getElementById('retour-haut');if(b) b.hidden=!pile.length;}
+// Retour : ferme la fiche ouverte, sinon revient à l'écran précédent. Renvoie false s'il n'y a plus rien à fermer.
+function retourInterne(){
+const f=document.getElementById('fiche');
+if(f&&!f.hidden){fermerFiche();return true;}
+if(pile.length){
+const d=pile.pop();
+ouvrirOnglet(d.k,d.filtre,d.lib,true);
+return true;
+}
+return false;
+}
+function ouvrirOnglet(k,filtre,libelleFiltre,depuisRetour){
+if(!depuisRetour){
+const c=descripteurCourant();
+if(c.k!==k||c.filtre!==(filtre||'')){pile.push(c);if(pile.length>30) pile.shift();}
+}
 ongletCourant=k;
+majBoutonRetour();
 dessinerOnglets();
 window.scrollTo(0,0);
 if(k==='accueil') return tableauDeBord();
@@ -402,7 +422,7 @@ const zone=document.getElementById('lignes');
 if(!zone) return;
 zone.replaceChildren(...visibles.map(r=>{
 const re=resume(t,r);
-return h('button',{class:'ligne',onclick:()=>ouvrirFiche(t,r)},vignette(t,r),h('div',{class:'txt'},h('div',{class:'nom'},re.titre),h('div',{class:'sous'},re.sous||' ')));
+return h('button',{class:'ligne',onclick:()=>ouvrirFiche(t,r)},vignette(t,r),h('div',{class:'txt'},h('div',{class:'nom'},re.titre),h('div',{class:'sous'},re.sous||' '),r.created_at?h('div',{class:'sous date'},(LIBELLE_DATE[t]||'Le')+' '+quand(r.created_at)):null));
 }));
 const pied=document.getElementById('pied');
 pied.replaceChildren(
@@ -477,10 +497,206 @@ if(etat.table===table) majLignes();
 toast('Changement impossible : '+(e.message||'erreur'),true);
 }
 }
-function fermerFiche(){const f=document.getElementById('fiche');f.hidden=true;f.replaceChildren();document.body.style.overflow='';}
+// ---------- fenêtres de choix (catégorie, état, couleurs…) ----------
+const CATEGORIES=["Mode & accessoires","Téléphone & high-tech","Maison & décoration","Beauté & hygiène","Alimentation","Sport et loisir","Électroménager","Bébé & enfants","École & bureau","Auto & moto","Autres"];
+const ETATS=["Neuf","Comme neuf","Bon état","Occasion"];
+const COULEURS=["Multicolore","Noir","Blanc","Bleu","Rouge","Vert","Jaune","Rose","Gris","Marron","Beige","Orange","Violet","Bleu marine","Bordeaux","Turquoise","Doré","Argenté","Bleu ciel","Kaki","Fuchsia","Corail","Crème","Camel","Lavande","Vert clair","Saumon","Transparent"];
+const CHOIX={
+produits:{categorie:{titre:'Catégorie',options:CATEGORIES},etat:{titre:'État',options:ETATS,nullable:true},couleurs:{titre:'Couleurs',options:COULEURS,multiple:true,nullable:true}},
+boutiques:{statut:{titre:'Statut de la boutique',options:[['validee','Validée'],['en_attente','En attente'],['suspendue','Suspendue']]}},
+commandes:{statut:{titre:'Statut de la commande',options:['À préparer','Expédiée','Livrée','Annulée']}},
+avis:{note:{titre:'Note',options:[1,2,3,4,5],nombre:true}}
+};
+function optionsNormalisees(cfg){return cfg.options.map(o=>Array.isArray(o)?o:[o,String(o)]);}
+
+// Fenêtre de choix : renvoie la sélection (liste de valeurs), ou undefined si on annule
+function ouvrirChoix(cfg,selection){
+return new Promise(resolve=>{
+const opts=optionsNormalisees(cfg);
+const choisies=new Set(selection.map(String));
+const fond=h('div',{class:'dialogue-fond'});
+const boite=h('div',{class:'dialogue',role:'dialog','aria-modal':'true'});
+const liste=h('div',{class:'dialogue-liste'});
+function fermer(res){fond.remove();resolve(res);}
+function ligne(valeur,libelle){
+const coche=choisies.has(String(valeur));
+const b=h('button',{type:'button',class:'dialogue-option'+(coche?' on':'')},h('span',{class:'dialogue-case'},coche?'✓':''),h('span',null,libelle));
+b.onclick=()=>{
+if(cfg.multiple){
+if(choisies.has(String(valeur))) choisies.delete(String(valeur)); else choisies.add(String(valeur));
+b.classList.toggle('on');
+b.firstChild.textContent=choisies.has(String(valeur))?'✓':'';
+}else{
+fermer(valeur===null?[]:[valeur]);
+}
+};
+return b;
+}
+if(cfg.nullable&&!cfg.multiple) liste.append(ligne(null,'— Aucun —'));
+opts.forEach(([v,l])=>liste.append(ligne(v,l)));
+boite.append(h('h3',null,cfg.titre||'Choisir'),liste);
+const pied=h('div',{class:'dialogue-pied'},h('button',{type:'button',onclick:()=>fermer(undefined)},'Annuler'));
+if(cfg.multiple){
+pied.append(h('button',{type:'button',class:'valider',onclick:()=>fermer(opts.map(o=>o[0]).filter(v=>choisies.has(String(v))))},'Valider'));
+}
+boite.append(pied);
+fond.append(boite);
+fond.addEventListener('click',e=>{if(e.target===fond) fermer(undefined);});
+document.body.append(fond);
+});
+}
+function creerChoix(cfg,valeurInitiale){
+const opts=optionsNormalisees(cfg);
+let valeur=valeurInitiale===undefined?null:valeurInitiale;
+const bouton=h('button',{type:'button',class:'choix'});
+function selection(){
+if(valeur===null||valeur==='') return [];
+if(cfg.multiple) return String(valeur).split(',').map(x=>x.trim()).filter(Boolean);
+return [valeur];
+}
+function libelle(){
+const sel=selection();
+if(!sel.length) return cfg.multiple?'— Aucune —':'— Aucun —';
+if(cfg.multiple) return sel.join(', ');
+const o=opts.find(x=>String(x[0])===String(sel[0]));
+return o?o[1]:String(sel[0]);
+}
+function dessiner(){bouton.replaceChildren(h('span',null,libelle()),h('span',{class:'fleche'},'▾'));}
+bouton.onclick=async()=>{
+const res=await ouvrirChoix(cfg,selection());
+if(res===undefined) return;
+if(cfg.multiple) valeur=res.length?res.join(', '):null;
+else valeur=res.length?(cfg.nombre?Number(res[0]):res[0]):null;
+dessiner();
+};
+dessiner();
+bouton.valeurChoix=()=>valeur;
+return bouton;
+}
+
+// ---------- prix : saisie guidée (1.000.000) ----------
+function formaterMilliers(t){
+const d=String(t||'').replace(/\D/g,'').replace(/^0+(?=\d)/,'').slice(0,9);
+return d.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+function creerPrix(v){
+const initial=String(v===null||v===undefined?'':v);
+const chiffresInitiaux=initial.replace(/\D/g,'');
+const saisie=h('input',{type:'text',inputmode:'numeric',autocomplete:'off',value:formaterMilliers(chiffresInitiaux)});
+saisie.addEventListener('input',()=>{saisie.value=formaterMilliers(saisie.value);});
+const bloc=h('div',{class:'prix-champ'},saisie,h('span',{class:'suffixe'},'FCFA'));
+bloc.valeurPrix=()=>{
+const d=saisie.value.replace(/\D/g,'');
+if(d===chiffresInitiaux) return v;
+if(d==='') return null;
+return Number(d).toLocaleString('fr-FR')+' FCFA';
+};
+return bloc;
+}
+
+// ---------- photos : changer ou supprimer ----------
+const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
+const CLES_IMAGE=['photo','logo','avatar','avatar_url','photo_url','image','image_url','picture','photo_profil'];
+function estChampImage(k,v){
+if(k==='photos') return false;
+return CLES_IMAGE.includes(k)||(typeof v==='string'&&v.startsWith(PREFIXE_PHOTOS));
+}
+function urlAffichable(u){return typeof u==='string'&&/^https:\/\//.test(u)?u:'';}
+function lireImage(fichier){
+return new Promise((ok,ko)=>{
+const a=URL.createObjectURL(fichier);
+const img=new Image();
+img.onload=()=>{URL.revokeObjectURL(a);ok(img);};
+img.onerror=()=>{URL.revokeObjectURL(a);ko(new Error('lecture'));};
+img.src=a;
+});
+}
+function reduireImage(img,largeurMax,qualite){
+const e=Math.min(1,largeurMax/img.width);
+const c=document.createElement('canvas');
+c.width=Math.max(1,Math.round(img.width*e));
+c.height=Math.max(1,Math.round(img.height*e));
+c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
+}
+async function televerserFichierAdmin(chemin,blob,s){
+const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
+if(!r.ok) throw new Error(String(r.status));
+}
+async function televerserPhotoAdmin(blob,mini,s){
+const base=s.user_id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+await televerserFichierAdmin(base+'.jpg',blob,s);
+if(mini){
+try{await televerserFichierAdmin(base+'_m.jpg',mini,s);}
+catch(e){await supprimerFichiers([PREFIXE_PHOTOS+base+'.jpg'],s);throw e;}
+}
+return PREFIXE_PHOTOS+base+'.jpg';
+}
+// Retire les fichiers photo (et leur petite version) du stockage ; sans effet pour les adresses extérieures
+async function supprimerFichiers(urls,s){
+const chemins=[];
+(urls||[]).forEach(u=>{
+const t=String(u||'');
+if(!t.startsWith(PREFIXE_PHOTOS)) return;
+const c=t.slice(PREFIXE_PHOTOS.length);
+chemins.push(c);
+if(c.endsWith('.jpg')&&!c.endsWith('_m.jpg')) chemins.push(c.replace(/\.jpg$/,'_m.jpg'));
+});
+if(!chemins.length||!s) return;
+try{
+await fetch(SUPABASE_URL+'/storage/v1/object/photos',{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({prefixes:chemins})});
+}catch(e){}
+}
+// Zone de photos d'une fiche : chaque photo peut être changée ou supprimée
+function creerPhotos(urlsInitiales,multiple,maxi){
+const items=urlsInitiales.filter(Boolean).map(u=>({url:u,src:urlAffichable(u),blob:null,mini:null}));
+const zone=h('div',{class:'photos-admin'});
+const entree=h('input',{type:'file',accept:'image/*',style:'display:none'});
+let cible=-1;
+entree.addEventListener('change',async()=>{
+const f=entree.files[0];
+entree.value='';
+if(!f) return;
+try{
+const img=await lireImage(f);
+const blob=await reduireImage(img,800,0.75);
+const mini=await reduireImage(img,360,0.7);
+if(!blob) throw new Error('image');
+const it={url:null,src:URL.createObjectURL(blob),blob:blob,mini:mini};
+if(cible>=0&&cible<items.length) items[cible]=it; else items.push(it);
+dessiner();
+}catch(e){toast('Cette photo ne peut pas être lue.',true);}
+});
+function dessiner(){
+zone.replaceChildren(
+...items.map((it,i)=>h('div',{class:'photo-carte'},
+it.src?h('img',{src:it.src,alt:'',referrerpolicy:'no-referrer'}):h('div',{class:'photo-vide'},'Photo'),
+h('div',{class:'photo-actions'},
+h('button',{type:'button',onclick:()=>{cible=i;entree.click();}},'Changer'),
+h('button',{type:'button',class:'danger',onclick:()=>{items.splice(i,1);dessiner();}},'Supprimer')))),
+(multiple?items.length<maxi:items.length===0)?h('button',{type:'button',class:'photo-ajout',onclick:()=>{cible=-1;entree.click();}},items.length?'+ Ajouter une photo':'+ Ajouter une photo'):null,
+entree);
+}
+dessiner();
+return {
+elem:zone,
+initial:urlsInitiales.filter(Boolean),
+items:()=>items,
+modifie(){return items.some(i=>i.blob)||JSON.stringify(items.map(i=>i.url))!==JSON.stringify(this.initial);}
+};
+}
+
+function fermerFiche(){
+clearInterval(supportTimer);
+const f=document.getElementById('fiche');
+f.hidden=true;
+f.replaceChildren();
+document.body.style.overflow='';
+}
 function ouvrirFiche(table,r){
 const f=document.getElementById('fiche');
 const champs={};
+const photos=[];   // zones de photos {cle, multiple, w}
 let deverrouille=false;
 const corps=h('div',{class:'fiche-corps'});
 const bSauver=h('button',{class:'btn-sauver'},'Enregistrer');
@@ -490,12 +706,35 @@ function dessiner(){
 corps.replaceChildren();
 const liens=liensFiche(table,r);
 if(liens.length) corps.append(h('div',{class:'liens'},liens.map(([t,fn])=>h('button',{onclick:fn},t))));
+if(r.created_at) corps.append(h('div',{class:'date-fiche'},(LIBELLE_DATE[table]||'Le')+' '+quand(r.created_at)));
 const verrou=h('label',{class:'deverrouille'},h('input',{type:'checkbox',onchange:e=>{deverrouille=e.target.checked;majVerrous();}}),'Modifier aussi les identifiants (user_id, produit_id…)');
 corps.append(verrou);
 Object.keys(r).forEach(k=>{
 const v=r[k];
+if(table==='produits'&&k==='photos') return; // géré avec la photo principale
+// Photos : zone avec « Changer » / « Supprimer »
+if(estChampImage(k,v)||(table==='produits'&&k==='photo')){
+let urls=[v];
+let multiple=false;
+if(table==='produits'&&k==='photo'){
+multiple=true;
+try{const extra=JSON.parse(r.photos||'[]');if(Array.isArray(extra)) urls=urls.concat(extra.filter(u=>typeof u==='string'));}catch(e){}
+}
+const w=creerPhotos(urls.slice(0,3),multiple,3);
+photos.push({cle:k,multiple,w});
+corps.append(h('div',{class:'champ'},h('label',null,multiple?'photos du produit (3 maximum)':k),w.elem));
+return;
+}
 const g=genreChamp(v);
 let saisie;
+const cfg=(CHOIX[table]||{})[k];
+if(cfg){
+saisie=creerChoix(cfg,v);
+champs[k]={saisie,g:'choix',initial:v};
+}else if(table==='produits'&&k==='prix'){
+saisie=creerPrix(v);
+champs[k]={saisie,g:'prix',initial:v};
+}else{
 if(g==='bool'){
 saisie=h('select',null,h('option',{value:'true'},'Oui'),h('option',{value:'false'},'Non'));
 saisie.value=String(v);
@@ -508,24 +747,25 @@ const s=v===null?'':String(v);
 saisie=(s.length>70||s.includes('\n'))?h('textarea',null,s):h('input',{type:'text',value:s});
 }
 champs[k]={saisie,g,initial:v};
-const bloc=h('div',{class:'champ'});
-const u=urlImage(v);
-if(u) bloc.append(h('img',{src:u,alt:''}));
-bloc.append(h('label',null,k),saisie);
-corps.append(bloc);
+}
+corps.append(h('div',{class:'champ'},h('label',null,k),saisie));
 });
 majVerrous();
 }
 function estVerrouille(k){return SANS_MODIF.includes(k)||(!deverrouille&&(k==='user_id'||k.endsWith('_id')));}
 function majVerrous(){
 Object.keys(champs).forEach(k=>{
-const s=champs[k].saisie;
+const c=champs[k];
+if(c.g==='choix'||c.g==='prix') return;
+const s=c.saisie;
 const v=estVerrouille(k);
 if(s.tagName==='SELECT') s.disabled=v; else s.readOnly=v;
 });
 }
 function valeur(k){
 const {saisie,g,initial}=champs[k];
+if(g==='choix') return saisie.valeurChoix();
+if(g==='prix') return saisie.valeurPrix();
 const brut=saisie.value;
 if(g==='bool') return brut==='true';
 if(g==='nombre') return brut===''?null:Number(brut);
@@ -544,20 +784,52 @@ const v=valeur(k);
 if(JSON.stringify(v)!==JSON.stringify(champs[k].initial)) modifs[k]=v;
 });
 }catch(e){toast('Un champ JSON n\'est pas valide.',true);return;}
-if(!Object.keys(modifs).length){toast('Aucun changement.');return;}
 bSauver.disabled=true;
+const s=await session();
+const nouvelles=[];     // fichiers envoyés pendant cet enregistrement
+const anciennes=[];     // fichiers remplacés ou supprimés
+for(const z of photos){
+if(!z.w.modifie()) continue;
+try{
+const urls=[];
+for(const it of z.w.items()){
+if(it.blob){
+const u=await televerserPhotoAdmin(it.blob,it.mini,s);
+it.url=u;
+nouvelles.push(u);
+}
+urls.push(it.url);
+}
+if(z.multiple){
+modifs.photo=urls[0]||null;
+const extras=urls.slice(1);
+if(extras.length||('photos' in r)) modifs.photos=JSON.stringify(extras);
+}else{
+modifs[z.cle]=urls[0]||null;
+}
+z.w.initial.forEach(u=>{if(u&&!urls.includes(u)) anciennes.push(u);});
+}catch(e){
+await supprimerFichiers(nouvelles,s);
+toast('Envoi de la photo impossible ('+(e.message||'erreur')+'). Les droits photos de l\'administrateur sont-ils activés ?',true);
+bSauver.disabled=false;
+return;
+}
+}
+if(!Object.keys(modifs).length){toast('Aucun changement.');bSauver.disabled=false;return;}
 try{
 const r2=await api(table+'?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'PATCH',corps:modifs,entetes:{Prefer:'return=representation'}});
 if(!r2.ok){const t=await r2.text();throw new Error(t.slice(0,160));}
 const res=await r2.json();
-if(!res.length){toast('Rien n\'a été modifié : droits administrateur manquants ?',true);bSauver.disabled=false;return;}
+if(!res.length){await supprimerFichiers(nouvelles,s);toast('Rien n\'a été modifié : droits administrateur manquants ?',true);bSauver.disabled=false;return;}
 Object.assign(r,res[0]);
 const i=etat.lignes.findIndex(x=>cle(table,x)&&x[pk]===r[pk]);
 if(i>=0) etat.lignes[i]=Object.assign(etat.lignes[i],res[0]);
+await supprimerFichiers(anciennes,s);
 toast('Enregistré');
 fermerFiche();
 if(etat.table===table) majLignes();
 }catch(e){
+await supprimerFichiers(nouvelles,s);
 toast('Enregistrement impossible : '+(e.message||'erreur'),true);
 bSauver.disabled=false;
 }
@@ -582,7 +854,7 @@ bSuppr.disabled=false;
 }
 };
 f.replaceChildren(
-h('div',{class:'fiche-entete'},h('button',{onclick:fermerFiche,'aria-label':'Fermer'},'←'),h('h2',null,re.titre)),
+h('div',{class:'fiche-entete'},h('button',{onclick:fermerFiche,'aria-label':'Retour'},'←'),h('h2',null,re.titre)),
 corps,
 h('div',{class:'actions'},bSuppr,bSauver)
 );
@@ -614,3 +886,9 @@ return false;
 const ok=await verifierAdmin(false);
 if(ok){dessinerOnglets();tableauDeBord();}
 })();
+// Bouton ← en haut et touche retour du téléphone : on revient à l'écran précédent au lieu de quitter l'administration
+document.getElementById('retour-haut').addEventListener('click',()=>{retourInterne();});
+try{history.pushState({admin:1},'');}catch(e){}
+window.addEventListener('popstate',()=>{
+if(retourInterne()){try{history.pushState({admin:1},'');}catch(e){}}
+});
