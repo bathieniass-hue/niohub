@@ -347,20 +347,21 @@ const s=await sessionValide();
 if(!s||!s.user_id) return;
 try{
 // Après le premier chargement, on ne demande que les messages récents (plus rapide, moins de données)
-const dernier=(!initial&&chatLignes.length)?chatLignes[chatLignes.length-1].created_at:null;
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&'+filtreConversation(c)+(dernier?'&created_at=gte.'+encodeURIComponent(dernier):'')+'&order=created_at.asc&limit=300',{headers:entetesAuth(s)});
+// Après le premier chargement : on relit les 40 derniers messages (nouveaux, lus, supprimés) et on les fusionne
+const incremental=!initial&&chatLignes.length>0;
+const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&'+filtreConversation(c)+(incremental?'&order=created_at.desc&limit=40':'&order=created_at.asc&limit=300'),{headers:entetesAuth(s)});
 if(!r.ok) throw new Error(r.status);
 const recus=await r.json();
 if(c!==chatCourant) return; // on a changé de conversation entre-temps
 dernierChargementChat=Date.now();
-if(!dernier) chatLignes=recus;
+if(!incremental) chatLignes=recus;
 else{
-const ids=new Set(chatLignes.map(m=>m.id));
-recus.forEach(m=>{if(!ids.has(m.id)){chatLignes.push(m);ids.add(m.id);}});
-chatLignes.sort((x,y)=>String(x.created_at).localeCompare(String(y.created_at)));
+const parId=new Map(chatLignes.map(m=>[m.id,m]));
+recus.forEach(m=>{parId.set(m.id,m);});
+chatLignes=[...parId.values()].sort((x,y)=>String(x.created_at).localeCompare(String(y.created_at)));
 }
 const lignes=chatLignes;
-const sig=lignes.map(m=>m.id+':'+m.lu).join(',');
+const sig=lignes.map(m=>m.id+':'+m.lu+':'+(m.supprime?1:0)).join(',');
 if(initial||sig!==chatSignature){
 chatSignature=sig;
 recomposerChat(initial);
@@ -392,7 +393,7 @@ try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/messages?'+filtreConversation(c)+'&expediteur_id=neq.'+s.user_id+'&lu=eq.false',{method:'PATCH',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=minimal'}),body:JSON.stringify({lu:true})});
 if(r.ok){
 lignes.forEach(m=>{if(m.expediteur_id!==s.user_id) m.lu=true;});
-chatSignature=lignes.map(m=>m.id+':'+m.lu).join(',');
+chatSignature=lignes.map(m=>m.id+':'+m.lu+':'+(m.supprime?1:0)).join(',');
 majNonLus();
 }
 }catch(e){}
@@ -413,7 +414,13 @@ html+=`<div class="chat-sujet${pr?' cliquable':''}"><span${pr?` onclick="ouvrirP
 }
 sujetPrec=sujet;
 const miens=m.expediteur_id===chatMoi;
-html+=`<div class="bulle ${miens?'moi':'autre'}${m._attente?' attente':''}">${typoFr(esc(m.texte))}<div class="heure">${m._attente?(navigator.onLine?'Envoi…':'En attente de connexion'):esc(heureMsg(m.created_at))}</div></div>`;
+const cle=m._attente?String(m.id).replace('attente-',''):String(m.id);
+const actionnable=miens&&!m.supprime;
+if(m.supprime){
+html+=`<div class="bulle ${miens?'moi':'autre'} supprime"><i>Message supprimé</i><div class="heure">${esc(heureMsg(m.created_at))}</div></div>`;
+}else{
+html+=`<div class="bulle ${miens?'moi':'autre'}${m._attente?' attente':''}${actionnable?' touchable':''}"${actionnable?` data-mid="${esc(cle)}" data-attente="${m._attente?'1':''}" onclick="menuMessage(this)"`:''}>${typoFr(esc(m.texte))}<div class="heure">${m._attente?(navigator.onLine?'Envoi…':'En attente de connexion'):esc(heureMsg(m.created_at))}</div></div>`;
+}
 });
 if(!chatMessages.length){
 const moiAcheteur=chatCourant&&chatCourant.acheteurId===chatMoi;
@@ -562,3 +569,44 @@ rtRelance=setTimeout(assurerTempsReel,Math.min(30000,2000*rtEssais));
 ws.onerror=()=>{try{ws.close();}catch(e){}};
 }
 setTimeout(assurerTempsReel,3000);
+
+// ---------- supprimer un de ses messages ----------
+function menuMessage(bulle){
+const deja=bulle.nextElementSibling&&bulle.nextElementSibling.classList.contains('bulle-actions');
+document.querySelectorAll('.bulle-actions').forEach(x=>x.remove());
+if(deja) return; // un second appui referme le menu
+const attente=bulle.getAttribute('data-attente')==='1';
+const bouton=document.createElement('button');
+bouton.type='button';
+bouton.className='bulle-supprimer';
+bouton.textContent=attente?'Annuler l\'envoi':'Supprimer ce message';
+bouton.onclick=()=>supprimerMessage(bulle.getAttribute('data-mid'),attente);
+const zone=document.createElement('div');
+zone.className='bulle-actions';
+zone.append(bouton);
+bulle.insertAdjacentElement('afterend',zone);
+}
+async function supprimerMessage(id,attente){
+document.querySelectorAll('.bulle-actions').forEach(x=>x.remove());
+if(attente){
+// message pas encore parti : on le retire simplement de la file d'attente
+fileMessages=fileMessages.filter(q=>q.cle!==id);
+sauverFile();
+recomposerChat(false);
+return;
+}
+if(!(await confirmer('Ce message sera supprimé pour vous et pour votre interlocuteur.',{titre:'Supprimer le message ?',ok:'Supprimer',danger:true}))) return;
+const s=await sessionValide();
+if(!s||!s.user_id){bandeau('Connectez-vous pour supprimer un message.');return;}
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_mon_message',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_id:String(id)})});
+if(!r.ok) throw new Error(r.status);
+const m=chatLignes.find(x=>String(x.id)===String(id));
+if(m){m.supprime=true;m.texte='Message supprimé';}
+chatSignature='';
+recomposerChat(false);
+if(chatCourant) sauverCacheChat(chatCourant);
+}catch(e){
+bandeau('Suppression impossible. Vérifiez votre connexion.','erreur');
+}
+}

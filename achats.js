@@ -88,7 +88,8 @@ p.innerHTML=`<header><button class="retour" onclick="afficherPageAchats('${PAGE_
 <div class="liste" style="margin-top:0">${lignes.map(([k,v])=>`<div style="padding:8px 0;border-bottom:1px solid #EDE5D3"><div style="font-size:12px;color:#6B6254">${esc(k)}</div><div style="font-size:15px;font-weight:bold;color:${k==='Statut'?couleurStatut(st):'#1E1A14'}">${esc(v)}</div></div>`).join('')}</div>
 <div style="font-size:12px;color:#6B6254;margin-top:8px">Le paiement se règle directement avec le vendeur, à la livraison ou par Wave / Orange Money.</div>
 <a id="ach-wa" class="btn2" style="display:block;text-align:center;text-decoration:none;line-height:52px;margin-top:14px" href="#" target="_blank" rel="noopener">Contacter le vendeur</a>
-${st==='Livrée'?`<button class="btn" style="margin-top:12px" onclick="donnerAvisAchat(${i})">Donner un avis</button>`:''}`;
+${st==='Livrée'?`<button class="btn" style="margin-top:12px" onclick="donnerAvisAchat(${i})">Donner un avis</button>`:''}
+${st==='À préparer'?`<button class="btn2" style="margin-top:12px;color:#B4291A;border-color:#B4291A" onclick="annulerAchat(${i})">Annuler cet achat</button><div style="font-size:12px;color:#6B6254;margin-top:6px">Vous pouvez annuler tant que le vendeur n'a pas expédié la commande.</div>`:''}`;
 afficherPageAchats(PAGE_ACHAT_DETAIL);
 telephoneVendeur(c.vendeur_id).then(t=>{
 const a=document.getElementById('ach-wa');
@@ -108,4 +109,28 @@ const c=achatsCache[i];
 if(!c) return;
 avisVendeurCourant=c.vendeur_id;
 voirAvis();
+}
+
+// ---------- annuler un achat (tant qu'il n'est pas expédié) ----------
+async function annulerAchat(i){
+const c=achatsCache[i];
+if(!c) return;
+if(!(await confirmer('Votre commande de « '+(c.produit||'')+' » sera annulée et le vendeur sera prévenu.',{titre:'Annuler cet achat ?',ok:'Annuler l\'achat',danger:true}))) return;
+const s=await sessionValide();
+if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');return;}
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/annuler_mon_achat',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_id:String(c.id)})});
+if(!r.ok) throw new Error(r.status);
+const ok=await r.json();
+if(ok===true){
+c.statut='Annulée';
+bandeau('Achat annulé');
+}else{
+bandeau('Cet achat ne peut plus être annulé : le vendeur l\'a déjà expédié.','erreur');
+}
+}catch(e){
+bandeau('Annulation impossible. Vérifiez votre connexion.','erreur');
+return;
+}
+voirAchats();
 }

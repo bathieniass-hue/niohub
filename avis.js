@@ -130,6 +130,8 @@ liste.innerHTML=lignes.length
 await afficherMonAvis();
 }
 
+let avisActuel=null;
+
 async function afficherMonAvis(){
 const zone=document.getElementById('avis-moi');
 if(!zone) return;
@@ -149,7 +151,9 @@ return;
 }
 const mien=moi.avis;
 if(mien){
-zone.innerHTML=`<label>Votre avis</label><div class="liste" style="margin-top:0"><div style="color:#F2B233;font-size:18px">${etoiles(mien.note)}</div>${mien.commentaire?`<div style="font-size:14px;margin-top:6px">${esc(mien.commentaire)}</div>`:''}<div style="font-size:12px;color:#6B6254;margin-top:6px">Vous avez déjà donné votre avis à ce vendeur.</div></div>`;
+zone.innerHTML=`<label>Votre avis</label><div class="liste" style="margin-top:0"><div style="color:#F2B233;font-size:18px">${etoiles(mien.note)}</div>${mien.commentaire?`<div style="font-size:14px;margin-top:6px">${esc(mien.commentaire)}</div>`:''}<div style="font-size:12px;color:#6B6254;margin-top:6px">Vous avez déjà donné votre avis à ce vendeur.</div></div>
+<div style="display:flex;gap:10px;margin-top:10px"><button class="btn2" style="flex:1;margin:0" onclick="modifierMonAvis()">Modifier mon avis</button><button class="btn2" style="flex:1;margin:0;color:#B4291A;border-color:#B4291A" onclick="supprimerMonAvis()">Supprimer</button></div>`;
+avisActuel=mien;
 return;
 }
 if(!livre){
@@ -202,4 +206,58 @@ return;
 fin();
 await rafraichirAvis();
 afficherBoutiqueFiche(avisVendeurCourant);
+}
+
+// ---------- modifier ou supprimer son avis ----------
+function modifierMonAvis(){
+const zone=document.getElementById('avis-moi');
+if(!zone||!avisActuel) return;
+zone.innerHTML=formulaireAvis();
+choisirEtoile(avisActuel.note);
+document.getElementById('av-texte').value=avisActuel.commentaire||'';
+const bouton=zone.querySelector('.btn');
+bouton.textContent='Enregistrer les modifications';
+bouton.setAttribute('onclick','enregistrerModifAvis()');
+const annuler=document.createElement('button');
+annuler.className='btn2';annuler.textContent='Annuler';annuler.style.marginTop='8px';
+annuler.setAttribute('onclick','afficherMonAvis()');
+zone.append(annuler);
+}
+async function enregistrerModifAvis(){
+if(avisEnCours) return;
+const msg=document.getElementById('av-msg');
+msg.textContent='';
+if(!avisNoteChoisie){msg.textContent='Touchez une étoile pour noter.';return;}
+const s=await sessionValide();
+if(!s||!s.user_id){afficherConnexion();return;}
+const commentaire=document.getElementById('av-texte').value.trim();
+if(commentaire.length>500){msg.textContent='Le commentaire est trop long (500 caractères maximum).';return;}
+avisEnCours=true;
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/modifier_mon_avis',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_vendeur:avisVendeurCourant,p_note:avisNoteChoisie,p_commentaire:commentaire})});
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+avisEnCours=false;
+msg.textContent='Avis non modifié. Vérifiez votre connexion et réessayez.';
+return;
+}
+avisEnCours=false;
+bandeau('Avis modifié');
+await rafraichirAvis();
+if(typeof afficherBoutiqueFiche==='function') afficherBoutiqueFiche(avisVendeurCourant);
+}
+async function supprimerMonAvis(){
+if(!(await confirmer('Votre avis sera supprimé définitivement. Vous pourrez en publier un nouveau.',{titre:'Supprimer votre avis ?',ok:'Supprimer',danger:true}))) return;
+const s=await sessionValide();
+if(!s||!s.user_id){afficherConnexion();return;}
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_mon_avis',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_vendeur:avisVendeurCourant})});
+if(!r.ok) throw new Error(r.status);
+}catch(e){
+bandeau('Suppression impossible. Vérifiez votre connexion.','erreur');
+return;
+}
+bandeau('Avis supprimé');
+await rafraichirAvis();
+if(typeof afficherBoutiqueFiche==='function') afficherBoutiqueFiche(avisVendeurCourant);
 }
