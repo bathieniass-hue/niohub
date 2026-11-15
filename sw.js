@@ -143,7 +143,7 @@ const ios=/iPhone|iPad|iPod/.test(self.navigator.userAgent||'');
 if(!ios&&fenetres.some(f=>f.visibilityState==='visible')) return;
 const icone=(await iconeComposee(d.photo))||'icon-192.png';
 // Chaque notification est séparée : les anciennes ne sont plus remplacées
-await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:icone,badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||'',conv:d.conv||null}});
+await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:icone,badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||'',conv:d.conv||null,url:d.url||''}});
 await majPastilleApp();
 })());
 });
@@ -154,6 +154,23 @@ self.addEventListener('notificationclose',e=>{e.waitUntil(majPastilleApp());});
 self.addEventListener('notificationclick',e=>{
 e.notification.close();
 const data=e.notification.data||{};
+// Notification de l'administration : on ouvre admin.html sur le bon onglet
+if(data.url){
+const cibleAdmin=new URL(data.url,self.registration.scope).href;
+e.waitUntil((async()=>{
+await majPastilleApp();
+const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
+const f=fenetres.find(x=>x.url.split('?')[0]===cibleAdmin.split('?')[0]);
+if(f){
+try{await f.focus();}catch(err){}
+try{if(f.navigate){await f.navigate(cibleAdmin);return;}}catch(err){}
+f.postMessage({onglet:new URL(cibleAdmin).searchParams.get('onglet')});
+return;
+}
+if(clients.openWindow) return clients.openWindow(cibleAdmin);
+})());
+return;
+}
 const cible=data.ouvrir||'';
 const conv=data.conv||null;
 let url='./';

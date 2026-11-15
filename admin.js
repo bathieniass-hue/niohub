@@ -121,6 +121,133 @@ h('a',{class:'bouton',href:'index.html'},'Ouvrir NioHub')
 ));
 }
 
+// ---------- nouveautés : pastilles chiffrées qui disparaissent à l'ouverture ----------
+const SURVEILLES=['produits','boutiques','profils','commandes','avis'];
+const NOMS_NOUVEAUX={produits:['nouveau produit','nouveaux produits'],boutiques:['nouvelle boutique','nouvelles boutiques'],profils:['nouveau profil','nouveaux profils'],commandes:['nouvelle commande','nouvelles commandes'],avis:['nouvel avis','nouveaux avis'],support:['nouveau message client','nouveaux messages clients']};
+let nouveaux={produits:0,boutiques:0,profils:0,commandes:0,avis:0,support:0};
+let nouveauxPrecedent=null;
+let majEnCours=false;
+function lireVuAdmin(){try{return JSON.parse(localStorage.getItem('niohub_admin_vu_v1')||'{}')||{};}catch(e){return {};}}
+function ecrireVuAdmin(v){try{localStorage.setItem('niohub_admin_vu_v1',JSON.stringify(v));}catch(e){}}
+async function derniereDateTable(t){
+try{
+const r=await api(t+'?select=created_at&order=created_at.desc&limit=1');
+if(!r.ok) return null;
+const l=await r.json();
+return l[0]?l[0].created_at:'1970-01-01T00:00:00Z';
+}catch(e){return null;}
+}
+// Ouvrir une liste = tout ce qu'elle contient est vu (on se fie aux dates du serveur, pas à l'horloge du téléphone)
+async function marquerVuTable(t){
+if(!SURVEILLES.includes(t)) return;
+const d=await derniereDateTable(t);
+if(!d) return;
+const vu=lireVuAdmin();
+if(!vu[t]||d>vu[t]){vu[t]=d;ecrireVuAdmin(vu);}
+nouveaux[t]=0;
+afficherPastilles();
+}
+function afficherPastilles(){
+const total=Object.keys(nouveaux).reduce((s,k)=>s+(nouveaux[k]||0),0);
+document.querySelectorAll('[data-pastille]').forEach(el=>{
+const n=nouveaux[el.getAttribute('data-pastille')]||0;
+el.textContent=n>99?'99+':String(n);
+el.hidden=n<=0;
+});
+try{
+if(navigator.setAppBadge){
+if(total>0) navigator.setAppBadge(total).catch(()=>{}); else if(navigator.clearAppBadge) navigator.clearAppBadge().catch(()=>{});
+}
+}catch(e){}
+}
+async function majNouveaux(){
+if(majEnCours||!estAdmin) return;
+majEnCours=true;
+try{
+const vu=lireVuAdmin();
+let change=false;
+const res={produits:0,boutiques:0,profils:0,commandes:0,avis:0,support:0};
+for(const t of SURVEILLES){
+if(vu[t]===undefined){
+// première fois : on ne signale pas tout l'ancien comme nouveau
+const d=await derniereDateTable(t);
+if(d===null) continue;
+vu[t]=d;
+change=true;
+}
+const n=await compter(t,'created_at=gt.'+encodeURIComponent(vu[t]));
+res[t]=typeof n==='number'?n:0;
+}
+const s=await compter('support_messages','expediteur_admin=eq.false&lu=eq.false');
+res.support=typeof s==='number'?s:0;
+if(change) ecrireVuAdmin(vu);
+// la liste ouverte en ce moment est déjà vue
+const ouvert=ongletCourant;
+if(SURVEILLES.includes(ouvert)&&etat.table===ouvert){
+const d=await derniereDateTable(ouvert);
+if(d&&(!vu[ouvert]||d>vu[ouvert])){vu[ouvert]=d;ecrireVuAdmin(vu);}
+res[ouvert]=0;
+}
+if(ouvert==='support') res.support=0;
+// annonce de ce qui vient d'arriver (pas au premier chargement)
+if(nouveauxPrecedent){
+Object.keys(res).forEach(k=>{
+const plus=res[k]-(nouveauxPrecedent[k]||0);
+if(plus>0&&document.visibilityState==='visible') toast(plus+' '+NOMS_NOUVEAUX[k][plus>1?1:0]);
+});
+}
+nouveauxPrecedent=Object.assign({},res);
+nouveaux=res;
+afficherPastilles();
+}catch(e){}
+majEnCours=false;
+}
+
+// ---------- notifications du téléphone (même application fermée) ----------
+const CLE_VAPID_PUBLIQUE='BGD0O90eHTnvelySaEXAcYBIZaTuUHTJtWFq9-82yw69R5m8xYYGODcLS97dChL6C13Rrax90-h8VKOCAzluTdg';
+function cleVersOctets(b64){
+const rempli=(b64+'='.repeat((4-b64.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/');
+const brut=atob(rempli);
+const sortie=new Uint8Array(brut.length);
+for(let i=0;i<brut.length;i++) sortie[i]=brut.charCodeAt(i);
+return sortie;
+}
+async function abonnerNotifAdmin(){
+const reg=await navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready);
+let sub=await reg.pushManager.getSubscription();
+if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:cleVersOctets(CLE_VAPID_PUBLIQUE)});
+const j=sub.toJSON();
+const r=await api('rpc/enregistrer_push',{methode:'POST',corps:{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_cle_auth:j.keys.auth}});
+if(!r.ok) throw new Error('serveur '+r.status);
+}
+function notifPossible(){return 'serviceWorker' in navigator&&'PushManager' in window&&typeof Notification!=='undefined';}
+async function majBoutonNotif(){
+const b=document.getElementById('notif-admin');
+if(!b) return;
+if(!notifPossible()){b.hidden=true;return;}
+let actif=false;
+try{
+if(Notification.permission==='granted'){
+const reg=await navigator.serviceWorker.getRegistration();
+actif=!!(reg&&await reg.pushManager.getSubscription());
+if(actif) abonnerNotifAdmin().catch(()=>{}); // remet à jour l'abonnement de ce compte
+}
+}catch(e){}
+b.hidden=actif||Notification.permission==='denied';
+}
+async function activerNotifAdmin(){
+try{
+let p=Notification.permission;
+if(p==='default') p=await Notification.requestPermission();
+if(p!=='granted'){toast('Notifications refusées. Autorisez-les dans les réglages du téléphone.',true);return;}
+await abonnerNotifAdmin();
+toast('Notifications activées, même application fermée.');
+}catch(e){
+toast('Activation impossible : le serveur de notifications est-il prêt ?',true);
+}
+majBoutonNotif();
+}
+
 // ---------- navigation ----------
 let ongletCourant='accueil';
 let etat={table:null,lignes:[],debut:0,fini:false,filtre:'',recherche:''};
@@ -128,7 +255,8 @@ let etat={table:null,lignes:[],debut:0,fini:false,filtre:'',recherche:''};
 function dessinerOnglets(){
 const nav=document.getElementById('onglets');
 nav.replaceChildren(...[['accueil','Tableau de bord'],['support','Service client']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).map(([k,t])=>
-h('button',{class:k===ongletCourant?'on':'',onclick:()=>ouvrirOnglet(k)},t)));
+h('button',{class:k===ongletCourant?'on':'',onclick:()=>ouvrirOnglet(k)},t,NOMS_NOUVEAUX[k]?h('span',{class:'pastille-onglet','data-pastille':k,hidden:'true'},'0'):null)));
+afficherPastilles();
 }
 let pile=[];
 function descripteurCourant(){return {k:ongletCourant,filtre:etat.filtre||'',lib:etat.libelleFiltre||''};}
@@ -154,8 +282,9 @@ majBoutonRetour();
 dessinerOnglets();
 window.scrollTo(0,0);
 if(k==='accueil') return tableauDeBord();
-if(k==='support') return ecranSupport();
+if(k==='support'){nouveaux.support=0;afficherPastilles();return ecranSupport();}
 etat={table:k,lignes:[],debut:0,fini:false,filtre:filtre||'',libelleFiltre:libelleFiltre||'',recherche:''};
+marquerVuTable(k);
 dessinerListe();
 chargerPage();
 }
@@ -177,13 +306,14 @@ const nombres=await Promise.all(cles.map(compter));
 const clients=await compter('support_messages','expediteur_admin=eq.false&lu=eq.false');
 const attente=await compter('boutiques','statut=eq.en_attente');
 const suspendues=await compter('boutiques','statut=eq.suspendue');
-const cartes=cles.map((k,i)=>h('button',{class:'compteur',onclick:()=>ouvrirOnglet(k)},h('b',null,nombres[i]===null?'?':nombres[i]),h('span',null,TABLES[k].titre)));
-if(clients!==null) cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('support')},h('b',{style:clients?'color:#E0A52E':''},clients),h('span',null,'Messages clients à lire')));
+const cartes=cles.map((k,i)=>h('button',{class:'compteur',onclick:()=>ouvrirOnglet(k)},h('b',null,nombres[i]===null?'?':nombres[i]),h('span',null,TABLES[k].titre),NOMS_NOUVEAUX[k]?h('span',{class:'pastille-carte','data-pastille':k,hidden:'true'},'0'):null));
+if(clients!==null) cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('support')},h('b',{style:clients?'color:#E0A52E':''},clients),h('span',null,'Messages clients à lire'),h('span',{class:'pastille-carte','data-pastille':'support',hidden:'true'},'0')));
 if(attente!==null){
 cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.suspendue','Boutiques suspendues')},h('b',null,suspendues),h('span',null,'Boutiques suspendues')));
 cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques','statut=eq.en_attente','Boutiques à valider')},h('b',{style:attente?'color:#E0A52E':''},attente),h('span',null,'Boutiques à valider')));
 }
 c.replaceChildren(h('div',{class:'grille'},cartes));
+afficherPastilles();
 }
 
 // ---------- date et heure ----------
@@ -884,7 +1014,20 @@ return false;
 }
 (async function(){
 const ok=await verifierAdmin(false);
-if(ok){dessinerOnglets();tableauDeBord();}
+if(ok){
+dessinerOnglets();
+// ouverture depuis une notification : admin.html?onglet=produits
+let cible=null;
+try{cible=new URLSearchParams(location.search).get('onglet');}catch(e){}
+if(cible&&(cible==='support'||TABLES[cible])){history.replaceState(null,'',location.pathname);ouvrirOnglet(cible,'','',true);}
+else tableauDeBord();
+majNouveaux();
+setInterval(()=>{if(document.visibilityState==='visible') majNouveaux();},20000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') majNouveaux();});
+majBoutonNotif();
+document.getElementById('notif-admin').addEventListener('click',activerNotifAdmin);
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.onglet) ouvrirOnglet(ev.data.onglet);});
+}
 })();
 // Bouton ← en haut et touche retour du téléphone : on revient à l'écran précédent au lieu de quitter l'administration
 document.getElementById('retour-haut').addEventListener('click',()=>{retourInterne();});

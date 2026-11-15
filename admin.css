@@ -92,3 +92,13 @@ main{padding:14px 16px}
 .dialogue-pied{display:flex;gap:10px;margin-top:12px}
 .dialogue-pied button{flex:1;height:48px;border-radius:14px;border:1px solid var(--bord);background:var(--carte);color:var(--texte);font:700 15px inherit;font-family:inherit}
 .dialogue-pied button.valider{border-color:var(--vert);background:linear-gradient(160deg,#10301F,#050B07);color:#fff}
+
+.entete-droite{display:flex;align-items:center;gap:10px;min-width:0}
+.notif-admin{flex:none;height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--vert);background:#10301F;color:var(--vert);font:700 12px inherit;font-family:inherit}
+.notif-admin[hidden]{display:none}
+nav button{position:relative}
+.pastille-onglet{position:absolute;top:-6px;right:-4px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#E0A52E;color:#2A1B00;font-size:12px;font-weight:800;line-height:18px;text-align:center;border:2px solid var(--fond);box-sizing:border-box}
+.pastille-onglet[hidden],.pastille-carte[hidden]{display:none}
+.compteur{position:relative}
+.pastille-carte{position:absolute;top:8px;right:8px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#E0A52E;color:#2A1B00;font-size:13px;font-weight:800;line-height:24px;text-align:center}
+nav{padding-top:12px}
