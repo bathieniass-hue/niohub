@@ -741,6 +741,18 @@ img.onerror=()=>{URL.revokeObjectURL(a);ko(new Error('lecture'));};
 img.src=a;
 });
 }
+function recadrerLimites(img){
+const MIN=2/3,MAX=3/2;
+const r=img.width/img.height;
+if(r>=MIN-0.001&&r<=MAX+0.001) return img;
+let sx=0,sy=0,sw=img.width,sh=img.height;
+if(r<MIN){sh=Math.round(img.width/MIN);sy=Math.round((img.height-sh)/2);}
+else{sw=Math.round(img.height*MAX);sx=Math.round((img.width-sw)/2);}
+const c=document.createElement('canvas');
+c.width=sw;c.height=sh;
+c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+return c;
+}
 function reduireImage(img,largeurMax,qualite){
 const e=Math.min(1,largeurMax/img.width);
 const c=document.createElement('canvas');
@@ -789,8 +801,9 @@ entree.value='';
 if(!f) return;
 try{
 const img=await lireImage(f);
-const blob=await reduireImage(img,800,0.75);
-const mini=await reduireImage(img,360,0.7);
+const source=recadrerLimites(img);   // format d'origine, limité à 2:3 / 3:2
+const blob=await reduireImage(source,800,0.75);
+const mini=await reduireImage(source,360,0.7);
 if(!blob) throw new Error('image');
 const it={url:null,src:URL.createObjectURL(blob),blob:blob,mini:mini};
 if(cible>=0&&cible<items.length) items[cible]=it; else items.push(it);

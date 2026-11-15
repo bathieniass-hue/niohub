@@ -86,6 +86,39 @@ c.getContext('2d').drawImage(img,0,0,c.width,c.height);
 return new Promise(ok=>c.toBlob(ok,'image/jpeg',qualite));
 }
 
+// Les photos gardent leur format d'origine, mais jamais plus étroites que 2:3 ni plus larges que 3:2 :
+// 1:1 et 5:4 ne sont pas coupées, 1:2 est recadrée en 2:3.
+const RATIO_MIN=2/3;
+const RATIO_MAX=3/2;
+function limiterRatio(r){return Math.min(RATIO_MAX,Math.max(RATIO_MIN,r));}
+function recadrerLimites(img){
+const r=img.width/img.height;
+if(r>=RATIO_MIN-0.001&&r<=RATIO_MAX+0.001) return img;
+let sx=0,sy=0,sw=img.width,sh=img.height;
+if(r<RATIO_MIN){sh=Math.round(img.width/RATIO_MIN);sy=Math.round((img.height-sh)/2);}   // trop haute : on coupe en haut et en bas
+else{sw=Math.round(img.height*RATIO_MAX);sx=Math.round((img.width-sw)/2);}               // trop large : on coupe à gauche et à droite
+const c=document.createElement('canvas');
+c.width=sw;c.height=sh;
+c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+return c;
+}
+// Format (largeur/hauteur) d'une photo déjà publiée, gardé en mémoire
+const ratiosPhotos=new Map();
+function mesurerRatioPhoto(url){
+return new Promise(res=>{
+if(!url) return res(null);
+if(ratiosPhotos.has(url)) return res(ratiosPhotos.get(url));
+const i=new Image();
+i.onload=()=>{
+const r=(i.naturalWidth&&i.naturalHeight)?limiterRatio(i.naturalWidth/i.naturalHeight):null;
+if(r) ratiosPhotos.set(url,r);
+res(r);
+};
+i.onerror=()=>res(null);
+i.src=url;
+});
+}
+
 async function televerserFichier(chemin,blob,s){
 const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
 if(!r.ok) throw new Error(r.status);

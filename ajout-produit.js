@@ -148,6 +148,11 @@ p.onclick=()=>champPhoto.click();
 miniatures.appendChild(p);
 miniatures.appendChild(el('span','ap-legende','Ajouter d\'autres photos'));
 }
+// Les grandes photos gardent le format de la première photo
+[grandApercu,photoNom,photoRecap].forEach(e=>{
+if(premiere&&premiere.ratio) e.style.setProperty('--ratio',String(premiere.ratio));
+else e.style.removeProperty('--ratio');
+});
 // Écrans 2 et 3
 photoNom.style.background=fondPhoto(premiere);
 photoNom.style.borderStyle='solid';
@@ -202,10 +207,11 @@ if(photosAjout.length>=PHOTOS_MAX){bandeau('Vous pouvez ajouter '+PHOTOS_MAX+' p
 if(!f.type.startsWith('image/')){bandeau('Choisissez une photo (image).','erreur');continue;}
 try{
 const img=await chargerImageDepuis(f);
-const blob=await reduireImage(img,800,0.75);
-const mini=await reduireImage(img,360,0.7);
+const source=recadrerLimites(img);   // format d'origine, limité à 2:3 / 3:2
+const blob=await reduireImage(source,800,0.75);
+const mini=await reduireImage(source,360,0.7);
 if(!blob||!mini) throw new Error('image');
-photosAjout.push({src:URL.createObjectURL(blob),blob:blob,mini:mini,existant:null,urlTeleversee:null});
+photosAjout.push({src:URL.createObjectURL(blob),blob:blob,mini:mini,existant:null,urlTeleversee:null,ratio:limiterRatio(source.width/source.height)});
 }catch(err){
 bandeau('Cette photo ne peut pas être lue. Essayez-en une autre.','erreur');
 }
@@ -241,15 +247,26 @@ const extras=extrasDe(p);
 const urls=[p.photo].concat(extras).filter(Boolean);
 anciennesPhotos=urls.slice();
 produitAvaitExtras=extras.length>0;
-photosAjout=urls.map(u=>({src:urlSure(u)||'',blob:null,mini:null,existant:u,urlTeleversee:null}));
+photosAjout=urls.map(u=>({src:urlSure(u)||'',blob:null,mini:null,existant:u,urlTeleversee:null,ratio:ratiosPhotos.get(u)||null}));
+photosAjout.forEach(it=>{if(!it.ratio&&it.src) mesurerRatioPhoto(it.existant).then(r=>{if(r){it.ratio=r;dessinerPhotos();}});});
 champPrix.value=formaterPrixSaisie(String(p.prix).replace(/\D/g,''));
 allerEtape(3);
 };
 
 // ---------- Plusieurs photos sur la fiche produit ----------
+function appliquerRatioFiche(url){
+const g=document.getElementById('fphoto');
+if(!g) return;
+g.setAttribute('data-url',url||'');
+const connu=url&&ratiosPhotos.get(url);
+if(connu){g.style.setProperty('--ratio',String(connu));return;}
+g.style.removeProperty('--ratio');
+if(url) mesurerRatioPhoto(url).then(r=>{if(r&&g.getAttribute('data-url')===url) g.style.setProperty('--ratio',String(r));});
+}
 function dessinerPhotosFiche(p){
 const grande=document.getElementById('fphoto');
 if(!grande) return;
+appliquerRatioFiche(urlSure(p.photo)||'');
 let zone=document.getElementById('fphotos');
 if(!zone){zone=el('div','fphotos');zone.id='fphotos';grande.insertAdjacentElement('afterend',zone);}
 const extras=extrasDe(p);
@@ -264,6 +281,7 @@ b.type='button';
 b.style.background="url('"+s+"') center/cover no-repeat";
 b.onclick=()=>{
 grande.style.background="url('"+s+"') center/cover no-repeat";
+appliquerRatioFiche(s);
 zone.querySelectorAll('.fphoto-mini').forEach(x=>x.classList.toggle('on',x===b));
 };
 zone.appendChild(b);

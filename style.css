@@ -51,7 +51,9 @@ nav button.on{background:rgba(80,220,90,.16);color:#fff}
 .btn:disabled,.btn2:disabled,.btn-plein:disabled{opacity:.6;cursor:default}
 
 /* Format des photos (ancien format-photo.js) */
-#apercu,#fphoto,.card .img{aspect-ratio:9/10 !important;height:auto !important;width:100%}
+.card .img{aspect-ratio:9/10 !important;height:auto !important;width:100%}
+/* Photo de la fiche et de l'ajout : format d'origine (limité à 2:3 / 3:2), 9:10 par défaut */
+#apercu,#fphoto{aspect-ratio:var(--ratio,9/10) !important;height:auto !important;width:100%}
 .card{height:auto !important;display:flex;flex-direction:column}
 .card .info{position:static !important;padding:8px 4px 4px !important}
 
@@ -358,3 +360,5 @@ body.sombre #contact .bulle.autre{background:#0F2418;border-color:#24472F;color:
 .bulle-actions button{border:0;border-radius:12px;background:#B4291A;color:#fff;font-size:13px;font-weight:700;font-family:inherit;height:36px;padding:0 14px}
 body.sombre .bulle-actions button{background:#2E1511;color:#FF8A7E;box-shadow:inset 0 0 0 1px #7A2B24}
 .bulle.moi+.bulle-actions{justify-content:flex-end}
+
+#ajout .apercu:not(#apercu),.ep-grande{height:auto !important;aspect-ratio:var(--ratio,9/10) !important}
