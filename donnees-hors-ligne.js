@@ -109,4 +109,46 @@ t.onerror=()=>res();
 });
 }catch(e){}
 };
+
+// Chargement automatique en arrière-plan : une fois l'accueil affiché, on télécharge les écrans de l'utilisateur
+// (discussions, commandes, achats, avis, boutique, profil, service client) pour qu'ils s'ouvrent aussi sans connexion.
+// Les adresses sont les mêmes que celles des écrans, pour que la copie soit retrouvée hors ligne.
+let derniereCopie=0;
+window.prechargerHorsLigne=async function(forcer){
+try{
+if(!navigator.onLine) return;
+const c=navigator.connection;
+if(c&&(c.saveData||/(^|-)2g$/.test(c.effectiveType||''))) return; // on économise la connexion lente
+if(typeof sessionValide!=='function'||typeof entetesAuth!=='function') return;
+const maintenant=Date.now();
+if(!forcer&&maintenant-derniereCopie<300000) return; // au plus une fois toutes les 5 minutes
+derniereCopie=maintenant;
+const s=await sessionValide();
+if(!s||!s.user_id) return;
+const uid=s.user_id;
+const h=entetesAuth(s);
+const B=SUPABASE_URL+'/rest/v1/';
+const lire=async chemin=>{try{const r=await fetch(B+chemin,{headers:h});return r.ok?await r.json():null;}catch(e){return null;}};
+const [msgs]=await Promise.all([
+lire('messages?select=*&order=created_at.desc&limit=500'),
+lire('commandes?select=*&acheteur_id=eq.'+uid+'&order=created_at.desc'),
+lire('commandes?select=*&vendeur_id=eq.'+uid+'&order=created_at.desc'),
+lire('boutiques?select=*&user_id=eq.'+uid+'&limit=1'),
+lire('profils?select=*&user_id=eq.'+uid),
+lire('avis?select=*&vendeur_id=eq.'+uid+'&order=created_at.desc&limit=200'),
+lire('support_messages?select=*&user_id=eq.'+uid+'&order=created_at.asc&limit=300')
+]);
+// chaque discussion (les 30 plus récentes), pour qu'elles s'ouvrent avec tous leurs messages
+if(msgs&&typeof filtreConversation==='function'){
+const vues=new Set();
+for(const m of msgs){
+const k=m.acheteur_id+'|'+m.vendeur_id;
+if(vues.has(k)||vues.size>=30) continue;
+vues.add(k);
+await lire('messages?select=*&'+filtreConversation({acheteurId:m.acheteur_id,vendeurId:m.vendeur_id})+'&order=created_at.asc&limit=300');
+}
+}
+}catch(e){}
+};
+window.addEventListener('online',()=>{setTimeout(()=>{if(typeof window.prechargerHorsLigne==='function') window.prechargerHorsLigne();},3000);});
 })();

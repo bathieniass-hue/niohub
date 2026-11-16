@@ -457,5 +457,6 @@ if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirD
 if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir,ev.data.conv||null);});
 }
 function majCompteurs(){return recupererNotif(false);}
-if(document.readyState==='complete') demarrerNotif();
-else window.addEventListener('load',demarrerNotif);
+// Le calcul des pastilles et des notifications attend que l'accueil soit affiché
+if(document.readyState==='complete') apresAccueil(demarrerNotif,1200);
+else window.addEventListener('load',()=>apresAccueil(demarrerNotif,1200));

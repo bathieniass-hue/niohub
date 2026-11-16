@@ -54,6 +54,7 @@ const note=n&&n.nb
 :'<span style="font-size:12px;color:#6B6254">Aucun avis</span>';
 const initiale=esc((b.nom||'N').charAt(0).toUpperCase());
 const tels=telephonesBoutique(b);
+await assurerCatalogueComplet();
 const produits=distants.filter(p=>p.user_id===userId);
 const carte=`<div style="display:flex;gap:12px;align-items:center;margin-top:14px">`
 +`<div class="avatar" style="width:64px;height:64px;font-size:22px;flex-shrink:0;background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':initiale}</div>`

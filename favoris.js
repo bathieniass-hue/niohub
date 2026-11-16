@@ -18,7 +18,7 @@ try{localStorage.setItem('niohub_favoris',JSON.stringify(liste));}catch(e){}
 
 // Retire des favoris les produits qui n'existent plus (supprimés par leur vendeur)
 function nettoyerFavoris(){
-if(chargementEchoue||!distants.length) return;
+if(chargementEchoue||!distants.length||!finCatalogue) return;
 const ids=new Set(distants.map(p=>'id:'+p.id));
 const favs=lireFavoris();
 const gardes=favs.filter(k=>!String(k).startsWith('id:')||ids.has(k));

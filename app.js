@@ -29,6 +29,38 @@ let chargementEchoue=false;
 let chargementEnCours=true;
 let chargementLent=false;
 const PRODUITS_HORS_LIGNE=12;
+
+// ---------- Ordre de chargement : l'accueil d'abord, le reste ensuite ----------
+let accueilPret=false;
+const fileApresAccueil=[];
+function apresAccueil(fn,delai){
+const lancer=()=>setTimeout(()=>{try{fn();}catch(e){}},delai||0);
+if(accueilPret) lancer(); else fileApresAccueil.push(lancer);
+}
+function accueilEstPret(){
+if(accueilPret) return;
+accueilPret=true;
+fileApresAccueil.splice(0).forEach(f=>f());
+}
+setTimeout(accueilEstPret,6000); // sécurité : même si l'accueil tarde, le reste démarre
+
+// ---------- Produits : première page, puis la suite en arrière-plan ----------
+const TAILLE_PREMIERE_PAGE=20;
+const TAILLE_LOT=100;
+const PLAFOND_CHARGEMENT=500;
+let finCatalogue=false;
+let lotEnCours=false;
+let promesseSuite=null;
+let premierePageFraiche=[];
+let derniereSynchro=0;
+// ---------- Affichage progressif : 2 par 2, jusqu'à 20, puis 20 de plus quand on défile ----------
+let nbAffiches=2;
+let plafondAffichage=20;
+let listeCourante=null;
+let minuteurRevelation=null;
+let derniereCleFiltre='';
+let rechercheServeurFaite='';
+let minuteurRechercheServeur=null;
 let categorieActive='';
 let notesVendeurs={};
 let signatureCatalogue='';
@@ -169,14 +201,8 @@ boutiquesCache=(await r.json()).filter(b=>!b.statut||b.statut==='validee');
 }catch(e){}
 }
 
-async function chargerProduits(){
-let echec=false;
-const minuteurLent=setTimeout(()=>{if(chargementEnCours){chargementLent=true;afficherGrille();}},1200);
-try{
-const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc",{headers:{apikey:SUPABASE_KEY}});
-if(!r.ok||r.headers.get('x-niohub-cache')==='1') throw new Error(r.status);
-const lignes=await r.json();
-distants=lignes.map(l=>({
+function mapperProduit(l){
+return {
 id:l.id,
 user_id:l.user_id,
 nom:l.nom,
@@ -187,8 +213,59 @@ photos:l.photos||null,
 couleur:'#D9B26F',
 categorie:l.categorie||null,
 etat:l.etat||null,
-couleurs:l.couleurs||null
-}));
+couleurs:l.couleurs||null,
+date:l.created_at||null
+};
+}
+
+async function recupererLot(debut,taille){
+const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc&limit="+taille+"&offset="+debut,{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok||r.headers.get('x-niohub-cache')==='1') throw new Error(String(r.status));
+return (await r.json()).map(mapperProduit);
+}
+
+function sauverCatalogueLocal(){
+try{
+let produits=distants;
+let texte=JSON.stringify({produits:produits,boutiques:boutiquesCache});
+if(texte.length>1500000){produits=distants.slice(0,200);texte=JSON.stringify({produits:produits,boutiques:boutiquesCache});}
+localStorage.setItem(CLE_CATALOGUE,texte);
+}catch(e){}
+}
+
+// La première page remplace le haut de la liste ; les produits plus anciens déjà connus restent
+function fusionnerPremierePage(page){
+if(page.length<TAILLE_PREMIERE_PAGE){distants=page.slice();finCatalogue=true;return;}
+const ids=new Set(page.map(p=>p.id));
+const plusAncien=page[page.length-1].date;
+const reste=distants.filter(p=>!ids.has(p.id)&&String(p.date||'')<String(plusAncien||''));
+distants=page.concat(reste);
+}
+function fusionnerFrais(frais,complet){
+if(complet||!frais.length){distants=frais.slice();return;}
+const dernier=frais[frais.length-1].date;
+const ids=new Set(frais.map(p=>p.id));
+const reste=distants.filter(p=>!ids.has(p.id)&&String(p.date||'')<String(dernier||''));
+distants=frais.concat(reste);
+}
+
+function signatureAccueil(){
+return JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.photos,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
+}
+function rendreSiChange(){
+const signature=signatureAccueil();
+if(signature===signatureCatalogue) return;
+signatureCatalogue=signature;
+afficherGrille();
+}
+
+async function chargerProduits(){
+let echec=false;
+const minuteurLent=setTimeout(()=>{if(chargementEnCours){chargementLent=true;afficherGrille();}},1200);
+try{
+const page=await recupererLot(0,TAILLE_PREMIERE_PAGE);
+premierePageFraiche=page;
+fusionnerPremierePage(page);
 }catch(e){
 echec=true;
 }
@@ -203,19 +280,105 @@ boutiquesCache=c.boutiques||[];
 }catch(e){}
 }else{
 chargementEchoue=false;
-try{localStorage.setItem(CLE_CATALOGUE,JSON.stringify({produits:distants,boutiques:boutiquesCache}));}catch(e){}
+sauverCatalogueLocal();
 }
-await chargerBoutiquesCache();
-const notes=await chargerNotesVendeurs();
-if(notes) notesVendeurs=notes;
-const signature=JSON.stringify([distants.map(p=>[p.id,p.nom,p.prix,p.photo,p.photos,p.categorie]),boutiquesCache.map(b=>[b.user_id,b.nom,b.logo,b.adresse]),notesVendeurs,chargementEchoue]);
+// L'accueil s'affiche tout de suite : les boutiques, les notes et la suite des produits arrivent ensuite
 clearTimeout(minuteurLent);
 const etaitEnChargement=chargementEnCours||chargementLent;
 chargementEnCours=false;
 chargementLent=false;
-if(signature===signatureCatalogue&&!etaitEnChargement) return;
+const signature=signatureAccueil();
+if(signature!==signatureCatalogue||etaitEnChargement){
 signatureCatalogue=signature;
 afficherGrille();
+}
+accueilEstPret();
+if(!echec){
+Promise.all([chargerBoutiquesCache(),chargerNotesVendeurs()]).then(([,notes])=>{
+if(notes) notesVendeurs=notes;
+sauverCatalogueLocal();
+rendreSiChange();
+});
+if(Date.now()-derniereSynchro>600000){
+derniereSynchro=Date.now();
+apresAccueil(()=>chargerSuiteCatalogue(),800);
+}
+}
+}
+
+// Suite du catalogue, par lots de 100, sans bloquer l'écran (recherche, hors ligne, favoris…)
+function chargerSuiteCatalogue(){
+if(promesseSuite) return promesseSuite;
+promesseSuite=(async()=>{
+lotEnCours=true;
+try{
+const frais=premierePageFraiche.slice();
+let debut=TAILLE_PREMIERE_PAGE;
+let termine=false;
+while(true){
+const lot=await recupererLot(debut,TAILLE_LOT);
+const ids=new Set(frais.map(x=>x.id));
+lot.forEach(p=>{if(!ids.has(p.id)) frais.push(p);});
+debut+=lot.length;
+if(lot.length<TAILLE_LOT){termine=true;break;}
+if(frais.length>=PLAFOND_CHARGEMENT) break;
+fusionnerFrais(frais,false);
+rendreSiChange();
+}
+fusionnerFrais(frais,termine);
+if(termine) finCatalogue=true;
+}catch(e){}
+lotEnCours=false;
+promesseSuite=null;
+sauverCatalogueLocal();
+rendreSiChange();
+})();
+return promesseSuite;
+}
+function assurerCatalogueComplet(){
+if(finCatalogue) return Promise.resolve();
+return chargerSuiteCatalogue();
+}
+
+// Au-delà de la limite de chargement automatique : on va chercher 100 produits de plus quand on arrive en bas
+async function chargerPlusDuServeur(){
+if(finCatalogue) return;
+if(promesseSuite){await promesseSuite;return;}
+if(lotEnCours) return;
+lotEnCours=true;
+try{
+const lot=await recupererLot(distants.length,TAILLE_LOT);
+const ids=new Set(distants.map(x=>x.id));
+lot.forEach(p=>{if(!ids.has(p.id)) distants.push(p);});
+if(lot.length<TAILLE_LOT) finCatalogue=true;
+sauverCatalogueLocal();
+rendreSiChange();
+}catch(e){}
+lotEnCours=false;
+}
+
+// Recherche ou catégorie : si tout le catalogue n'est pas encore là, on interroge le serveur
+function chargerRechercheServeur(q,categorie){
+const cle=q+'|'+(categorie||'');
+if(cle===rechercheServeurFaite) return;
+rechercheServeurFaite=cle;
+clearTimeout(minuteurRechercheServeur);
+minuteurRechercheServeur=setTimeout(async()=>{
+try{
+let filtre='';
+const mot=q.replace(/[^\p{L}\p{N} ]/gu,'').trim();
+if(mot) filtre+='&nom=ilike.*'+encodeURIComponent(mot)+'*';
+if(categorie) filtre+=categorie==='Autres'?'&or=(categorie.eq.Autres,categorie.is.null)':'&categorie=eq.'+encodeURIComponent(categorie);
+const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=*&order=created_at.desc&limit=60'+filtre,{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok||r.headers.get('x-niohub-cache')==='1') return;
+const lignes=(await r.json()).map(mapperProduit);
+const ids=new Set(distants.map(x=>x.id));
+const nouveaux=lignes.filter(p=>!ids.has(p.id));
+if(!nouveaux.length) return;
+distants=distants.concat(nouveaux).sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
+rendreSiChange();
+}catch(e){}
+},350);
 }
 
 async function chargerNotesVendeurs(){
@@ -277,12 +440,19 @@ bloc.innerHTML=trouvees.length
 :'';
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
 const horsLigne=!navigator.onLine||chargementEchoue;
+const cleFiltre=q+'|'+(categorieActive||'');
+if(cleFiltre!==derniereCleFiltre){derniereCleFiltre=cleFiltre;nbAffiches=2;plafondAffichage=20;}
+listeCourante=null;
+if((q||categorieActive)&&!finCatalogue&&navigator.onLine) chargerRechercheServeur(q,categorieActive);
 if(liste.length){
 const quelques=(horsLigne&&!q&&!categorieActive)?liste.slice(0,PRODUITS_HORS_LIGNE):liste;
+listeCourante=quelques;
+const affiche=quelques.slice(0,nbAffiches);
 let fin='';
 if(horsLigne) fin='<div class="fin-liste">'+(navigator.onLine?'La connexion est lente. Les autres produits arriveront dès qu\'elle reviendra.':'Vous êtes hors ligne. Reconnectez-vous pour voir tous les produits.')+'</div>';
 else if(chargementLent) fin='<div class="fin-liste"><span class="roue"></span>Chargement des produits…</div>';
-grille.innerHTML=quelques.map(x=>carteProduitHTML(x.p,x.i)).join('')+fin;
+grille.innerHTML=affiche.map(x=>carteProduitHTML(x.p,x.i)).join('')+fin;
+if(affiche.length<Math.min(plafondAffichage,quelques.length)) demarrerRevelation();
 }else if(chargementEnCours&&!q&&!categorieActive){
 grille.innerHTML=Array(6).fill('<div class="sk-carte"></div>').join('');
 }else if(q){
@@ -299,6 +469,53 @@ grille.innerHTML=`<div class="accueil-vide">
 <button class="btn" type="button" onclick="voirAjout('accueil')">Publier un produit</button>
 <button class="accueil-vide-lien" type="button" onclick="voirBoutique()">Créer ma boutique</button>
 </div>`;
+}
+}
+
+// Les produits apparaissent 2 par 2 (jusqu'à 20) ; en défilant, 20 de plus, et ainsi de suite
+function revelerSuite(){
+const grille=document.getElementById('grid');
+if(!grille||!listeCourante) return false;
+const maxi=Math.min(plafondAffichage,listeCourante.length);
+if(nbAffiches>=maxi) return false;
+const debut=nbAffiches;
+nbAffiches=Math.min(nbAffiches+2,maxi);
+const html=listeCourante.slice(debut,nbAffiches).map(x=>carteProduitHTML(x.p,x.i)).join('');
+const fin=grille.querySelector('.fin-liste');
+if(fin) fin.insertAdjacentHTML('beforebegin',html); else grille.insertAdjacentHTML('beforeend',html);
+return true;
+}
+function demarrerRevelation(){
+clearInterval(minuteurRevelation);
+minuteurRevelation=setInterval(()=>{
+if(!revelerSuite()){clearInterval(minuteurRevelation);verifierSentinelle();}
+},110);
+}
+async function produitsSuivants(){
+if(vueCourante!=='accueil'||!listeCourante) return;
+const maxi=Math.min(plafondAffichage,listeCourante.length);
+if(nbAffiches<maxi){demarrerRevelation();return;}
+// tout ce qui était prévu est affiché : on en prévoit 20 de plus
+if(listeCourante.length>plafondAffichage){plafondAffichage+=20;demarrerRevelation();return;}
+if(finCatalogue||!navigator.onLine) return;
+await chargerPlusDuServeur();
+if(listeCourante&&listeCourante.length>plafondAffichage){plafondAffichage+=20;demarrerRevelation();}
+}
+function verifierSentinelle(){
+const s=document.getElementById('sentinelle');
+if(!s) return;
+const r=s.getBoundingClientRect();
+if(r.top<window.innerHeight+400) produitsSuivants();
+}
+function installerDefilement(){
+const grille=document.getElementById('grid');
+if(!grille||document.getElementById('sentinelle')) return;
+const s=document.createElement('div');
+s.id='sentinelle';
+s.style.cssText='height:2px;margin-top:30px';
+grille.insertAdjacentElement('afterend',s);
+if('IntersectionObserver' in window){
+new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)) produitsSuivants();},{rootMargin:'400px'}).observe(s);
 }
 }
 
@@ -407,8 +624,9 @@ document.getElementById('fdesc').textContent=p.desc;
 montrer('fiche');
 }
 
-function ouvrirParId(id){
-const i=tous().findIndex(x=>x.id===id);
+async function ouvrirParId(id){
+let i=tous().findIndex(x=>x.id===id);
+if(i<0){await assurerCatalogueComplet();i=tous().findIndex(x=>x.id===id);}
 if(i>=0) ouvrir(i);
 }
 
@@ -444,6 +662,7 @@ const zone=document.getElementById('bmes');
 zone.textContent='Chargement…';
 const s=await sessionValide();
 await chargerProduits();
+await assurerCatalogueComplet();
 if(!s||!s.user_id){zone.textContent='Connectez-vous dans Profil pour voir vos produits.';return;}
 const mes=distants.filter(l=>l.user_id===s.user_id);
 zone.innerHTML=mes.length
@@ -534,6 +753,7 @@ remettreApercu(apercuUrl);
 
 styleAccueil();
 installerRecherche();
+installerDefilement();
 (function(){
 try{
 const c=JSON.parse(localStorage.getItem(CLE_CATALOGUE)||'null');
@@ -541,4 +761,6 @@ if(c&&c.produits&&c.produits.length){distants=c.produits;boutiquesCache=c.boutiq
 }catch(e){}
 })();
 chargerProduits();
+// Copie de ses données (discussions, commandes, avis…) pour le mode hors ligne, une fois l'accueil affiché
+apresAccueil(()=>{if(typeof prechargerHorsLigne==='function') prechargerHorsLigne();},5000);
 montrer('accueil');

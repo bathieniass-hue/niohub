@@ -62,25 +62,19 @@ return;
 }
 // Le contrôle de version va toujours directement sur le réseau
 if(url.pathname.endsWith('/version.json')) return;
+// Démarrage instantané : on sert tout de suite la copie gardée dans le téléphone (installée avant le premier lancement),
+// et on la remet à jour en arrière-plan pour la prochaine ouverture. Sans copie, on passe par le réseau.
 e.respondWith((async()=>{
 const cache=await caches.open(VERSION);
-try{
-// "no-cache" : on vérifie toujours auprès du serveur (et pas dans le cache de 10 minutes de GitHub)
-const rep=await Promise.race([
-fetch(req,{cache:'no-cache'}),
-new Promise((_,ko)=>setTimeout(()=>ko(new Error('delai')),DELAI_RESEAU))
-]);
+let copie=await cache.match(req,{ignoreSearch:true});
+if(!copie&&req.mode==='navigate') copie=await cache.match('index.html');
+const maj=fetch(req,{cache:'no-cache'}).then(rep=>{
 if(rep&&rep.ok) cache.put(req,rep.clone());
 return rep;
-}catch(err){
-const copie=await cache.match(req);
-if(copie) return copie;
-if(req.mode==='navigate'){
-const accueil=await cache.match('index.html');
-if(accueil) return accueil;
-}
-return Response.error();
-}
+}).catch(()=>null);
+if(copie){e.waitUntil(maj);return copie;}
+const rep=await Promise.race([maj,new Promise(res=>setTimeout(()=>res(null),DELAI_RESEAU*2))]);
+return rep||Response.error();
 })());
 });
 

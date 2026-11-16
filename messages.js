@@ -195,7 +195,7 @@ if(!r.ok) return;
 afficherBadge((await r.json()).length);
 }catch(e){}
 }
-setTimeout(majNonLus,2500);
+apresAccueil(majNonLus,2500);
 setInterval(()=>{if(document.visibilityState==='visible'){majNonLus();assurerTempsReel();}},12000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') majNonLus();});
 
@@ -498,7 +498,7 @@ if(reessayer||fileMessages.length) planifierFile();
 }
 window.addEventListener('online',()=>{viderFile();assurerTempsReel();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){viderFile();assurerTempsReel();}});
-setTimeout(viderFile,3000);
+apresAccueil(viderFile,3000);
 
 function fermerChat(){
 clearInterval(chatTimer);
@@ -568,7 +568,7 @@ rtRelance=setTimeout(assurerTempsReel,Math.min(30000,2000*rtEssais));
 };
 ws.onerror=()=>{try{ws.close();}catch(e){}};
 }
-setTimeout(assurerTempsReel,3000);
+apresAccueil(assurerTempsReel,3000);
 
 // ---------- supprimer un de ses messages ----------
 function menuMessage(bulle){
