@@ -362,3 +362,6 @@ body.sombre .bulle-actions button{background:#2E1511;color:#FF8A7E;box-shadow:in
 .bulle.moi+.bulle-actions{justify-content:flex-end}
 
 #ajout .apercu:not(#apercu),.ep-grande{height:auto !important;aspect-ratio:var(--ratio,9/10) !important}
+
+.verifie{color:#0E6B47;font-size:12px;font-weight:700}
+body.sombre .verifie{color:#3BBF4B}

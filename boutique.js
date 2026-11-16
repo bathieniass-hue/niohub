@@ -96,7 +96,13 @@ return;
 }
 bouton.style.display='';
 zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
-if(b.statut&&b.statut!=='validee'){
+if(b.statut==='en_attente'){
+zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#E0A52E"><b>Boutique non validée</b><br>Pour valider votre boutique, vérifiez votre numéro de téléphone avec NioHub sur WhatsApp. Vos produits seront visibles dès la validation.<button class="btn" style="margin-top:10px" onclick="validerMonNumero()">Valider mon numéro de téléphone</button></div>');
+chargerNumeroVerification();
+}else if(b.statut==='validee'&&b.telephone_verifie){
+zone.insertAdjacentHTML('beforeend','<div class="verifie" style="margin-top:8px">✓ Numéro de téléphone vérifié</div>');
+}
+if(b.statut&&b.statut!=='validee'&&b.statut!=='en_attente'){
 const susp=b.statut==='suspendue';
 zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#B4291A"><b>'+(susp?'Votre boutique est suspendue.':'Votre boutique est en attente de validation.')+'</b><br>'+(susp?'Vos produits ne sont plus visibles par les acheteurs. Contactez NioHub pour en savoir plus.':'Vos produits seront visibles dès qu\'elle sera validée.')+'</div>');
 }
@@ -273,3 +279,43 @@ await voirBoutique();
 }
 
 // afficherBoutiqueFiche() est définie dans avis.js (boutique + note sur la fiche produit).
+
+// ---------- validation du numéro par WhatsApp ----------
+let numeroVerification=null;   // numéro WhatsApp de NioHub (réglé dans l'application d'administration)
+async function chargerNumeroVerification(){
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/reglages?select=valeur&cle=eq.whatsapp_verification',{headers:{apikey:SUPABASE_KEY}});
+if(!r.ok) return;
+const l=await r.json();
+numeroVerification=(l[0]&&String(l[0].valeur||'').replace(/\D/g,''))||'';
+}catch(e){}
+}
+function messageVerification(b){
+const s=(typeof lireSession==='function'?lireSession():null)||{};
+const tels=[b.telephone,b.telephone2].filter(Boolean).map(t=>formaterTelephone(t)).join(' / ');
+const lignes=[
+'Bonjour NioHub, je souhaite valider mon numéro de téléphone et ma boutique.',
+'',
+'BOUTIQUE',
+'Nom : '+(b.nom||'—'),
+'Adresse : '+(b.adresse||'—'),
+'Téléphone : '+(tels||'—'),
+'',
+'PROFIL',
+'Nom : '+(s.nom||'—'),
+'Téléphone : '+(s.telephone?formaterTelephone(s.telephone):'—'),
+'E-mail : '+(s.email||'—'),
+'Identifiant : '+String(s.user_id||b.user_id||'').slice(0,8)
+];
+return lignes.join('\n');
+}
+async function validerMonNumero(){
+const b=boutiqueActuelle;
+if(!b){bandeau('Boutique introuvable. Réessayez.','erreur');return;}
+if(numeroVerification===null) await chargerNumeroVerification();
+if(!numeroVerification){bandeau('Le numéro de vérification n\'est pas encore configuré. Réessayez plus tard.','erreur');return;}
+const num=numeroVerification.length===9?'221'+numeroVerification:numeroVerification;
+const url='https://wa.me/'+num+'?text='+encodeURIComponent(messageVerification(b));
+const w=window.open(url,'_blank','noopener');
+if(!w) window.location.href=url;
+}

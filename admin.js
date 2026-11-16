@@ -254,7 +254,7 @@ let etat={table:null,lignes:[],debut:0,fini:false,filtre:'',recherche:''};
 
 function dessinerOnglets(){
 const nav=document.getElementById('onglets');
-nav.replaceChildren(...[['accueil','Tableau de bord'],['support','Service client']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).map(([k,t])=>
+nav.replaceChildren(...[['accueil','Tableau de bord'],['support','Service client']].concat(Object.keys(TABLES).map(k=>[k,TABLES[k].titre])).concat([['reglages','Réglages']]).map(([k,t])=>
 h('button',{class:k===ongletCourant?'on':'',onclick:()=>ouvrirOnglet(k)},t,NOMS_NOUVEAUX[k]?h('span',{class:'pastille-onglet','data-pastille':k,hidden:'true'},'0'):null)));
 afficherPastilles();
 }
@@ -283,6 +283,7 @@ dessinerOnglets();
 window.scrollTo(0,0);
 if(k==='accueil') return tableauDeBord();
 if(k==='support'){nouveaux.support=0;afficherPastilles();return ecranSupport();}
+if(k==='reglages') return ecranReglages();
 etat={table:k,lignes:[],debut:0,fini:false,filtre:filtre||'',libelleFiltre:libelleFiltre||'',recherche:''};
 marquerVuTable(k);
 dessinerListe();
@@ -314,6 +315,146 @@ cartes.unshift(h('button',{class:'compteur',onclick:()=>ouvrirOnglet('boutiques'
 }
 c.replaceChildren(h('div',{class:'grille'},cartes));
 afficherPastilles();
+}
+
+// ---------- validation des boutiques et des numéros ----------
+function sqlValidation(){
+return `-- Validation des boutiques par WhatsApp
+-- 1) Réglages (le numéro WhatsApp de vérification se modifie ensuite depuis l'administration)
+create table if not exists public.reglages (
+  cle text primary key,
+  valeur text not null default '',
+  updated_at timestamptz not null default now()
+);
+alter table public.reglages enable row level security;
+drop policy if exists "lecture publique reglages" on public.reglages;
+create policy "lecture publique reglages" on public.reglages for select using (true);
+drop policy if exists "admin gere reglages" on public.reglages;
+create policy "admin gere reglages" on public.reglages for all using (public.est_admin()) with check (public.est_admin());
+insert into public.reglages (cle, valeur) values ('whatsapp_verification', '') on conflict (cle) do nothing;
+
+-- 2) Numéro vérifié sur chaque boutique
+alter table public.boutiques add column if not exists telephone_verifie boolean not null default false;
+
+-- 3) Une nouvelle boutique commence « en attente » ; seul l'administrateur valide la boutique et le numéro.
+--    Changer de numéro retire la vérification.
+create or replace function public.proteger_statut_boutique() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.est_admin() then
+    if tg_op = 'INSERT' then
+      new.statut := 'en_attente';
+      new.telephone_verifie := false;
+    else
+      new.statut := old.statut;
+      new.telephone_verifie := old.telephone_verifie;
+      if new.telephone is distinct from old.telephone or new.telephone2 is distinct from old.telephone2 then
+        new.telephone_verifie := false;
+      end if;
+    end if;
+  end if;
+  return new;
+end $$;`;
+}
+function panneauValidation(){
+const sql=sqlValidation();
+return h('div',{class:'config',style:'margin-bottom:12px'},
+h('h2',null,'Activer la validation par WhatsApp'),
+h('p',null,'Collez ce texte dans SQL Editor (Supabase), appuyez sur Run, puis actualisez cette page.'),
+h('pre',null,sql),
+h('button',{onclick:async()=>{try{await navigator.clipboard.writeText(sql);toast('Copié');}catch(e){toast('Copie impossible : sélectionnez le texte à la main.',true);}}},'Copier le texte'));
+}
+function neuf(t){
+let n=String(t||'').replace(/\D/g,'');
+if(n.startsWith('00221')) n=n.slice(5);
+else if(n.startsWith('221')&&n.length>9) n=n.slice(3);
+return n.slice(-9);
+}
+async function ecranReglages(){
+const c=document.getElementById('contenu');
+c.replaceChildren(h('p',{class:'vide'},'Chargement…'));
+let valeur='';
+try{
+const r=await api('reglages?select=*&cle=eq.whatsapp_verification');
+if(r.status===404||r.status===400){c.replaceChildren(panneauValidation());return;}
+if(!r.ok) throw new Error(r.status);
+const l=await r.json();
+valeur=(l[0]&&l[0].valeur)||'';
+}catch(e){
+c.replaceChildren(h('p',{class:'vide'},'Chargement impossible. Vérifiez la connexion.'));
+return;
+}
+const saisie=h('input',{type:'tel',inputmode:'tel',placeholder:'Ex. 221771234567',value:valeur});
+const bSauver=h('button',{class:'btn-sauver',style:'width:100%;margin-top:12px'},'Enregistrer');
+bSauver.onclick=async()=>{
+let n=saisie.value.replace(/\D/g,'');
+if(n.length===9) n='221'+n;
+if(n.length<10||n.length>15){toast('Écrivez le numéro avec l\'indicatif du pays, par exemple 221771234567.',true);return;}
+bSauver.disabled=true;
+try{
+const r=await api('reglages?on_conflict=cle',{methode:'POST',corps:{cle:'whatsapp_verification',valeur:n,updated_at:new Date().toISOString()},entetes:{Prefer:'resolution=merge-duplicates,return=representation'}});
+if(!r.ok){const t=await r.text();throw new Error(t.slice(0,120));}
+saisie.value=n;
+toast('Numéro enregistré');
+}catch(e){toast('Enregistrement impossible : '+(e.message||'erreur'),true);}
+bSauver.disabled=false;
+};
+c.replaceChildren(h('div',{class:'config'},
+h('h2',null,'Validation par WhatsApp'),
+h('p',null,'Les vendeurs dont la boutique n\'est pas validée touchent « Valider mon numéro de téléphone » : WhatsApp s\'ouvre sur ce numéro avec les informations de la boutique et du profil déjà écrites.'),
+h('div',{class:'champ'},h('label',null,'Numéro WhatsApp de vérification (avec l\'indicatif)'),saisie),
+bSauver,
+h('a',{class:'bouton',style:'margin-top:12px',href:'#',onclick:e=>{e.preventDefault();const n=saisie.value.replace(/\D/g,'');if(n.length<9){toast('Enregistrez d\'abord un numéro.',true);return;}window.open('https://wa.me/'+(n.length===9?'221'+n:n),'_blank','noopener');}},'Tester le lien WhatsApp')));
+}
+
+// Carte de vérification d'une boutique : numéros comparés côté boutique et côté profil, puis validation
+function carteVerification(r){
+const carte=h('div',{class:'config verification',style:'margin-bottom:14px'});
+if(r.telephone_verifie===undefined){
+carte.append(h('h2',null,'Vérification du numéro'),h('p',null,'Pour vérifier les numéros, activez d\'abord la validation par WhatsApp (onglet Réglages, avec le texte SQL).'));
+return carte;
+}
+carte.append(h('h2',null,'Vérification du numéro'),h('p',null,'Chargement du profil…'));
+(async()=>{
+let profil=null;
+try{
+const rp=await api('profils?select=*&user_id=eq.'+encodeURIComponent(r.user_id)+'&limit=1');
+if(rp.ok) profil=(await rp.json())[0]||null;
+}catch(e){}
+const telsBoutique=[r.telephone,r.telephone2].filter(Boolean);
+const telProfil=profil&&profil.telephone?profil.telephone:'';
+const memeNumero=!!telProfil&&telsBoutique.some(t=>neuf(t)===neuf(telProfil));
+const ligne=(a,b2)=>h('div',{class:'ligne-verif'},h('span',null,a),h('b',null,b2||'—'));
+const verdict=!telsBoutique.length?h('div',{class:'verdict non'},'Aucun numéro sur la boutique'):!telProfil?h('div',{class:'verdict non'},'Aucun numéro sur le profil'):memeNumero?h('div',{class:'verdict oui'},'✓ Même numéro sur la boutique et le profil'):h('div',{class:'verdict non'},'✗ Numéros différents');
+const actions=h('div',{class:'liens'});
+async function appliquer(champs,message){
+try{
+const pk=cle('boutiques',r);
+const r2=await api('boutiques?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'PATCH',corps:champs,entetes:{Prefer:'return=representation'}});
+if(!r2.ok){const t=await r2.text();throw new Error(t.slice(0,140));}
+const res=await r2.json();
+if(!res.length){toast('Rien n\'a été modifié : droits administrateur manquants ?',true);return;}
+Object.assign(r,res[0]);
+const i=etat.lignes.findIndex(x=>x[pk]===r[pk]);
+if(i>=0) Object.assign(etat.lignes[i],res[0]);
+toast(message);
+fermerFiche();
+if(etat.table==='boutiques') majLignes();
+}catch(e){toast('Changement impossible : '+(e.message||'erreur'),true);}
+}
+if(!r.telephone_verifie||r.statut!=='validee') actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true,statut:'validee'},'Numéro et boutique validés')},'Valider le numéro et la boutique'));
+if(!r.telephone_verifie) actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true},'Numéro validé')},'Valider le numéro seulement'));
+if(r.telephone_verifie) actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:false},'Vérification retirée')},'Retirer la vérification'));
+carte.replaceChildren(
+h('h2',null,'Vérification du numéro'),
+h('p',null,'Comparez avec le message WhatsApp reçu, puis validez.'),
+h('div',{class:'bloc-verif'},h('div',{class:'titre-verif'},'Boutique'),ligne('Nom',r.nom),ligne('Adresse',r.adresse),ligne('Téléphone',telsBoutique.map(t=>neuf(t)).join(' / '))),
+h('div',{class:'bloc-verif'},h('div',{class:'titre-verif'},'Profil du vendeur'),ligne('Nom',profil&&profil.nom),ligne('Téléphone',telProfil?neuf(telProfil):''),ligne('E-mail',profil&&profil.email)),
+verdict,
+h('div',{class:'ligne-verif'},h('span',null,'État'),h('b',null,(STATUTS[r.statut]||r.statut||'—')+(r.telephone_verifie?' · numéro vérifié':' · numéro non vérifié'))),
+actions);
+})();
+return carte;
 }
 
 // ---------- date et heure ----------
@@ -475,7 +616,8 @@ function resume(table,r){
 const titre=r.nom||r.produit||r.titre||r.email||r.statut||('#'+court(r.id||r.user_id||'',8));
 const champs=table==='produits'?['prix','categorie','etat']:table==='boutiques'?['statut','adresse','ville','telephone']:table==='profils'?['telephone','adresse','email']:table==='commandes'?['statut','total','prix','mode_livraison']:table==='avis'?['note','texte']:['expediteur','texte'];
 const sous=champs.filter(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='').map(k=>k==='prix'||k==='total'?prixTexte(r[k]):(k==='statut'&&table==='boutiques'?(STATUTS[r[k]]||r[k]):String(r[k]))).join(' · ');
-return {titre:court(titre,60),sous:court(sous,90)};
+const verifie=(table==='boutiques'&&r.telephone_verifie)?' · Numéro vérifié':'';
+return {titre:court(titre,60),sous:court(sous+verifie,90)};
 }
 function vignette(table,r){
 const v=h('div',{class:'vignette'});
@@ -849,6 +991,7 @@ function dessiner(){
 corps.replaceChildren();
 const liens=liensFiche(table,r);
 if(liens.length) corps.append(h('div',{class:'liens'},liens.map(([t,fn])=>h('button',{onclick:fn},t))));
+if(table==='boutiques') corps.append(carteVerification(r));
 if(r.created_at) corps.append(h('div',{class:'date-fiche'},(LIBELLE_DATE[table]||'Le')+' '+quand(r.created_at)));
 const verrou=h('label',{class:'deverrouille'},h('input',{type:'checkbox',onchange:e=>{deverrouille=e.target.checked;majVerrous();}}),'Modifier aussi les identifiants (user_id, produit_id…)');
 corps.append(verrou);

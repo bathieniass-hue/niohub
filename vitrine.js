@@ -58,7 +58,7 @@ await assurerCatalogueComplet();
 const produits=distants.filter(p=>p.user_id===userId);
 const carte=`<div style="display:flex;gap:12px;align-items:center;margin-top:14px">`
 +`<div class="avatar" style="width:64px;height:64px;font-size:22px;flex-shrink:0;background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':initiale}</div>`
-+`<div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:18px">${esc(b.nom)}</div>`
++`<div style="flex:1;min-width:0"><div style="font-weight:bold;font-size:18px">${esc(b.nom)}</div>${b.telephone_verifie?'<div class="verifie">✓ Numéro vérifié</div>':''}`
 +`<div style="margin-top:2px">${note}</div>`
 +`<div style="font-size:13px;color:#6B6254;margin-top:2px">${esc(b.adresse||'Adresse non indiquée')}</div>`
 +(tels?`<div style="font-size:13px;color:#6B6254">${tels}</div>`:'')
