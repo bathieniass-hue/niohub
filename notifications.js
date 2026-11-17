@@ -1,8 +1,8 @@
 // Notifications : pastilles de nouveautés sur les icônes, cloche avec la liste, et notifications du téléphone.
 // Une pastille compte ce qui est nouveau depuis la dernière ouverture de l'écran correspondant, puis disparaît.
 
-let brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[]};
-let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,total:0};
+let brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[],nio:[]};
+let compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,nio:0,total:0};
 let itemsNotif=[];
 let notifAutresLe=0;
 let notifPremiere=true;
@@ -71,7 +71,7 @@ notifEnCours=true;
 try{
 const s=await sessionValide();
 if(!s||!s.user_id){
-brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[]};
+brutNotif={messages:[],avis:[],commandes:[],achats:[],boutique:null,support:[],nio:[]};
 recalculerNotif();
 return;
 }
@@ -86,6 +86,10 @@ if(r.ok) brutNotif.messages=await r.json();
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/support_messages?select=id,texte,created_at&user_id=eq.'+uid+'&expediteur_admin=eq.true&lu=eq.false&order=created_at.desc&limit=50',{headers:h});
 if(r.ok) brutNotif.support=await r.json();
+}catch(e){}
+try{
+const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=id,titre,texte,type,created_at&user_id=eq.'+uid+'&lu=eq.false&order=created_at.desc&limit=50',{headers:h});
+if(r.ok) brutNotif.nio=await r.json();
 }catch(e){}
 const maintenant=Date.now();
 if(forcer||maintenant-notifAutresLe>60000){
@@ -121,7 +125,7 @@ if(notifRedemande){notifRedemande=false;recupererNotif(false);}
 // ---------- calcul des nouveautés ----------
 function recalculerNotif(){
 const uid=notifUid();
-if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
+if(!uid){compteursNotif={messages:0,avis:0,commandes:0,achats:0,favoris:0,boutique:0,boutiqueNav:0,support:0,nio:0,total:0};itemsNotif=[];afficherCompteursNotif();return;}
 const vu=lireVu(uid);
 // Si l'écran concerné est ouvert en ce moment, ce qui arrive est déjà vu
 const ouverte=sectionOuverte();
@@ -138,8 +142,8 @@ const ach=brutNotif.achats.filter(c=>vu.achats!==undefined&&vu.achats[c.id]!==(c
 const fav=lireFavoris().filter(id=>vu.favoris!==undefined&&!vu.favoris.includes(id));
 const bou=(brutNotif.boutique&&vu.boutique!==undefined&&vu.boutique!==brutNotif.boutique.statut)?[brutNotif.boutique]:[];
 const sup=brutNotif.support.filter(m=>String(m.created_at)>(vu.support||''));
-const c={messages:msg.length,avis:avis.length,commandes:cmd.length,achats:ach.length,favoris:fav.length,boutique:bou.length,support:sup.length};
-c.total=c.messages+c.avis+c.commandes+c.achats+c.boutique+c.support;
+const c={messages:msg.length,avis:avis.length,commandes:cmd.length,achats:ach.length,favoris:fav.length,boutique:bou.length,support:sup.length,nio:brutNotif.nio.length};
+c.total=c.messages+c.avis+c.commandes+c.achats+c.boutique+c.support+c.nio;
 // Pastille de l'icône Boutique (barre du bas) : tout ce qui arrive vers MA boutique
 c.boutiqueNav=c.avis+c.commandes+msg.filter(m=>String(m.vendeur_id)===String(uid)).length;
 // Liste pour la cloche
@@ -150,21 +154,22 @@ parExp.forEach(l=>{const d=l[0];items.push({cle:'messages',titre:d.expediteur||'
 avis.forEach(a=>items.push({cle:'avis',titre:'Nouvel avis · '+(a.note||'?')+'/5',texte:(a.auteur?a.auteur+' : ':'')+(a.commentaire||''),date:a.created_at,aller:()=>voirAvisRecus()}));
 cmd.forEach(o=>items.push({cle:'commandes',titre:'Nouvelle commande',texte:(o.produit||'')+(o.quantite?' × '+o.quantite:''),date:o.created_at,aller:()=>voirCommandes()}));
 ach.forEach(o=>items.push({cle:'achats',titre:'Votre commande a changé',texte:(o.produit||'')+' : '+(o.statut||'À préparer'),date:o.created_at,aller:()=>voirAchats()}));
+brutNotif.nio.length&&items.push({cle:'nio',titre:brutNotif.nio[0].titre||'Message de NioHub',texte:(brutNotif.nio.length>1?brutNotif.nio.length+' nouveaux messages · ':'')+(brutNotif.nio[0].texte||''),date:brutNotif.nio[0].created_at,aller:()=>ouvrirDetailNio(brutNotif.nio[0].id)});
 sup.length&&items.push({cle:'support',titre:'Service client NioHub',texte:(sup.length>1?sup.length+' nouvelles réponses · ':'')+(sup[0].texte||''),date:sup[0].created_at,aller:()=>voirContact()});
 bou.forEach(b=>items.push({cle:'boutique',titre:b.statut==='validee'?'Votre boutique est validée':b.statut==='suspendue'?'Votre boutique est suspendue':'Votre boutique est en attente de validation',texte:b.nom||'',date:new Date().toISOString(),aller:()=>voirBoutique()}));
 items.sort((x,y)=>String(y.date).localeCompare(String(x.date)));
 // Annonce de ce qui vient d'arriver (pas au premier chargement)
 if(notifPret&&!notifPremiere){
-['messages','avis','commandes','achats','boutique','support'].forEach(k=>{
+['messages','avis','commandes','achats','boutique','support','nio'].forEach(k=>{
 if(c[k]>(notifPrecedent[k]||0)) annoncerNotif(k,items.find(i=>i.cle===k));
 });
 }
 if(notifPret) notifPremiere=false;
-['messages','avis','commandes','achats','boutique','support'].forEach(k=>{notifPrecedent[k]=c[k];});
+['messages','avis','commandes','achats','boutique','support','nio'].forEach(k=>{notifPrecedent[k]=c[k];});
 compteursNotif=c;
 itemsNotif=items;
 afficherCompteursNotif();
-if(typeof vueCourante!=='undefined'&&vueCourante==='notifications') dessinerNotifications();
+if(typeof vueCourante!=='undefined'&&vueCourante==='notifications'&&detailNioId===null) dessinerNotifications();
 }
 
 function afficherCompteursNotif(){
@@ -247,7 +252,8 @@ function ouvrirDiscussion(conv){
 const nombre=x=>/^\d+$/.test(String(x))?Number(x):x;
 ouvrirChat({produitId:conv.p?nombre(conv.p):null,produitNom:'',vendeurId:conv.v,acheteurId:conv.a},'liste');
 }
-function ouvrirDepuisNotif(cible,conv){
+function ouvrirDepuisNotif(cible,conv,nid){
+if(cible==='nio'){if(nid) ouvrirDetailNio(nid); else voirNotifications();return;}
 if(cible==='messages'&&conv&&conv.v&&conv.a&&typeof ouvrirChat==='function'){ouvrirDiscussion(conv);return;}
 const f={messages:'voirConversations',commandes:'voirCommandes',achats:'voirAchats',avis:'voirAvisRecus',boutique:'voirBoutique',support:'voirContact'}[cible];
 if(f&&typeof window[f]==='function') window[f]();
@@ -297,30 +303,108 @@ const hh=Math.round(m/60);
 if(hh<24) return 'il y a '+hh+' h';
 return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
+let inboxNio=[];
+let detailNioId=null;
+async function chargerInboxNio(){
+try{
+const s=await sessionValide();
+if(!s||!s.user_id) return false;
+const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=*&user_id=eq.'+s.user_id+'&order=created_at.desc&limit=100',{headers:entetesAuth(s)});
+if(!r.ok) return false;
+inboxNio=await r.json();
+return true;
+}catch(e){return false;}
+}
+function dateNio(iso){
+const d=new Date(iso);
+return isNaN(d.getTime())?'':d.toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+async function marquerNioLue(id){
+const m=inboxNio.find(x=>String(x.id)===String(id));
+if(m&&m.lu) return;
+if(m){m.lu=true;m.lu_le=new Date().toISOString();}
+brutNotif.nio=brutNotif.nio.filter(x=>String(x.id)!==String(id));
+recalculerNotif();
+try{
+const s=await sessionValide();
+if(s&&s.user_id) await fetch(SUPABASE_URL+'/rest/v1/rpc/marquer_notif_nio_lue',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_id:Number(id)})});
+}catch(e){}
+fermerNotifsSysteme(d=>d.ouvrir==='nio'&&String(d.nid)===String(id));
+}
+async function ouvrirDetailNio(id){
+if(typeof montrer==='function'&&vueCourante!=='notifications') montrer('notifications');
+detailNioId=id;
+if(!inboxNio.some(x=>String(x.id)===String(id))) await chargerInboxNio();
+dessinerNotifications();
+marquerNioLue(id);
+}
 function dessinerNotifications(){
 const page=document.getElementById('notifications');
 page.replaceChildren();
 const entete=document.createElement('header');
 const retour=document.createElement('button');
 retour.className='retour';retour.textContent='←';retour.setAttribute('aria-label','Retour');
-retour.onclick=()=>voirAccueil();
 const titre=document.createElement('span');
 titre.style.cssText='font-weight:bold;font-size:20px';
-titre.textContent='Notifications';
 entete.append(retour,titre);
 page.append(entete);
-if(!itemsNotif.length){
-const v=document.createElement('div');
-v.className='liste';v.style.marginTop='14px';
-v.textContent='Aucune nouvelle notification.';
-page.append(v);
+// ----- détail d'un message de NioHub -----
+if(detailNioId!==null){
+const m=inboxNio.find(x=>String(x.id)===String(detailNioId));
+retour.onclick=()=>{detailNioId=null;dessinerNotifications();};
+titre.textContent='Message de NioHub';
+if(!m){
+const v=document.createElement('div');v.className='liste';v.style.marginTop='14px';v.textContent='Ce message est introuvable.';page.append(v);
 return;
 }
+const carte=document.createElement('div');
+carte.className='liste nio-detail';
+const t=document.createElement('div');t.className='nio-titre';t.textContent=m.titre||'Message de NioHub';
+const d=document.createElement('div');d.className='nio-date';d.textContent=dateNio(m.created_at);
+const x=document.createElement('div');x.className='nio-texte';x.textContent=m.texte;
+carte.append(t,d,x);
+page.append(carte);
+const contact=document.createElement('button');
+contact.className='btn2';contact.style.marginTop='12px';contact.textContent='Répondre à NioHub';
+contact.onclick=()=>{if(typeof voirContact==='function') voirContact();};
+page.append(contact);
+return;
+}
+retour.onclick=()=>voirAccueil();
+titre.textContent='Notifications';
+// ----- messages de NioHub : ils restent dans la liste -----
+const etiquette=document.createElement('div');
+etiquette.className='titre-section';etiquette.style.marginTop='6px';etiquette.textContent='Messages de NioHub';
+page.append(etiquette);
+if(!inboxNio.length){
+const v=document.createElement('div');v.className='liste';v.style.marginTop='6px';v.textContent='Aucun message pour le moment.';page.append(v);
+}
+inboxNio.forEach(m=>{
+const l=document.createElement('div');
+l.className='ligne notif-item nio-ligne'+(m.lu?'':' non-lu');
+l.style.cursor='pointer';
+const point=document.createElement('span');point.className='notif-point';
+if(m.lu) point.style.visibility='hidden';
+const corps=document.createElement('div');corps.style.cssText='flex:1;min-width:0';
+const t=document.createElement('div');t.className='name';t.textContent=m.titre||'Message de NioHub';
+const x=document.createElement('div');x.className='notif-texte';x.textContent=m.texte;
+corps.append(t,x);
+const hr=document.createElement('div');hr.className='notif-heure';hr.textContent=heureRelative(m.created_at);
+l.append(point,corps,hr);
+l.onclick=()=>ouvrirDetailNio(m.id);
+page.append(l);
+});
+// ----- nouveautés (messages, avis, commandes…) : elles disparaissent quand on les ouvre -----
+const autres=itemsNotif.filter(i=>i.cle!=='nio');
+if(autres.length){
+const e2=document.createElement('div');
+e2.className='titre-section';e2.style.marginTop='18px';e2.textContent='Nouveautés';
+page.append(e2);
 const tout=document.createElement('button');
 tout.className='notif-tout';tout.type='button';tout.textContent='Tout marquer comme lu';
 tout.onclick=marquerToutVu;
 page.append(tout);
-itemsNotif.forEach(it=>{
+autres.forEach(it=>{
 const l=document.createElement('div');
 l.className='ligne notif-item';
 l.style.cursor='pointer';
@@ -335,9 +419,12 @@ l.onclick=()=>it.aller();
 page.append(l);
 });
 }
-function voirNotifications(){
+}
+async function voirNotifications(){
+detailNioId=null;
 dessinerNotifications();
 montrer('notifications');
+if(await chargerInboxNio()&&vueCourante==='notifications'&&detailNioId===null) dessinerNotifications();
 }
 
 
@@ -452,9 +539,10 @@ try{
 const q=new URLSearchParams(location.search);
 const cible=q.get('ouvrir');
 const conv=(q.get('v')&&q.get('a'))?{p:q.get('p'),v:q.get('v'),a:q.get('a')}:null;
-if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible,conv),700);setTimeout(()=>{if(!conv||typeof vueCourante==='undefined'||vueCourante!=='chat') ouvrirDepuisNotif(cible,conv);},1800);}
+const nid=q.get('nid');
+if(cible){history.replaceState(null,'',location.pathname);setTimeout(()=>ouvrirDepuisNotif(cible,conv,nid),700);setTimeout(()=>{if(cible==='nio'||!conv||typeof vueCourante==='undefined'||vueCourante!=='chat') ouvrirDepuisNotif(cible,conv,nid);},1800);}
 }catch(e){}
-if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir,ev.data.conv||null);});
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.ouvrir) ouvrirDepuisNotif(ev.data.ouvrir,ev.data.conv||null,ev.data.nid||null);});
 }
 function majCompteurs(){return recupererNotif(false);}
 // Le calcul des pastilles et des notifications attend que l'accueil soit affiché

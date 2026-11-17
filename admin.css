@@ -112,3 +112,8 @@ nav{padding-top:12px}
 .verdict{margin:10px 0;padding:10px 12px;border-radius:12px;font-weight:700;font-size:14px}
 .verdict.oui{background:#10301F;color:var(--vert);border:1px solid var(--vert)}
 .verdict.non{background:#2E1511;color:var(--rouge);border:1px solid #7A2B24}
+
+.dialogue-aide{margin:0 0 10px;color:var(--doux);font-size:13px;line-height:1.4}
+.dialogue-texte{width:100%;border-radius:12px;border:1px solid var(--bord);background:var(--carte);color:var(--texte);padding:12px;font-size:16px;font-family:inherit;line-height:1.45;resize:vertical;min-height:170px}
+.dialogue-pied{flex-wrap:wrap}
+.dialogue-pied button{min-width:calc(50% - 5px)}

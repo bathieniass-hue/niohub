@@ -365,3 +365,15 @@ body.sombre .bulle-actions button{background:#2E1511;color:#FF8A7E;box-shadow:in
 
 .verifie{color:#0E6B47;font-size:12px;font-weight:700}
 body.sombre .verifie{color:#3BBF4B}
+
+/* ===== Messages de NioHub ===== */
+.nio-ligne.non-lu .name{font-weight:800}
+.nio-detail{margin-top:12px}
+.nio-titre{font-size:19px;font-weight:800}
+.nio-date{font-size:12px;color:#6B6254;margin:2px 0 12px}
+.nio-texte{font-size:16px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+body.sombre .nio-date{color:#9DB5A5}
+.nio-boutique{margin-top:12px;border-color:#E0A52E}
+.nio-boutique .nio-resume{font-size:14px;margin:6px 0 10px;color:#6B6254}
+body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
+.nio-boutique .btn2{margin:0;height:42px}

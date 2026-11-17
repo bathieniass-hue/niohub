@@ -137,7 +137,7 @@ const ios=/iPhone|iPad|iPod/.test(self.navigator.userAgent||'');
 if(!ios&&fenetres.some(f=>f.visibilityState==='visible')) return;
 const icone=(await iconeComposee(d.photo))||'icon-192.png';
 // Chaque notification est séparée : les anciennes ne sont plus remplacées
-await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:icone,badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||'',conv:d.conv||null,url:d.url||''}});
+await self.registration.showNotification(d.titre||'NioHub',{body:d.corps||'',icon:icone,badge:'icon-192.png',tag:(d.tag||'niohub')+'-'+Date.now(),timestamp:Date.now(),data:{ouvrir:d.ouvrir||'',conv:d.conv||null,url:d.url||'',nid:d.nid||null}});
 await majPastilleApp();
 })());
 });
@@ -170,6 +170,7 @@ const conv=data.conv||null;
 let url='./';
 if(cible){
 url+='?ouvrir='+encodeURIComponent(cible);
+if(data.nid) url+='&nid='+encodeURIComponent(data.nid);
 if(conv&&conv.v&&conv.a) url+='&p='+encodeURIComponent(conv.p==null?'':conv.p)+'&v='+encodeURIComponent(conv.v)+'&a='+encodeURIComponent(conv.a);
 }
 e.waitUntil((async()=>{
@@ -178,14 +179,14 @@ const fenetres=await clients.matchAll({type:'window',includeUncontrolled:true});
 const f=fenetres.find(x=>x.visibilityState==='visible')||fenetres[0];
 if(f){
 if(f.visibilityState==='visible'){
-if(cible) f.postMessage({ouvrir:cible,conv:conv});
+if(cible) f.postMessage({ouvrir:cible,conv:conv,nid:data.nid||null});
 try{await f.focus();}catch(err){}
 return;
 }
 // Application en arrière-plan : on la recharge directement sur le bon écran (plus fiable qu'un simple message)
 try{await f.focus();}catch(err){}
 try{if(f.navigate&&cible){await f.navigate(url);return;}}catch(err){}
-if(cible) f.postMessage({ouvrir:cible,conv:conv});
+if(cible) f.postMessage({ouvrir:cible,conv:conv,nid:data.nid||null});
 return;
 }
 if(clients.openWindow) return clients.openWindow(url);

@@ -12,10 +12,11 @@ produits:{titre:'Produits',img:['photo']},
 profils:{titre:'Profils',img:[]},
 commandes:{titre:'Commandes',img:[]},
 avis:{titre:'Avis',img:[]},
-messages:{titre:'Messages',img:[]}
+messages:{titre:'Messages',img:[]},
+notifications_nio:{titre:'Messages envoyés',img:[]}
 };
 const SANS_MODIF=['id','created_at','updated_at'];
-const LIBELLE_DATE={produits:'Publié le',boutiques:'Créée le',profils:'Inscrit le',commandes:'Passée le',avis:'Publié le',messages:'Envoyé le'};
+const LIBELLE_DATE={produits:'Publié le',boutiques:'Créée le',profils:'Inscrit le',commandes:'Passée le',avis:'Publié le',messages:'Envoyé le',notifications_nio:'Envoyé le'};
 
 // ---------- petits outils ----------
 function h(tag,attrs,...enfants){
@@ -317,6 +318,70 @@ c.replaceChildren(h('div',{class:'grille'},cartes));
 afficherPastilles();
 }
 
+// ---------- messages de l'administration aux utilisateurs ----------
+const SIGNATURE="\n\nPour toute question, écrivez-nous depuis « Nous contacter ».\nL'équipe NioHub";
+const MODELES={
+produit_supprime:nom=>['Produit supprimé','Bonjour,\n\nVotre produit « '+nom+' » a été supprimé de NioHub par notre équipe.\nMotif : '+SIGNATURE],
+boutique_suspendue:nom=>['Boutique suspendue','Bonjour,\n\nVotre boutique « '+nom+' » a été suspendue. Vos produits ne sont plus visibles par les acheteurs.\nMotif : '+SIGNATURE],
+boutique_en_attente:nom=>['Boutique remise en attente','Bonjour,\n\nVotre boutique « '+nom+' » est remise en attente de validation. Vos produits sont masqués le temps de la vérification.\nMotif : '+SIGNATURE],
+boutique_validee:nom=>['Boutique validée','Bonjour,\n\nBonne nouvelle : votre boutique « '+nom+' » est validée et votre numéro de téléphone est vérifié. Vos produits sont visibles par les acheteurs.\nMerci de votre confiance !\nL\'équipe NioHub'],
+numero_valide:nom=>['Numéro vérifié','Bonjour,\n\nVotre numéro de téléphone est vérifié pour votre boutique « '+nom+' ».\nL\'équipe NioHub'],
+boutique_supprimee:nom=>['Boutique supprimée','Bonjour,\n\nVotre boutique « '+nom+' » a été supprimée de NioHub par notre équipe.\nMotif : '+SIGNATURE],
+avis_supprime:nom=>['Avis supprimé','Bonjour,\n\nVotre avis sur « '+nom+' » a été supprimé par notre équipe.\nMotif : '+SIGNATURE],
+message:()=>['Message de NioHub','Bonjour,\n\n\n\nL\'équipe NioHub']
+};
+function destinataireDe(table,r){
+if(table==='avis') return r.acheteur_id||null;
+if(table==='produits'||table==='boutiques'||table==='profils') return r.user_id||null;
+return null;
+}
+// Fenêtre : le message est déjà écrit, on peut le modifier. Renvoie {texte} (à envoyer), {texte:null} (continuer sans message) ou null (annuler).
+function dialogueMessage(cfg){
+return new Promise(resolve=>{
+const fond=h('div',{class:'dialogue-fond'});
+const zone=h('textarea',{class:'dialogue-texte',rows:'9'});
+zone.value=cfg.texte||'';
+function fermer(res){fond.remove();resolve(res);}
+const pied=h('div',{class:'dialogue-pied'});
+pied.append(h('button',{type:'button',onclick:()=>fermer(null)},'Annuler'));
+if(cfg.non) pied.append(h('button',{type:'button',onclick:()=>fermer({texte:null})},cfg.non));
+pied.append(h('button',{type:'button',class:'valider',onclick:()=>{
+const t=zone.value.trim();
+if(!t){toast('Écrivez le message.',true);return;}
+fermer({texte:t});
+}},cfg.oui||'Envoyer'));
+fond.append(h('div',{class:'dialogue'},h('h3',null,cfg.titre||'Message à l\'utilisateur'),h('p',{class:'dialogue-aide'},'Le message est déjà écrit : vous pouvez le modifier avant de l\'envoyer. Il arrive dans les notifications de l\'utilisateur.'),zone,pied));
+document.body.append(fond);
+});
+}
+async function envoyerNotifNio(userId,type,titre,texte,ref){
+try{
+const r=await api('notifications_nio',{methode:'POST',corps:{user_id:userId,type:type,titre:titre,texte:texte,ref:ref||null}});
+if(!r.ok){
+if(r.status===404) throw new Error('Activez d\'abord les messages (texte SQL du point 5).');
+const t=await r.text();throw new Error(t.slice(0,120));
+}
+toast('Message envoyé');
+return true;
+}catch(e){
+toast('Message non envoyé : '+(e.message||'erreur'),true);
+return false;
+}
+}
+// Prépare un message : renvoie null (annuler), ou {texte, titre, type, userId}
+async function preparerMessage(table,r,type,cfg){
+const dest=destinataireDe(table,r);
+if(!dest) return {texte:null};
+const nom=r.nom||r.produit||'';
+const [titre,texte]=MODELES[type](nom);
+const rep=await dialogueMessage({titre:cfg&&cfg.titre||titre,texte:texte,oui:cfg&&cfg.oui,non:cfg&&cfg.non});
+if(rep===null) return null;
+return {texte:rep.texte,titre:titre,type:type,userId:dest,ref:nom};
+}
+async function envoyerSiBesoin(m){
+if(m&&m.texte) await envoyerNotifNio(m.userId,m.type,m.titre,m.texte,m.ref);
+}
+
 // ---------- validation des boutiques et des numéros ----------
 function sqlValidation(){
 return `-- Validation des boutiques par WhatsApp
@@ -427,7 +492,12 @@ const memeNumero=!!telProfil&&telsBoutique.some(t=>neuf(t)===neuf(telProfil));
 const ligne=(a,b2)=>h('div',{class:'ligne-verif'},h('span',null,a),h('b',null,b2||'—'));
 const verdict=!telsBoutique.length?h('div',{class:'verdict non'},'Aucun numéro sur la boutique'):!telProfil?h('div',{class:'verdict non'},'Aucun numéro sur le profil'):memeNumero?h('div',{class:'verdict oui'},'✓ Même numéro sur la boutique et le profil'):h('div',{class:'verdict non'},'✗ Numéros différents');
 const actions=h('div',{class:'liens'});
-async function appliquer(champs,message){
+async function appliquer(champs,message,type){
+let msg={texte:null};
+if(type){
+msg=await preparerMessage('boutiques',r,type,{oui:'Valider et envoyer le message',non:'Valider sans message'});
+if(msg===null) return;
+}
 try{
 const pk=cle('boutiques',r);
 const r2=await api('boutiques?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'PATCH',corps:champs,entetes:{Prefer:'return=representation'}});
@@ -440,10 +510,11 @@ if(i>=0) Object.assign(etat.lignes[i],res[0]);
 toast(message);
 fermerFiche();
 if(etat.table==='boutiques') majLignes();
+await envoyerSiBesoin(msg);
 }catch(e){toast('Changement impossible : '+(e.message||'erreur'),true);}
 }
-if(!r.telephone_verifie||r.statut!=='validee') actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true,statut:'validee'},'Numéro et boutique validés')},'Valider le numéro et la boutique'));
-if(!r.telephone_verifie) actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true},'Numéro validé')},'Valider le numéro seulement'));
+if(!r.telephone_verifie||r.statut!=='validee') actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true,statut:'validee'},'Numéro et boutique validés','boutique_validee')},'Valider le numéro et la boutique'));
+if(!r.telephone_verifie) actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:true},'Numéro validé','numero_valide')},'Valider le numéro seulement'));
 if(r.telephone_verifie) actions.append(h('button',{onclick:()=>appliquer({telephone_verifie:false},'Vérification retirée')},'Retirer la vérification'));
 carte.replaceChildren(
 h('h2',null,'Vérification du numéro'),
@@ -614,7 +685,7 @@ supportTimer=setInterval(()=>{if(!f.hidden&&document.visibilityState==='visible'
 const STATUTS={validee:'Validée',en_attente:'En attente',suspendue:'Suspendue'};
 function resume(table,r){
 const titre=r.nom||r.produit||r.titre||r.email||r.statut||('#'+court(r.id||r.user_id||'',8));
-const champs=table==='produits'?['prix','categorie','etat']:table==='boutiques'?['statut','adresse','ville','telephone']:table==='profils'?['telephone','adresse','email']:table==='commandes'?['statut','total','prix','mode_livraison']:table==='avis'?['note','texte']:['expediteur','texte'];
+const champs=table==='produits'?['prix','categorie','etat']:table==='boutiques'?['statut','adresse','ville','telephone']:table==='profils'?['telephone','adresse','email']:table==='commandes'?['statut','total','prix','mode_livraison']:table==='avis'?['note','texte']:table==='notifications_nio'?['texte']:['expediteur','texte'];
 const sous=champs.filter(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='').map(k=>k==='prix'||k==='total'?prixTexte(r[k]):(k==='statut'&&table==='boutiques'?(STATUTS[r[k]]||r[k]):String(r[k]))).join(' · ');
 const verifie=(table==='boutiques'&&r.telephone_verifie)?' · Numéro vérifié':'';
 return {titre:court(titre,60),sous:court(sous+verifie,90)};
@@ -737,6 +808,10 @@ return 'texte';
 function liensFiche(table,r){
 const l=[];
 const uid=r.user_id;
+if(destinataireDe(table,r)) l.push(['Envoyer un message',async()=>{
+const m=await preparerMessage(table,r,'message',{titre:'Message à l\'utilisateur',oui:'Envoyer'});
+if(m&&m.texte) await envoyerNotifNio(m.userId,'message','Message de NioHub',m.texte,'');
+}]);
 if(table==='boutiques'&&r.statut!==undefined){
 if(r.statut!=='validee') l.push(['Valider la boutique',()=>changerStatut(table,r,'validee')]);
 if(r.statut!=='suspendue') l.push(['Suspendre',()=>changerStatut(table,r,'suspendue')]);
@@ -754,6 +829,9 @@ async function changerStatut(table,r,statut){
 const pk=cle(table,r);
 if(!pk) return;
 if(statut==='suspendue'&&!confirm('Suspendre « '+resume(table,r).titre+' » ? Ses produits ne seront plus visibles par les acheteurs.')) return;
+const type=statut==='suspendue'?'boutique_suspendue':statut==='validee'?'boutique_validee':'boutique_en_attente';
+const msg=await preparerMessage(table,r,type,{oui:'Appliquer et envoyer le message',non:'Appliquer sans message'});
+if(msg===null) return;
 try{
 const r2=await api(table+'?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'PATCH',corps:{statut:statut},entetes:{Prefer:'return=representation'}});
 if(!r2.ok){const t=await r2.text();throw new Error(t.slice(0,160));}
@@ -763,6 +841,7 @@ Object.assign(r,res[0]);
 const i=etat.lignes.findIndex(x=>x[pk]===r[pk]);
 if(i>=0) Object.assign(etat.lignes[i],res[0]);
 toast(statut==='validee'?'Boutique validée':statut==='suspendue'?'Boutique suspendue':'Remise en attente');
+await envoyerSiBesoin(msg);
 fermerFiche();
 if(etat.table===table) majLignes();
 }catch(e){
@@ -1124,6 +1203,12 @@ bSuppr.onclick=async()=>{
 const pk=cle(table,r);
 if(!pk) return;
 if(!confirm('Supprimer définitivement « '+re.titre+' » ? Cette action ne peut pas être annulée.')) return;
+let msg={texte:null};
+const typeSuppr={produits:'produit_supprime',boutiques:'boutique_supprimee',avis:'avis_supprime'}[table];
+if(typeSuppr){
+msg=await preparerMessage(table,r,typeSuppr,{titre:'Prévenir l\'utilisateur ?',oui:'Supprimer et envoyer le message',non:'Supprimer sans message'});
+if(msg===null) return;
+}
 bSuppr.disabled=true;
 try{
 const r2=await api(table+'?'+pk+'=eq.'+encodeURIComponent(r[pk]),{methode:'DELETE',entetes:{Prefer:'return=representation'}});
@@ -1134,6 +1219,7 @@ etat.lignes=etat.lignes.filter(x=>x[pk]!==r[pk]);
 toast('Supprimé');
 fermerFiche();
 if(etat.table===table) majLignes();
+await envoyerSiBesoin(msg);
 }catch(e){
 toast('Suppression impossible : '+(e.message||'erreur'),true);
 bSuppr.disabled=false;

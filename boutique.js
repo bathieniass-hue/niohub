@@ -106,6 +106,7 @@ if(b.statut&&b.statut!=='validee'&&b.statut!=='en_attente'){
 const susp=b.statut==='suspendue';
 zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#B4291A"><b>'+(susp?'Votre boutique est suspendue.':'Votre boutique est en attente de validation.')+'</b><br>'+(susp?'Vos produits ne sont plus visibles par les acheteurs. Contactez NioHub pour en savoir plus.':'Vos produits seront visibles dès qu\'elle sera validée.')+'</div>');
 }
+afficherNotifsBoutique(b);
 actions.innerHTML=`<div class="tuiles">
 <button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages<span class="pastille" data-compteur="messages" style="display:none"></span></button>
 <button id="tuile-avis" class="tuile" onclick="voirAvisRecus()"><span class="gb-ic" style="--i:1" aria-hidden="true"></span>Avis reçus<span class="pastille" data-compteur="avis" style="display:none"></span></button>
@@ -318,4 +319,55 @@ const num=numeroVerification.length===9?'221'+numeroVerification:numeroVerificat
 const url='https://wa.me/'+num+'?text='+encodeURIComponent(messageVerification(b));
 const w=window.open(url,'_blank','noopener');
 if(!w) window.location.href=url;
+}
+
+// ---------- résumé des messages de NioHub concernant la boutique ----------
+// Suspension / remise en attente : le résumé reste tant que le statut est le même.
+// Autres messages (produit supprimé, boutique validée…) : ils disparaissent 24 h après avoir été lus.
+const TYPES_BOUTIQUE_TEMPORAIRES=['produit_supprime','boutique_validee','numero_valide','boutique_supprimee'];
+function notifsPourBoutique(liste,b){
+const maintenant=Date.now();
+const sortie=[];
+let aSuspension=false,aAttente=false;
+liste.forEach(m=>{
+if(m.type==='boutique_suspendue'){
+if(b.statut==='suspendue'&&!aSuspension){aSuspension=true;sortie.push(m);}
+}else if(m.type==='boutique_en_attente'){
+if(b.statut==='en_attente'&&!aAttente){aAttente=true;sortie.push(m);}
+}else if(TYPES_BOUTIQUE_TEMPORAIRES.includes(m.type)){
+const luDepuis=m.lu&&m.lu_le?maintenant-Date.parse(m.lu_le):0;
+if(!m.lu||luDepuis<86400000) sortie.push(m);
+}
+});
+return sortie.slice(0,3);
+}
+async function afficherNotifsBoutique(b){
+const zone=document.getElementById('boutique-zone')||document.getElementById('boutique-actions');
+if(!zone) return;
+let cadre=document.getElementById('boutique-notifs');
+if(!cadre){
+cadre=document.createElement('div');
+cadre.id='boutique-notifs';
+(document.getElementById('boutique-actions')||zone).insertAdjacentElement('beforebegin',cadre);
+}
+cadre.replaceChildren();
+try{
+const s=await sessionValide();
+if(!s||!s.user_id) return;
+const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=*&user_id=eq.'+s.user_id+'&order=created_at.desc&limit=30',{headers:entetesAuth(s)});
+if(!r.ok) return;
+const liste=notifsPourBoutique(await r.json(),b);
+liste.forEach(m=>{
+const c=document.createElement('div');
+c.className='liste nio-boutique'+(m.lu?'':' non-lu');
+const t=document.createElement('b');t.textContent=m.titre||'Message de NioHub';
+const x=document.createElement('div');x.className='nio-resume';
+const texte=String(m.texte||'').replace(/\s+/g,' ').trim();
+x.textContent=texte.length>110?texte.slice(0,109)+'…':texte;
+const v=document.createElement('button');v.className='btn2';v.type='button';v.textContent='Voir plus';
+v.onclick=()=>{if(typeof ouvrirDetailNio==='function') ouvrirDetailNio(m.id);};
+c.append(t,x,v);
+cadre.append(c);
+});
+}catch(e){}
 }
