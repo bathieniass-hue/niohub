@@ -1,6 +1,5 @@
 const CLE_SESSION='niohub_session_v2';
 const GOOGLE_CLIENT_ID='50169831108-3s06f0e470g65mepslf0a54ht49hjaci.apps.googleusercontent.com';
-
 function lireSession(){try{return JSON.parse(localStorage.getItem(CLE_SESSION)||'null');}catch(e){return null;}}
 function enregistrerSession(s){localStorage.setItem(CLE_SESSION,JSON.stringify(s));}
 function oublierSession(){
@@ -13,16 +12,13 @@ if(typeof fileMessages!=='undefined') fileMessages=[];
 }catch(e){}
 }
 function nomComplet(){const s=lireSession();return (s&&s.nom)||'';}
-
 function mettreAJourSession(champs){
 const s=lireSession();
 if(!s) return;
 Object.assign(s,champs);
 enregistrerSession(s);
 }
-
 const MESSAGE_TEL='Numéro sénégalais invalide : 9 chiffres commençant par 7 (ex. 77 123 45 67).';
-
 function normaliserTelephone(t){
 let n=String(t||'').replace(/\D/g,'');
 if(n.startsWith('00221')) n=n.slice(5);
@@ -36,7 +32,6 @@ return [n.slice(0,2),n.slice(2,5),n.slice(5,7),n.slice(7,9)].filter(Boolean).joi
 }
 function telephoneValide(t){return /^7\d{8}$/.test(normaliserTelephone(t));}
 function lienAppel(t){const n=chiffresTelephone(t);return n?'tel:+221'+n:'#';}
-
 document.addEventListener('input',e=>{
 const el=e.target;
 if(!el||el.tagName!=='INPUT'||el.type!=='tel') return;
@@ -51,7 +46,6 @@ while(i<f.length&&c<chiffresAvant){if(/\d/.test(f[i])) c++;i++;}
 try{el.setSelectionRange(i,i);}catch(err){}
 }
 });
-
 function sauverTokens(j){
 const anc=lireSession()||{};
 const meme=!j.user||anc.user_id===j.user.id;
@@ -68,9 +62,7 @@ adresse:meme?(anc.adresse||null):null
 enregistrerSession(s);
 return s;
 }
-
 function traduire(j){return String(j.msg||j.error_description||j.error||'Connexion impossible. Réessayez.');}
-
 async function sessionValide(){
 const s=lireSession();
 if(!s||!s.access_token) return null;
@@ -86,7 +78,6 @@ return sauverTokens(await r.json());
 return s;
 }
 }
-
 async function chargerProfil(s){
 try{
 const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
@@ -95,7 +86,6 @@ const lignes=await r.json();
 return {profil:lignes[0]||null};
 }catch(e){return {erreur:true};}
 }
-
 async function assurerProfil(s){
 if(s.nom) return 'ok';
 const res=await chargerProfil(s);
@@ -108,12 +98,12 @@ s.photo=res.profil.photo||null;
 enregistrerSession(s);
 return 'ok';
 }
-
 function injecterStyle(){
 const st=document.createElement('style');
 st.textContent=`
 #auth{display:none;position:fixed;top:0;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;overflow-y:auto;background:#FBF7EE;z-index:50}
-.auth-haut{background:linear-gradient(160deg,#0E6B47 0%,#0A4D33 100%);color:#fff;padding:60px 24px 90px;text-align:center;border-radius:0 0 32px 32px}
+.auth-haut{position:relative;background:linear-gradient(160deg,#0E6B47 0%,#0A4D33 100%);color:#fff;padding:60px 24px 90px;text-align:center;border-radius:0 0 32px 32px}
+.auth-retour{position:absolute;top:16px;left:16px;width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:22px;line-height:1;padding:0;cursor:pointer}
 .auth-logo{display:block;width:96px;height:96px;margin:0 auto 10px;object-fit:contain}
 .auth-titre{margin:0;font-size:28px;font-weight:800;color:#fff}
 .auth-sous{margin-top:8px;font-size:14px;line-height:1.5;opacity:.92}
@@ -129,14 +119,13 @@ st.textContent=`
 `;
 document.head.appendChild(st);
 }
-
+function fermerAuth(){voirAccueil();}
 function construireAuth(){
 const a=document.createElement('div');
 a.id='auth';
-a.innerHTML=`<div class="auth-haut"><img class="auth-logo" src="logo-n.png" alt="NioHub"><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
+a.innerHTML=`<div class="auth-haut"><button type="button" class="auth-retour" onclick="fermerAuth()" aria-label="Retour à l'accueil">←</button><img class="auth-logo" src="logo-n.png" alt="NioHub"><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
 document.body.appendChild(a);
 }
-
 function construireZoneProfil(){
 const profil=document.getElementById('profil');
 const avatar=profil.querySelector(':scope > .boutique');
@@ -145,7 +134,6 @@ const zone=document.createElement('div');
 zone.id='compte-zone';
 profil.querySelector('header').insertAdjacentElement('afterend',zone);
 }
-
 const montrerOriginal=montrer;
 montrer=function(vue){
 const estAuth=vue==='auth';
@@ -153,7 +141,6 @@ const auth=document.getElementById('auth');
 if(auth) auth.style.display=estAuth?'block':'none';
 montrerOriginal(estAuth?'__aucune__':vue);
 };
-
 function chargerGoogle(){
 return new Promise((ok,ko)=>{
 if(window.google&&window.google.accounts&&window.google.accounts.id) return ok();
@@ -164,9 +151,7 @@ s.onerror=()=>ko();
 document.head.appendChild(s);
 });
 }
-
 let googleInitialise=false;
-
 async function rendrerBoutonGoogle(){
 const zone=document.getElementById('g-bouton');
 if(!zone) return;
@@ -182,27 +167,26 @@ google.accounts.id.renderButton(zone,{theme:'outline',size:'large',shape:'pill',
 zone.textContent='Connexion Google indisponible pour le moment.';
 }
 }
-
 function afficherConnexion(){
 document.getElementById('auth-corps').innerHTML=`
 <h2>Bienvenue</h2>
 <p>Connectez-vous pour acheter, vendre et gérer votre boutique en toute sécurité.</p>
 <div class="g-enveloppe"><div id="g-bouton"></div></div>
 <div id="c-msg" class="msg"></div>
+<button type="button" class="auth-lien" onclick="fermerAuth()">Continuer sans compte</button>
 <div class="auth-pied">En continuant, vous acceptez les <a href="conditions.html" target="_blank" rel="noopener" style="color:#0E6B47;font-weight:bold">conditions d'utilisation et la politique de confidentialité</a> de NioHub.</div>`;
 montrer('auth');
 rendrerBoutonGoogle();
 }
-
 function afficherErreurReseau(){
 document.getElementById('auth-corps').innerHTML=`
 <h2>Connexion impossible</h2>
 <p>Nous n'arrivons pas à joindre le serveur. Vérifiez votre connexion internet puis réessayez.</p>
 <button class="btn-plein" onclick="verifierAcces()">Réessayer</button>
-<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
+<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>
+<button type="button" class="auth-lien" onclick="fermerAuth()">Retour à l'accueil</button>`;
 montrer('auth');
 }
-
 function afficherCompletion(){
 document.getElementById('auth-corps').innerHTML=`
 <h2>Presque terminé</h2>
@@ -218,7 +202,6 @@ document.getElementById('auth-corps').innerHTML=`
 <button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
 montrer('auth');
 }
-
 async function connexionGoogle(reponse){
 const msg=document.getElementById('c-msg');
 if(msg) msg.textContent='';
@@ -232,7 +215,6 @@ await verifierAcces();
 if(msg) msg.textContent='Connexion impossible. Réessayez.';
 }
 }
-
 async function verifierAcces(){
 try{
 if(!navigator.onLine){afficherErreurReseau();return;}
@@ -246,7 +228,6 @@ montrer('accueil');
 afficherErreurReseau();
 }
 }
-
 // Au démarrage : on reste sur l'accueil. La connexion n'est demandée que pour une action qui en a besoin.
 async function verifierAccesSilencieux(){
 try{
@@ -257,9 +238,7 @@ const etat=await assurerProfil(s);
 if(etat==='erreur'||etat==='creer') return;
 }catch(e){}
 }
-
 let profilEnCours=false;
-
 async function creerProfil(){
 if(profilEnCours) return;
 const msg=document.getElementById('c-msg');
@@ -301,7 +280,6 @@ s.adresse=adresse||null;
 enregistrerSession(s);
 montrer('accueil');
 }
-
 async function afficherProfilCarte(){
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
@@ -317,13 +295,11 @@ const photo=urlSure(s.photo);
 if(s.photo===undefined) chargerProfil(s).then(res=>{if(res.profil){mettreAJourSession({photo:res.profil.photo||null});if(res.profil.photo&&vueCourante==='profil') afficherProfilCarte();}});
 zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?formaterTelephone(s.telephone):'')}</div></div></div>`;
 }
-
 function seDeconnecter(){
 oublierSession();
 if(window.google&&window.google.accounts&&window.google.accounts.id) window.google.accounts.id.disableAutoSelect();
 verifierAcces();
 }
-
 const ouvrirFormBoutiqueAvant=ouvrirFormBoutique;
 ouvrirFormBoutique=async function(){
 await ouvrirFormBoutiqueAvant();
@@ -333,7 +309,6 @@ const adr=document.getElementById('bt-adresse');
 if(tel) tel.placeholder=s.telephone||'Téléphone';
 if(adr) adr.placeholder=s.adresse||'Quartier, repère';
 };
-
 const enregistrerBoutiqueAvant=enregistrerBoutique;
 enregistrerBoutique=async function(){
 const s=lireSession()||{};
@@ -343,10 +318,8 @@ if(tel&&!tel.value.trim()&&s.telephone) tel.value=formaterTelephone(s.telephone)
 if(adr&&!adr.value.trim()&&s.adresse) adr.value=s.adresse;
 return enregistrerBoutiqueAvant();
 };
-
 const voirProfilAvant=voirProfil;
 voirProfil=function(){voirProfilAvant();afficherProfilCarte();};
-
 injecterStyle();
 construireAuth();
 construireZoneProfil();
