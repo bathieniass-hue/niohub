@@ -70,6 +70,11 @@ return r;
 }
 
 // ---------- écran de configuration (si pas encore administrateur) ----------
+// Échappement correct d'une chaîne pour un littéral SQL entre apostrophes.
+// Gère l'antislash et l'apostrophe, dans le bon ordre.
+function sqlLitteral(s){
+return "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"''") + "'";
+}
 function sqlConfig(email){
 return `-- 1) Liste des administrateurs
 create table if not exists public.admins (user_id uuid primary key references auth.users(id) on delete cascade);
@@ -98,7 +103,7 @@ end $$;
 
 -- 4) Vous, comme administrateur (avec l'adresse Google utilisée pour vous connecter)
 insert into public.admins (user_id)
-select id from auth.users where email = '${String(email||'votre.adresse@gmail.com').replace(/'/g,"''")}'
+select id from auth.users where email = ${sqlLitteral(email||'votre.adresse@gmail.com')}
 on conflict do nothing;`;
 }
 function ecranConfig(s){
@@ -291,9 +296,21 @@ dessinerListe();
 chargerPage();
 }
 
+// Clé primaire de chaque table (pour ne pas tirer une ligne entière à chaque comptage)
+const PK_COL={
+boutiques:'id',
+produits:'id',
+profils:'user_id',
+commandes:'id',
+avis:'id',
+messages:'id',
+notifications_nio:'id',
+support_messages:'id'
+};
 async function compter(table,filtre){
 try{
-const r=await api(table+'?select=*'+(filtre?'&'+filtre:''),{entetes:{Prefer:'count=exact',Range:'0-0'}});
+const col=PK_COL[table]||'id';
+const r=await api(table+'?select='+col+(filtre?'&'+filtre:''),{entetes:{Prefer:'count=exact',Range:'0-0'}});
 if(!r.ok&&r.status!==206) return null;
 const cr=r.headers.get('content-range')||'';
 const n=Number(cr.split('/')[1]);
