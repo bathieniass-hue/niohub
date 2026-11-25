@@ -1,76 +1,23 @@
-let produitOuvert=null;
-let commandeEnCours=false;
-
-const ouvrirAvantCommande=ouvrir;
-ouvrir=function(i){
-produitOuvert=tous()[i];
-ouvrirAvantCommande(i);
-afficherBoutiqueFiche(produitOuvert.user_id||null);
-};
-
-function prixNombre(texte){
-return parseInt(String(texte||'').replace(/\D/g,''),10)||0;
-}
-
-async function voirCommande(){
-const s=await sessionValide();
-if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
-if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){bandeau('Ce produit de démonstration ne peut pas être commandé.');return;}
-if(produitOuvert.user_id===s.user_id){bandeau('Vous ne pouvez pas commander votre propre produit.','erreur');return;}
-document.getElementById('cmd-produit').textContent=produitOuvert.nom+' · '+produitOuvert.prix;
-document.getElementById('cmd-nom').value=nomComplet();
-document.getElementById('cmd-tel').value=formaterTelephone(s.telephone);
-document.getElementById('cmd-adresse').value=s.adresse||'';
-document.getElementById('cmd-quantite').value='1';
-document.getElementById('cmd-msg').textContent='';
-montrer('commande');
-}
-
-function retourFiche(){montrer('fiche');}
-
-async function envoyerCommande(){
-if(commandeEnCours) return;
-commandeEnCours=true;
-const msg=document.getElementById('cmd-msg');
-const bouton=document.querySelector('#commande .btn');
-const texteBouton=bouton?bouton.textContent:'';
-if(bouton){bouton.disabled=true;bouton.textContent='Envoi en cours…';}
-try{
-msg.textContent='';
-const s=await sessionValide();
-if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour commander.');montrer('profil');return;}
-if(!produitOuvert||!produitOuvert.user_id||!produitOuvert.id){msg.textContent='Produit introuvable. Retournez à la fiche et réessayez.';return;}
-if(produitOuvert.user_id===s.user_id){msg.textContent='Vous ne pouvez pas commander votre propre produit.';return;}
-const nom=document.getElementById('cmd-nom').value.trim();
-const tel=formaterTelephone(document.getElementById('cmd-tel').value);
-const adresse=document.getElementById('cmd-adresse').value.trim();
-const quantite=Number(document.getElementById('cmd-quantite').value);
-const paiement=document.getElementById('cmd-paiement').value;
-if(!nom||!tel){msg.textContent='Indiquez votre nom et votre téléphone.';return;}
-if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
-if(!Number.isInteger(quantite)||quantite<1||quantite>100){msg.textContent='La quantité doit être un nombre entre 1 et 100.';return;}
-if(nom.length>80||adresse.length>200){msg.textContent='Le nom ou l\'adresse est trop long.';return;}
-const prixUnitaire=prixNombre(produitOuvert.prix);
-const corps={
-produit_id:produitOuvert.id,
-produit:produitOuvert.nom,
-quantite:quantite,
-nom_client:nom,
-telephone:tel,
-adresse:adresse||null,
-paiement:paiement,
-vendeur_id:produitOuvert.user_id,
-acheteur_id:s.user_id
-};
-const r=await Donnees.commandes.creer(s,corps);
-if(!r.ok) throw new Error(r.status);
-const total=prixUnitaire*quantite;
-bandeau('Commande envoyée au vendeur'+(total?' · Total : '+total.toLocaleString('fr-FR')+' FCFA':'')+'.\n\nAucun paiement n\'a été fait dans l\'application. Le vendeur vous contactera : convenez avec lui du paiement ('+paiement+') et de la livraison.','succes',{duree:9000});
-voirAccueil();
-}catch(e){
-msg.textContent='Erreur, commande non envoyée. Réessayez.';
-}finally{
-commandeEnCours=false;
-if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}
-}
-}
+// Écran « commande » : uniquement du HTML, aucune logique.
+// Les boutons déclarent leur intention avec data-action (voir liaisons.js).
+(window.Ecrans=window.Ecrans||{})['commande']=`<div id="commande" class="page">
+<header><button class="retour" data-action="retourFiche">←</button><span style="font-weight:bold">Commander</span><span></span></header>
+<div class="liste" style="margin-top:0"><b id="cmd-produit"></b></div>
+<label>Votre nom</label>
+<input id="cmd-nom" placeholder="Ex. Fatou Diop">
+<label>Téléphone</label>
+<div class="champ-tel"><span class="indicatif">+221</span><input id="cmd-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
+<label>Adresse de livraison</label>
+<input id="cmd-adresse" placeholder="Quartier, repère">
+<label>Quantité</label>
+<input id="cmd-quantite" type="number" inputmode="numeric" value="1" min="1">
+<label>Paiement</label>
+<select id="cmd-paiement" style="width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px">
+<option>À la livraison</option>
+<option>Wave</option>
+<option>Orange Money</option>
+</select>
+<div id="cmd-msg" class="msg"></div>
+<button class="btn" style="margin-top:14px" data-action="confirmerCommande">Confirmer la commande</button>
+</div>
+`;

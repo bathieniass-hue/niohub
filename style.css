@@ -377,3 +377,6 @@ body.sombre .nio-date{color:#9DB5A5}
 .nio-boutique .nio-resume{font-size:14px;margin:6px 0 10px;color:#6B6254}
 body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
 .nio-boutique .btn2{margin:0;height:42px}
+
+/* Boutons des écrans (data-action) : le curseur « main » aide aussi iOS à envoyer le clic */
+[data-action]{cursor:pointer}

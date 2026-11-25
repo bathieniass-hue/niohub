@@ -20,122 +20,17 @@
 </head>
 <body class="sombre">
 <script>if(!document.documentElement.classList.contains('sombre'))document.body.classList.remove('sombre');</script>
-
-<div id="accueil">
-<div id="haut">
-<div class="repliable" id="rep-entete"><div class="interieur"><header><h1>NioHub</h1><div class="actions-haut"><button class="cloche" onclick="voirNotifications()" aria-label="Notifications"><span class="cloche-ic" aria-hidden="true"></span><span class="pastille-cloche" data-compteur="total" style="display:none"></span></button><button class="plus" onclick="voirAjout('accueil')">+</button></div></header></div></div>
-<div class="search">Rechercher un produit</div>
-<div class="repliable" id="rep-cats"><div class="interieur"><div class="cats" id="cats"></div></div></div>
-</div>
-<div class="grid" id="grid"></div>
-</div>
-
-<div id="fiche" class="fiche">
-<header><button class="retour" onclick="fermerFiche()">←</button><span style="font-weight:bold">Produit</span><span></span></header>
-<div class="photo" id="fphoto"></div>
-<div class="corps">
-<div class="prix" id="fprix"></div>
-<div class="titre" id="fnom"></div>
-<div class="desc" id="fdesc"></div>
-<div class="boutique"><b>Boutique</b></div>
-</div>
-<div class="bar" style="display:flex;gap:10px">
-<button class="btn2" style="margin-top:0;flex:1" onclick="voirMessage()">Message</button>
-<button class="btn" style="flex:1.4" onclick="voirCommande()">Commander</button>
-</div>
-</div>
-
-<div id="commande" class="page">
-<header><button class="retour" onclick="retourFiche()">←</button><span style="font-weight:bold">Commander</span><span></span></header>
-<div class="liste" style="margin-top:0"><b id="cmd-produit"></b></div>
-<label>Votre nom</label>
-<input id="cmd-nom" placeholder="Ex. Fatou Diop">
-<label>Téléphone</label>
-<div class="champ-tel"><span class="indicatif">+221</span><input id="cmd-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
-<label>Adresse de livraison</label>
-<input id="cmd-adresse" placeholder="Quartier, repère">
-<label>Quantité</label>
-<input id="cmd-quantite" type="number" inputmode="numeric" value="1" min="1">
-<label>Paiement</label>
-<select id="cmd-paiement" style="width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px">
-<option>À la livraison</option>
-<option>Wave</option>
-<option>Orange Money</option>
-</select>
-<div id="cmd-msg" class="msg"></div>
-<button class="btn" style="margin-top:14px" onclick="envoyerCommande()">Confirmer la commande</button>
-</div>
-
-<div id="ajout" class="page">
-<header><button class="retour" onclick="retourAjout()">←</button><span id="ajout-titre" style="font-weight:bold">Ajouter un produit</span><span></span></header>
-<div class="apercu" id="apercu" onclick="document.getElementById('photo').click()">+ Choisir une photo</div>
-<input type="file" id="photo" accept="image/*" style="display:none" onchange="choisirPhoto(event)">
-<label>Nom du produit</label>
-<input id="nom" placeholder="Ex. Boubou brodé">
-<label>Prix (FCFA)</label>
-<input id="prix" type="number" inputmode="numeric" placeholder="Ex. 25000">
-<label>Description</label>
-<textarea id="desc" placeholder="Décrivez le produit"></textarea>
-<button id="ajout-publier" class="btn" style="margin-top:20px" onclick="publier()">Publier</button>
-</div>
-
-<div id="boutique" class="page">
-<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="btn-modif" onclick="ouvrirFormBoutique()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
-<div id="infos-boutique"></div>
-<button class="btn" style="margin-top:14px" onclick="montrer('mesproduits');voirMesProduits()">Mes produits</button>
-<button class="btn2" onclick="voirAjout('boutique')">Ajouter un produit</button>
-<label>Commandes</label>
-<div id="commandes-liste" class="liste">Chargement…</div>
-<label>Messages des clients</label>
-<div id="messages-liste" class="liste">Chargement…</div>
-</div>
-
-<div id="boutique-form" class="page">
-<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Ma boutique</span><span></span></header>
-<label>Logo (photo)</label>
-<div class="apercu" id="bt-logo" style="width:120px;height:120px;border-radius:60px;margin:0 auto" onclick="document.getElementById('bt-photo').click()">+ Logo</div>
-<input type="file" id="bt-photo" accept="image/*" style="display:none" onchange="choisirLogo(event)">
-<label>Nom de la boutique</label>
-<input id="bt-nom">
-<label>Téléphone</label>
-<div class="champ-tel"><span class="indicatif">+221</span><input id="bt-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
-<label>Adresse</label>
-<input id="bt-adresse" placeholder="Quartier, repère">
-<label>Description</label>
-<textarea id="bt-desc"></textarea>
-<div id="bt-msg" class="msg"></div>
-<button class="btn" style="margin-top:14px" onclick="enregistrerBoutique()">Enregistrer ma boutique</button>
-</div>
-
-<div id="mesproduits" class="page">
-<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Mes produits</span><span></span></header>
-<button class="btn" onclick="voirAjout('mesproduits')">+ Ajouter un produit</button>
-<label>Produits publiés</label>
-<div id="bmes" class="liste">Chargement…</div>
-</div>
-
-<div id="profil" class="page">
-<header><span style="font-weight:bold;font-size:20px">Profil</span><button class="btn-modif" onclick="modifierProfil()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
-<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center">
-<div class="avatar">N</div>
-<div><div class="nomboutique" id="profil-nom" style="font-size:18px">Utilisateur test</div><div style="font-size:13px;color:#6B6254">Mode test, sans compte</div></div>
-</div>
-<div class="liste" style="margin-top:12px">
-<div class="ligne" onclick="voirBoutique()"><span class="icone-liste" style="--i:2" aria-hidden="true"></span><b style="flex:1">Ma boutique</b><span class="pastille-liste" data-compteur="boutique" style="display:none"></span><span>›</span></div>
-<div class="ligne" onclick="voirAchats()"><span class="icone-liste" style="--i:5" aria-hidden="true"></span><b style="flex:1">Mes achats</b><span class="pastille-liste" data-compteur="achats" style="display:none"></span><span>›</span></div>
-<div class="ligne" onclick="bandeau('Bientôt disponible')"><span class="icone-liste" style="--i:12" aria-hidden="true"></span><b style="flex:1">Adresses</b><span>›</span></div>
-<div class="ligne" onclick="voirParametres()"><span class="icone-liste" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#10301F,#050B07);box-shadow:inset 0 0 0 1.5px #3BBF4B" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="#2FB344" stroke-width="3" stroke-dasharray="2.3 2.25"></circle><circle cx="12" cy="12" r="6.2" fill="#2FB344" stroke="#EAF6EA" stroke-width="1.3"></circle><circle cx="12" cy="12" r="2.5" fill="#06210F"></circle></svg></span><b style="flex:1">Paramètres</b><span>›</span></div>
-<div class="ligne" onclick="voirContact()"><span class="icone-liste" style="--i:14" aria-hidden="true"></span><b style="flex:1">Nous contacter</b><span class="pastille-liste" data-compteur="support" style="display:none"></span><span>›</span></div>
-<div class="ligne" onclick="window.open('conditions.html','_blank')"><span class="icone-liste" style="--i:15" aria-hidden="true"></span><b style="flex:1">Conditions et confidentialité</b><span>›</span></div>
-<div class="ligne" onclick="deconnecter()"><span class="icone-liste" style="--i:13" aria-hidden="true"></span><b style="flex:1;color:#B4291A">Déconnecter</b><span>›</span></div>
-</div>
-</div>
-
-<nav id="menu">
-<button onclick="voirAccueil()"><span class="nav-ic" style="--i:0" aria-hidden="true"></span>Accueil</button>
-<button onclick="voirBoutique()"><span class="nav-ic" style="--i:1" aria-hidden="true"></span>Boutique<span class="pastille-nav" data-compteur="boutiqueNav" style="display:none"></span></button>
-<button onclick="voirProfil()"><span class="nav-ic" style="--i:2" aria-hidden="true"></span>Profil</button>
-</nav>
+<script src="ecrans/accueil.js"></script>
+<script src="ecrans/fiche.js"></script>
+<script src="ecrans/commande.js"></script>
+<script src="ecrans/ajout.js"></script>
+<script src="ecrans/boutique.js"></script>
+<script src="ecrans/boutique-form.js"></script>
+<script src="ecrans/mesproduits.js"></script>
+<script src="ecrans/profil.js"></script>
+<script src="ecrans/menu.js"></script>
+<script src="ecrans/monter.js"></script>
+<script src="ecrans/liaisons.js"></script>
 
 <script src="config.js"></script>
 <script src="donnees-hors-ligne.js"></script>
