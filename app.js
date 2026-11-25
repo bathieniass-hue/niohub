@@ -1,9 +1,3 @@
-const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
-const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
-
-// Mettre true pour revoir les 4 produits de démonstration
-const AFFICHER_DEMO=false;
-
 const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','boutique-form','profil','vitrine'];
 const VUES_MENU={accueil:0,boutique:1,'boutique-form':1,profil:2};
 
@@ -86,7 +80,6 @@ return s?'url('+s+') center/cover no-repeat':defaut;
 }
 function fond(p){return fondImage(p.photo,p.couleur);}
 
-const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
 
 function urlLocale(u){
 const t=String(u||'');
@@ -152,7 +145,7 @@ i.src=url;
 }
 
 async function televerserFichier(chemin,blob,s){
-const r=await fetch(SUPABASE_URL+'/storage/v1/object/photos/'+chemin,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'image/jpeg','cache-control':'max-age=31536000'},body:blob});
+const r=await Donnees.photos.envoyer(s,chemin,blob);
 if(!r.ok) throw new Error(r.status);
 }
 
@@ -173,7 +166,7 @@ const chemin=t.slice(PREFIXE_PHOTOS.length);
 const chemins=[chemin];
 if(chemin.endsWith('.jpg')&&!chemin.endsWith('_m.jpg')) chemins.push(chemin.replace(/\.jpg$/,'_m.jpg'));
 try{
-await fetch(SUPABASE_URL+'/storage/v1/object/photos',{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({prefixes:chemins})});
+await Donnees.photos.supprimer(s,chemins);
 }catch(e){}
 }
 
@@ -195,7 +188,7 @@ function voirProfil(){montrer('profil');}
 
 async function chargerBoutiquesCache(){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&order=created_at.asc',{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.boutiques.toutes();
 if(!r.ok) throw new Error(r.status);
 boutiquesCache=(await r.json()).filter(b=>!b.statut||b.statut==='validee');
 }catch(e){}
@@ -219,7 +212,7 @@ date:l.created_at||null
 }
 
 async function recupererLot(debut,taille){
-const r=await fetch(SUPABASE_URL+"/rest/v1/produits?select=*&order=created_at.desc&limit="+taille+"&offset="+debut,{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.produits.lot(debut,taille);
 if(!r.ok||r.headers.get('x-niohub-cache')==='1') throw new Error(String(r.status));
 return (await r.json()).map(mapperProduit);
 }
@@ -369,7 +362,7 @@ let filtre='';
 const mot=q.replace(/[^\p{L}\p{N} ]/gu,'').trim();
 if(mot) filtre+='&nom=ilike.*'+encodeURIComponent(mot)+'*';
 if(categorie) filtre+=categorie==='Autres'?'&or=(categorie.eq.Autres,categorie.is.null)':'&categorie=eq.'+encodeURIComponent(categorie);
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?select=*&order=created_at.desc&limit=60'+filtre,{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.produits.recents(filtre);
 if(!r.ok||r.headers.get('x-niohub-cache')==='1') return;
 const lignes=(await r.json()).map(mapperProduit);
 const ids=new Set(distants.map(x=>x.id));
@@ -383,7 +376,7 @@ rendreSiChange();
 
 async function chargerNotesVendeurs(){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/notes_vendeurs?select=vendeur_id,moyenne,nb',{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.avis.notesVendeurs();
 if(!r.ok) throw new Error(r.status);
 const m={};
 (await r.json()).forEach(l=>{m[l.vendeur_id]={moyenne:Number(l.moyenne),nb:Number(l.nb)};});
@@ -718,7 +711,7 @@ const p=distants.find(x=>x.id===id);
 if(!p||!s||p.user_id!==s.user_id){bandeau('Vous ne pouvez supprimer que vos produits.','erreur');return;}
 if(!(await confirmer('« '+p.nom+' » sera retiré de NioHub. Cette action est définitive.',{titre:'Supprimer ce produit ?',ok:'Supprimer',danger:true}))) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/produits?id=eq.'+id+'&user_id=eq.'+s.user_id,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,Prefer:'return=representation'}});
+const r=await Donnees.produits.supprimer(s,id);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 if(!lignes.length) throw new Error('refusé');

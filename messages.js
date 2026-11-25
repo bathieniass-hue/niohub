@@ -139,7 +139,7 @@ return `<div class="${classe}" style="background:${fondImage(personne.photo,'#F2
 // Pour le vendeur : nom, téléphone et photo des acheteurs qui lui ont écrit (fonction Supabase contacts_acheteurs)
 async function chargerContactsAcheteurs(s){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/contacts_acheteurs',{method:'POST',headers:entetesAuth(s,true),body:'{}'});
+const r=await Donnees.messages.contactsAcheteurs(s);
 if(!r.ok) return;
 const liste=await r.json();
 const m={};
@@ -172,11 +172,6 @@ return distants.find(p=>c.produitId&&p.id===c.produitId)||distants.find(p=>p.use
 function typoFr(t){
 return t.replace(/(\d) (?=\d{3}(\D|$))/g,'$1\u00A0').replace(/ ([?!:;»])/g,'\u00A0$1').replace(/« /g,'«\u00A0');
 }
-function entetesAuth(s,json){
-const h={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token};
-if(json) h['Content-Type']='application/json';
-return h;
-}
 
 // ---------- Pastille de messages non lus (raccourci de l'accueil) ----------
 function afficherBadge(n){
@@ -190,7 +185,7 @@ if(typeof majCompteurs==='function') return majCompteurs();
 const s=await sessionValide();
 if(!s||!s.user_id){afficherBadge(0);return;}
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id&lu=eq.false&expediteur_id=neq.'+s.user_id+'&limit=99',{headers:entetesAuth(s)});
+const r=await Donnees.messages.nonLus(s);
 if(!r.ok) return;
 afficherBadge((await r.json()).length);
 }catch(e){}
@@ -238,7 +233,7 @@ const zone=document.getElementById('conv-corps');
 if(!s||!s.user_id||!zone) return;
 try{
 if(!distants.length) await chargerProduits();
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&order=created_at.desc&limit=500',{headers:entetesAuth(s)});
+const r=await Donnees.messages.toutes(s);
 if(!r.ok) throw new Error(r.status);
 const lignesMsg=await r.json();
 if(lignesMsg.some(m=>m.vendeur_id===s.user_id)) await chargerContactsAcheteurs(s);
@@ -349,7 +344,7 @@ try{
 // Après le premier chargement, on ne demande que les messages récents (plus rapide, moins de données)
 // Après le premier chargement : on relit les 40 derniers messages (nouveaux, lus, supprimés) et on les fusionne
 const incremental=!initial&&chatLignes.length>0;
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=*&'+filtreConversation(c)+(incremental?'&order=created_at.desc&limit=40':'&order=created_at.asc&limit=300'),{headers:entetesAuth(s)});
+const r=await Donnees.messages.conversation(s,filtreConversation(c),incremental);
 if(!r.ok) throw new Error(r.status);
 const recus=await r.json();
 if(c!==chatCourant) return; // on a changé de conversation entre-temps
@@ -390,7 +385,7 @@ else document.getElementById('chat-fil').innerHTML='<div class="chat-vide">Impos
 
 async function marquerLus(s,c,lignes){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?'+filtreConversation(c)+'&expediteur_id=neq.'+s.user_id+'&lu=eq.false',{method:'PATCH',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=minimal'}),body:JSON.stringify({lu:true})});
+const r=await Donnees.messages.marquerLus(s,filtreConversation(c));
 if(r.ok){
 lignes.forEach(m=>{if(m.expediteur_id!==s.user_id) m.lu=true;});
 chatSignature=lignes.map(m=>m.id+':'+m.lu+':'+(m.supprime?1:0)).join(',');
@@ -472,7 +467,7 @@ const s=await sessionValide();
 if(!s||!s.user_id||s.user_id!==q.expediteur_id){reessayer=true;break;}
 let r;
 try{
-r=await fetch(SUPABASE_URL+'/rest/v1/messages',{method:'POST',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=representation'}),body:JSON.stringify({produit_id:q.produit_id,produit:q.produit||'',vendeur_id:q.vendeur_id,acheteur_id:q.acheteur_id,expediteur_id:q.expediteur_id,expediteur:q.expediteur||'Client',texte:q.texte})});
+r=await Donnees.messages.envoyer(s,{produit_id:q.produit_id,produit:q.produit||'',vendeur_id:q.vendeur_id,acheteur_id:q.acheteur_id,expediteur_id:q.expediteur_id,expediteur:q.expediteur||'Client',texte:q.texte});
 }catch(e){reessayer=true;break;}
 if(r.ok){
 let ligne=null;
@@ -533,7 +528,7 @@ if(typeof WebSocket==='undefined'||!navigator.onLine) return;
 const s=await sessionValide();
 if(!s||!s.user_id) return;
 let ws;
-try{ws=new WebSocket(SUPABASE_URL.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SUPABASE_KEY)+'&vsn=1.0.0');}catch(e){return;}
+try{ws=Donnees.messages.ouvrirTempsReel();}catch(e){return;}
 rtSocket=ws;
 rtOk=false;
 const envoyer=(topic,event,payload,ref)=>{try{ws.send(JSON.stringify({topic:topic,event:event,payload:payload,ref:String(ref)}));}catch(e){}};
@@ -599,7 +594,7 @@ if(!(await confirmer('Ce message sera supprimé pour vous et pour votre interloc
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous pour supprimer un message.');return;}
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_mon_message',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_id:String(id)})});
+const r=await Donnees.messages.supprimer(s,id);
 if(!r.ok) throw new Error(r.status);
 const m=chatLignes.find(x=>String(x.id)===String(id));
 if(m){m.supprime=true;m.texte='Message supprimé';}

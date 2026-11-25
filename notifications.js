@@ -78,23 +78,22 @@ return;
 const uid=s.user_id;
 notifPret=true;
 if(notifSysActive()&&pushPossible()&&!pushServeurActif()&&Date.now()-notifDernierAbonnement>60000){notifDernierAbonnement=Date.now();abonnerPush().catch(()=>{});}
-const h=entetesAuth(s);
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/messages?select=id,expediteur,expediteur_id,texte,produit,produit_id,vendeur_id,acheteur_id,created_at&lu=eq.false&expediteur_id=neq.'+uid+'&order=created_at.desc&limit=99',{headers:h});
+const r=await Donnees.messages.nonLusDetail(s,uid);
 if(r.ok) brutNotif.messages=await r.json();
 }catch(e){}
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/support_messages?select=id,texte,created_at&user_id=eq.'+uid+'&expediteur_admin=eq.true&lu=eq.false&order=created_at.desc&limit=50',{headers:h});
+const r=await Donnees.support.reponsesNonLues(s,uid);
 if(r.ok) brutNotif.support=await r.json();
 }catch(e){}
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=id,titre,texte,type,created_at&user_id=eq.'+uid+'&lu=eq.false&order=created_at.desc&limit=50',{headers:h});
+const r=await Donnees.notifications.nonLues(s,uid);
 if(r.ok) brutNotif.nio=await r.json();
 }catch(e){}
 const maintenant=Date.now();
 if(forcer||maintenant-notifAutresLe>60000){
 notifAutresLe=maintenant;
-const get=async(chemin)=>{try{const r=await fetch(SUPABASE_URL+'/rest/v1/'+chemin,{headers:h});return r.ok?await r.json():null;}catch(e){return null;}};
+const get=async(chemin)=>{try{const r=await Donnees.lire(s,chemin);return r.ok?await r.json():null;}catch(e){return null;}};
 const [avis,commandes,achats,boutique]=await Promise.all([
 get('avis?select=id,auteur,note,commentaire,created_at&vendeur_id=eq.'+uid+'&order=created_at.desc&limit=50'),
 get('commandes?select=id,produit,quantite,statut,created_at&vendeur_id=eq.'+uid+'&order=created_at.desc&limit=50'),
@@ -218,7 +217,7 @@ if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationSe
 const j=sub.toJSON();
 const s=await sessionValide();
 if(!s||!s.user_id) throw new Error('session');
-const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/enregistrer_push',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_cle_auth:j.keys.auth})});
+const r=await Donnees.push.abonner(s,j.endpoint,j.keys.p256dh,j.keys.auth);
 if(!r.ok) throw new Error('serveur '+r.status);
 try{localStorage.setItem('niohub_push_actif','1');}catch(e){}
 }
@@ -229,7 +228,7 @@ const sub=await reg.pushManager.getSubscription();
 if(sub){
 const s=await sessionValide();
 if(s&&s.user_id){
-try{await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_push',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_endpoint:sub.endpoint})});}catch(e){}
+try{await Donnees.push.desabonner(s,sub.endpoint);}catch(e){}
 }
 await sub.unsubscribe();
 }
@@ -243,7 +242,7 @@ const s=lireSession();
 if(!s||!s.access_token||!pushPossible()) return;
 navigator.serviceWorker.ready.then(reg=>reg.pushManager.getSubscription()).then(sub=>{
 if(!sub) return;
-return fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_push',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_endpoint:sub.endpoint})});
+return Donnees.push.desabonner(s,sub.endpoint);
 }).catch(()=>{});
 }catch(e){}
 }
@@ -309,7 +308,7 @@ async function chargerInboxNio(){
 try{
 const s=await sessionValide();
 if(!s||!s.user_id) return false;
-const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=*&user_id=eq.'+s.user_id+'&order=created_at.desc&limit=100',{headers:entetesAuth(s)});
+const r=await Donnees.notifications.liste(s,100);
 if(!r.ok) return false;
 inboxNio=await r.json();
 return true;
@@ -327,7 +326,7 @@ brutNotif.nio=brutNotif.nio.filter(x=>String(x.id)!==String(id));
 recalculerNotif();
 try{
 const s=await sessionValide();
-if(s&&s.user_id) await fetch(SUPABASE_URL+'/rest/v1/rpc/marquer_notif_nio_lue',{method:'POST',headers:entetesAuth(s,true),body:JSON.stringify({p_id:Number(id)})});
+if(s&&s.user_id) await Donnees.notifications.marquerLue(s,id);
 }catch(e){}
 fermerNotifsSysteme(d=>d.ouvrir==='nio'&&String(d.nid)===String(id));
 }

@@ -68,7 +68,7 @@ const s=lireSession();
 if(!s||!s.access_token) return null;
 if(s.expires_at-60>Date.now()/1000) return s;
 try{
-const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+const r=await Donnees.auth.rafraichir(s.refresh_token);
 if(!r.ok){
 if(r.status===400||r.status===401||r.status===403){oublierSession();return null;}
 return s;
@@ -80,7 +80,7 @@ return s;
 }
 async function chargerProfil(s){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/profils?select=*&user_id=eq.'+s.user_id,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+const r=await Donnees.profils.mien(s);
 if(!r.ok) return {erreur:true};
 const lignes=await r.json();
 return {profil:lignes[0]||null};
@@ -206,7 +206,7 @@ async function connexionGoogle(reponse){
 const msg=document.getElementById('c-msg');
 if(msg) msg.textContent='';
 try{
-const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({provider:'google',id_token:reponse.credential})});
+const r=await Donnees.auth.connexionGoogle(reponse.credential);
 const j=await r.json();
 if(!r.ok){if(msg) msg.textContent=traduire(j);return;}
 sauverTokens(j);
@@ -257,7 +257,7 @@ profilEnCours=true;
 if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
 const fin=()=>{profilEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent='Enregistrer mon profil';}};
 try{
-let r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null})});
+let r=await Donnees.profils.creer(s,{user_id:s.user_id,nom:complet,telephone:tel,adresse:adresse||null},'return=representation');
 if(r.status===409){
 const res=await chargerProfil(s);
 if(res.profil){

@@ -74,7 +74,7 @@ if(!pmPhotoBlob) return true;
 let url='';
 try{
 url=await televerserPhoto(pmPhotoBlob,null,s);
-const r=await fetch(SUPABASE_URL+'/rest/v1/profils?user_id=eq.'+s.user_id,{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({photo:url})});
+const r=await Donnees.profils.modifier(s,{photo:url},'return=minimal');
 if(!r.ok) throw new Error(r.status);
 }catch(e){
 if(url) await supprimerPhotoStockee(url,s);
@@ -136,18 +136,17 @@ if(!nom||!tel){msg.textContent='Le nom et le téléphone sont obligatoires.';ret
 if(nom.length<2||nom.length>80){msg.textContent='Le nom doit avoir entre 2 et 80 caractères.';return;}
 if(!telephoneValide(tel)){msg.textContent=MESSAGE_TEL;return;}
 if(adresse.length>200){msg.textContent='L\'adresse est trop longue (200 caractères maximum).';return;}
-const entete={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'};
 const donnees={nom:nom,telephone:tel,adresse:adresse||null};
 const bouton=document.getElementById('pm-valider');
 profilModifEnCours=true;
 if(bouton){bouton.disabled=true;bouton.textContent='Enregistrement…';}
 const fin=()=>{profilModifEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent='Enregistrer';}};
 try{
-let r=await fetch(SUPABASE_URL+'/rest/v1/profils?user_id=eq.'+s.user_id,{method:'PATCH',headers:Object.assign({},entete,{Prefer:'return=representation'}),body:JSON.stringify(donnees)});
+let r=await Donnees.profils.modifier(s,donnees,'return=representation');
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 if(!lignes.length){
-r=await fetch(SUPABASE_URL+'/rest/v1/profils',{method:'POST',headers:Object.assign({},entete,{Prefer:'return=minimal'}),body:JSON.stringify(Object.assign({user_id:s.user_id},donnees))});
+r=await Donnees.profils.creer(s,Object.assign({user_id:s.user_id},donnees),'return=minimal');
 if(!r.ok) throw new Error(r.status);
 }
 }catch(e){

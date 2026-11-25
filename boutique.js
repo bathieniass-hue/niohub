@@ -64,7 +64,7 @@ document.getElementById('boutique').innerHTML=`
 // Distingue "pas de boutique" d'une "erreur réseau" pour ne jamais proposer d'en recréer une qui existe déjà
 async function chargerMaBoutique(s){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+const r=await Donnees.boutiques.mienne(s);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 return {boutique:lignes[0]||null};
@@ -144,7 +144,7 @@ const p=creerPage('commandes-page');
 p.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Commandes</span><span></span></header><div id="liste-commandes" class="liste" style="margin-top:0">Chargement…</div>`;
 afficherPage('commandes-page');
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=*&vendeur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+const r=await Donnees.commandes.deVendeur(s);
 if(!r.ok) throw new Error(r.status);
 commandesCache=await r.json();
 document.getElementById('liste-commandes').innerHTML=commandesCache.length
@@ -236,7 +236,6 @@ logo:logoBoutique||null
 };
 const modification=!!boutiqueActuelle;
 if(!modification) corps.user_id=s.user_id;
-const entetes={apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'};
 const bouton=document.querySelector('#boutique-form .btn');
 const texteBouton=bouton?bouton.textContent:'';
 boutiqueEnCours=true;
@@ -251,13 +250,13 @@ corps.logo=nouveauLogo;
 }
 let r;
 if(modification){
-r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?id=eq.'+encodeURIComponent(boutiqueActuelle.id)+'&user_id=eq.'+s.user_id,{method:'PATCH',headers:entetes,body:JSON.stringify(corps)});
+r=await Donnees.boutiques.modifier(s,boutiqueActuelle.id,corps);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 // Supabase répond "OK" même si la règle de sécurité bloque : on vérifie qu'une ligne a bien été modifiée
 if(!lignes.length) throw new Error('refusé');
 }else{
-r=await fetch(SUPABASE_URL+'/rest/v1/boutiques',{method:'POST',headers:entetes,body:JSON.stringify(corps)});
+r=await Donnees.boutiques.creer(s,corps);
 if(r.status===409){
 // Une boutique existe déjà pour ce compte : on la recharge au lieu d'en créer une 2e
 if(nouveauLogo) await supprimerPhotoStockee(nouveauLogo,s);
@@ -285,7 +284,7 @@ await voirBoutique();
 let numeroVerification=null;   // numéro WhatsApp de NioHub (réglé dans l'application d'administration)
 async function chargerNumeroVerification(){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/reglages?select=valeur&cle=eq.whatsapp_verification',{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.reglages.whatsappVerification();
 if(!r.ok) return;
 const l=await r.json();
 numeroVerification=(l[0]&&String(l[0].valeur||'').replace(/\D/g,''))||'';
@@ -354,7 +353,7 @@ cadre.replaceChildren();
 try{
 const s=await sessionValide();
 if(!s||!s.user_id) return;
-const r=await fetch(SUPABASE_URL+'/rest/v1/notifications_nio?select=*&user_id=eq.'+s.user_id+'&order=created_at.desc&limit=30',{headers:entetesAuth(s)});
+const r=await Donnees.notifications.liste(s,30);
 if(!r.ok) return;
 const liste=notifsPourBoutique(await r.json(),b);
 liste.forEach(m=>{

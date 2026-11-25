@@ -62,7 +62,7 @@ paiement:paiement,
 vendeur_id:produitOuvert.user_id,
 acheteur_id:s.user_id
 };
-const r=await fetch(SUPABASE_URL+'/rest/v1/commandes',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(corps)});
+const r=await Donnees.commandes.creer(s,corps);
 if(!r.ok) throw new Error(r.status);
 const total=prixUnitaire*quantite;
 bandeau('Commande envoyée au vendeur'+(total?' · Total : '+total.toLocaleString('fr-FR')+' FCFA':'')+'.\n\nAucun paiement n\'a été fait dans l\'application. Le vendeur vous contactera : convenez avec lui du paiement ('+paiement+') et de la livraison.','succes',{duree:9000});

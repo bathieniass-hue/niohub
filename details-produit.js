@@ -228,12 +228,7 @@ etat:choixDetails.etat||null,
 couleurs:couleursChoisies.length?couleursChoisies.join(', '):null
 };
 const modification=editId!==null;
-let url=SUPABASE_URL+'/rest/v1/produits';
-let methode='POST';
-if(modification){
-url+='?id=eq.'+editId+'&user_id=eq.'+s.user_id;
-methode='PATCH';
-}else{
+if(!modification){
 corps.photo=null;
 corps.user_id=s.user_id;
 }
@@ -246,7 +241,7 @@ bandeau('Envoi des photos impossible. Vérifiez votre connexion ou réessayez av
 return;
 }
 appliquerPhotosAuCorps(corps,modification);
-const r=await fetch(url,{method:methode,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:modification?'return=representation':'return=minimal'},body:JSON.stringify(corps)});
+const r=await Donnees.produits.enregistrer(s,editId,corps);
 if(!r.ok){
 const detail=await lireErreurSupabase(r);
 await nettoyerTeleversees(s);

@@ -17,7 +17,7 @@ async function vitrineTrouverBoutique(userId){
 const b=boutiquesCache.find(x=>x.user_id===userId);
 if(b) return b;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+encodeURIComponent(userId)+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.boutiques.deVendeur(userId);
 if(!r.ok) throw new Error(r.status);
 return (await r.json())[0]||null;
 }catch(e){return null;}

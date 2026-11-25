@@ -56,7 +56,7 @@ async function chargerContact(initial){
 const s=await sessionValide();
 if(!s||!s.user_id) return;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/support_messages?select=*&user_id=eq.'+encodeURIComponent(s.user_id)+'&order=created_at.asc&limit=300',{headers:entetesAuth(s)});
+const r=await Donnees.support.liste(s);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 if(vueCourante!=='contact') return;
@@ -70,7 +70,7 @@ dessinerContact(initial);
 }
 // Les réponses de l'équipe sont lues dès que l'écran est ouvert
 if(lignes.some(m=>m.expediteur_admin&&!m.lu)){
-fetch(SUPABASE_URL+'/rest/v1/rpc/marquer_support_lus',{method:'POST',headers:entetesAuth(s,true),body:'{}'}).then(()=>{if(typeof majCompteurs==='function') majCompteurs();}).catch(()=>{});
+Donnees.support.marquerLus(s).then(()=>{if(typeof majCompteurs==='function') majCompteurs();}).catch(()=>{});
 }
 }catch(e){
 if(initial){
@@ -95,7 +95,7 @@ const temporaire={id:'attente-'+Date.now(),texte:texte,created_at:new Date().toI
 contactLignes.push(temporaire);
 dessinerContact(true);
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/support_messages',{method:'POST',headers:Object.assign(entetesAuth(s,true),{Prefer:'return=representation'}),body:JSON.stringify({user_id:s.user_id,texte:texte,expediteur_admin:false})});
+const r=await Donnees.support.envoyer(s,texte);
 if(!r.ok){
 const t=await r.text();
 throw new Error(t.indexOf('trop de messages')>=0?'trop':String(r.status));

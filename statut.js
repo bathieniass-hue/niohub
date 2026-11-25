@@ -50,7 +50,7 @@ const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');return;}
 statutEnCours=true;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?id=eq.'+encodeURIComponent(c.id)+'&vendeur_id=eq.'+s.user_id,{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({statut:nouveau})});
+const r=await Donnees.commandes.changerStatut(s,c.id,nouveau);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 // Supabase répond "OK" même si la règle de sécurité bloque : on vérifie qu'une ligne a bien été modifiée

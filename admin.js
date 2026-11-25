@@ -1,8 +1,6 @@
 // NioHub Admin : voir et modifier toutes les boutiques, tous les produits et tous les profils.
 // Les droits sont vérifiés par Supabase (table « admins » + règles RLS) : cette page seule ne donne aucun accès.
 
-const SUPABASE_URL="https://zpmjbggzqwcajjrzfejg.supabase.co";
-const SUPABASE_KEY="sb_publishable_dz22DUOnanzHiA2jLk305g_Cf6KCVPr";
 const CLE_SESSION='niohub_session_v2';
 const PAGE=50;
 
@@ -963,7 +961,6 @@ return bloc;
 }
 
 // ---------- photos : changer ou supprimer ----------
-const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
 const CLES_IMAGE=['photo','logo','avatar','avatar_url','photo_url','image','image_url','picture','photo_profil'];
 function estChampImage(k,v){
 if(k==='photos') return false;

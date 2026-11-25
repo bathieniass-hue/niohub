@@ -31,7 +31,7 @@ return lignes.length?lignes.length+' avis':'Aucun avis pour l\'instant';
 // (les autres fichiers continuent de fonctionner, ceux qui le veulent peuvent tester .erreur)
 async function chargerAvisVendeur(vendeurId,colonnes){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/avis?select='+(colonnes||'*')+'&vendeur_id=eq.'+encodeURIComponent(vendeurId)+'&order=created_at.desc&limit=200',{headers:{apikey:SUPABASE_KEY}});
+const r=await Donnees.avis.deVendeur(vendeurId,colonnes);
 if(!r.ok) throw new Error(r.status);
 return await r.json();
 }catch(e){
@@ -43,7 +43,7 @@ return vide;
 
 async function chargerMonAvis(s){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/avis?select=*&vendeur_id=eq.'+encodeURIComponent(avisVendeurCourant)+'&acheteur_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+const r=await Donnees.avis.monAvis(s,avisVendeurCourant);
 if(!r.ok) throw new Error(r.status);
 const lignes=await r.json();
 return {avis:lignes[0]||null};
@@ -53,7 +53,7 @@ return {avis:lignes[0]||null};
 // true = a une commande livrée chez ce vendeur, false = non, null = erreur réseau
 async function commandeLivreeChez(s){
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=id&acheteur_id=eq.'+s.user_id+'&vendeur_id=eq.'+encodeURIComponent(avisVendeurCourant)+'&statut=eq.'+encodeURIComponent('Livrée')+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+const r=await Donnees.commandes.livreeChezVendeur(s,avisVendeurCourant);
 if(!r.ok) throw new Error(r.status);
 return (await r.json()).length>0;
 }catch(e){return null;}
@@ -66,7 +66,7 @@ if(!zone) return;
 if(!userId){zone.innerHTML='<b>Produit de démonstration</b>';return;}
 try{
 const [r,lignes]=await Promise.all([
-fetch(SUPABASE_URL+'/rest/v1/boutiques?select=*&user_id=eq.'+encodeURIComponent(userId)+'&limit=1',{headers:{apikey:SUPABASE_KEY}}),
+Donnees.boutiques.deVendeur(userId),
 chargerAvisVendeur(userId,'note')
 ]);
 // Si l'utilisateur a ouvert un autre produit entre-temps, on n'écrit rien
@@ -194,7 +194,7 @@ avisEnCours=true;
 if(bouton){bouton.disabled=true;bouton.textContent='Envoi en cours…';}
 const fin=()=>{avisEnCours=false;if(bouton){bouton.disabled=false;bouton.textContent=texteBouton;}};
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/avis',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({vendeur_id:avisVendeurCourant,acheteur_id:s.user_id,auteur:s.nom||'Client',note:avisNoteChoisie,commentaire:commentaire||null})});
+const r=await Donnees.avis.publier(s,{vendeur_id:avisVendeurCourant,acheteur_id:s.user_id,auteur:s.nom||'Client',note:avisNoteChoisie,commentaire:commentaire||null});
 if(r.status===409){fin();msg.textContent='Vous avez déjà donné un avis.';return;}
 if(r.status===401||r.status===403){fin();msg.textContent='Vous pourrez donner votre avis après la livraison d\'une commande auprès de cette boutique.';return;}
 if(!r.ok) throw new Error(r.status);
@@ -234,7 +234,7 @@ const commentaire=document.getElementById('av-texte').value.trim();
 if(commentaire.length>500){msg.textContent='Le commentaire est trop long (500 caractères maximum).';return;}
 avisEnCours=true;
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/modifier_mon_avis',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_vendeur:avisVendeurCourant,p_note:avisNoteChoisie,p_commentaire:commentaire})});
+const r=await Donnees.avis.modifier(s,avisVendeurCourant,avisNoteChoisie,commentaire);
 if(!r.ok) throw new Error(r.status);
 }catch(e){
 avisEnCours=false;
@@ -251,7 +251,7 @@ if(!(await confirmer('Votre avis sera supprimé définitivement. Vous pourrez en
 const s=await sessionValide();
 if(!s||!s.user_id){afficherConnexion();return;}
 try{
-const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/supprimer_mon_avis',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_vendeur:avisVendeurCourant})});
+const r=await Donnees.avis.supprimer(s,avisVendeurCourant);
 if(!r.ok) throw new Error(r.status);
 }catch(e){
 bandeau('Suppression impossible. Vérifiez votre connexion.','erreur');

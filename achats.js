@@ -50,7 +50,7 @@ async function voirAchats(){
   p.innerHTML=`<header><button class="retour" onclick="retourAchats()">←</button><span style="font-weight:bold;font-size:20px">Mes achats</span><span></span></header><div id="liste-achats" class="liste" style="margin-top:0">Chargement…</div>`;
   afficherPageAchats(PAGE_ACHATS);
   try{
-    const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=*&acheteur_id=eq.'+s.user_id+'&order=created_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+    const r=await Donnees.commandes.deAcheteur(s);
     if(!r.ok) throw new Error(r.status);
     achatsCache=await r.json();
     document.getElementById('liste-achats').innerHTML=achatsCache.length
@@ -72,7 +72,7 @@ async function telephoneVendeur(commande){
   try{
     // 1) La boutique exacte de la commande (si la colonne boutique_id existe)
     if(commande.boutique_id){
-      const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=telephone&id=eq.'+encodeURIComponent(commande.boutique_id)+'&limit=1',{headers:{apikey:SUPABASE_KEY}});
+      const r=await Donnees.boutiques.telephoneParId(commande.boutique_id);
       if(r.ok){
         const l=await r.json();
         if(l[0]&&l[0].telephone) return l[0].telephone;
@@ -80,7 +80,7 @@ async function telephoneVendeur(commande){
     }
     // 2) Repli : la boutique la plus récente du vendeur (plus fiable que la plus ancienne)
     if(commande.vendeur_id){
-      const r=await fetch(SUPABASE_URL+'/rest/v1/boutiques?select=telephone&user_id=eq.'+encodeURIComponent(commande.vendeur_id)+'&order=created_at.desc&limit=1',{headers:{apikey:SUPABASE_KEY}});
+      const r=await Donnees.boutiques.telephoneParVendeur(commande.vendeur_id);
       if(!r.ok) return '';
       const l=await r.json();
       return (l[0]&&l[0].telephone)||'';
@@ -94,7 +94,7 @@ async function rafraichirAchat(id){
   const s=await sessionValide();
   if(!s||!s.user_id) return;
   try{
-    const r=await fetch(SUPABASE_URL+'/rest/v1/commandes?select=statut&id=eq.'+encodeURIComponent(id)+'&acheteur_id=eq.'+s.user_id+'&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token}});
+    const r=await Donnees.commandes.statutPourAcheteur(s,id);
     if(!r.ok) return;
     const l=await r.json();
     if(!l[0]) return;
@@ -152,7 +152,7 @@ async function annulerAchat(id){
   const s=await sessionValide();
   if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');return;}
   try{
-    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/annuler_mon_achat',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_id:String(c.id)})});
+    const r=await Donnees.commandes.annulerAchat(s,c.id);
     if(!r.ok) throw new Error(r.status);
     const ok=await r.json();
     if(ok===true){
