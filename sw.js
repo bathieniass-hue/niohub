@@ -61,9 +61,7 @@ if(url.origin!==self.location.origin){
 if(estPhoto(url,req)) e.respondWith(photoEnCache(req));
 return;
 }
-// Le contrôle de version va toujours directement sur le réseau
-if(url.pathname.endsWith('/version.json')) return;
-// Idem pour version.js demandé avec « ?... » (contrôle de mise à jour) ; sans « ? » c'est le chargement normal, servi par la copie
+// Le contrôle de version (version.js demandé avec « ?... ») va toujours directement sur le réseau ; sans « ? » c'est le chargement normal, servi par la copie
 if(url.pathname.endsWith('/version.js')&&url.search) return;
 // Démarrage instantané : on sert tout de suite la copie gardée dans le téléphone (installée avant le premier lancement),
 // et on la remet à jour en arrière-plan pour la prochaine ouverture. Sans copie, on passe par le réseau.
