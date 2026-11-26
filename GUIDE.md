@@ -10,7 +10,10 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 | Données | `donnees-*.js`, `config.js` | tous les échanges avec Supabase | d'affichage |
 | Moteur | `app.js`, `commande.js`, `boutique.js`, ... | les règles et le déroulement | d'appel direct à Supabase |
 
-À venir (étape 3) : séparer, dans chaque fichier du moteur, la logique de l'affichage.
+Étape 3 en cours : séparer, dans chaque fichier du moteur, la logique de l'affichage.
+- Fait : `favoris.js` (logique seule). Le dessin du cœur est dans `ecran-fiche.js` + `style.css`, le clic dans `ecran-liaisons.js` (action `favori`).
+- Reste : `statut.js`, puis `app.js`, `messages.js`, `notifications.js` et les autres, un par un.
+- Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 
 ## Je veux modifier...
 - **Le design d'un écran** : `ecran-<nom>.js` (HTML) et `style.css`.
