@@ -51,6 +51,7 @@ const MODULES=[
 ];
 function controler(){
 if(typeof SUPABASE_URL==='undefined'||typeof SUPABASE_KEY==='undefined') noter('Fichier absent ou incorrect : config.js');
+if(typeof NIOHUB_VERSION==='undefined') noter('Fichier absent ou incorrect : version.js');
 if(typeof Donnees==='undefined') noter('Fichier absent ou incorrect : donnees-base.js');
 else MODULES.forEach(function(m){if(!Donnees[m[0]]) noter('Fichier absent ou incorrect : '+m[1]);});
 ATTENDUS.forEach(function(a){if(typeof window[a[0]]!=='function') noter('Fichier absent ou incorrect : '+a[1]);});

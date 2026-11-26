@@ -1,9 +1,10 @@
 // Service worker de NioHub : l'application s'ouvre même avec un réseau lent ou coupé.
 // Stratégie : réseau d'abord (toujours la dernière version), copie gardée en secours.
 // Les données (Supabase) et Google ne passent jamais par ce cache.
-const VERSION='niohub-e1a3e3deb7'; // remplacé automatiquement à chaque livraison
+try{importScripts('version.js');}catch(e){} // numéro de version : version.js est la seule source
+const VERSION='niohub-'+(self.NIOHUB_VERSION||'inconnue');
 const FICHIERS=[
-'./','index.html','style.css','manifest.json','conditions.html',
+'./','index.html','style.css','manifest.json','conditions.html','version.js',
 'icones-nav.png','icones-accueil.png','icones-favoris.png','icones-boutique.png','icones-liste.png','icones-categories.png','icones-liste-clair.png','icones-categories-clair.png','icone-crayon.png','icone-retour.png','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
 'ecran-accueil.js','ecran-fiche.js','ecran-commande.js','ecran-ajout.js','ecran-boutique.js','ecran-boutique-form.js','ecran-mesproduits.js','ecran-profil.js','ecran-menu.js','ecran-monter.js','ecran-liaisons.js','diagnostic.js','config.js','donnees-hors-ligne.js','donnees-base.js','donnees-auth.js','donnees-produits.js','donnees-boutiques.js','donnees-commandes.js','donnees-avis.js','donnees-profils.js','donnees-messages.js','donnees-support.js','donnees-notifications.js','donnees-photos.js','bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
 'vitrine.js','profil.js','parametres.js','contact.js','notifications.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','ajout-produit.js','fiche-details.js','pwa.js'
@@ -62,6 +63,8 @@ return;
 }
 // Le contrôle de version va toujours directement sur le réseau
 if(url.pathname.endsWith('/version.json')) return;
+// Idem pour version.js demandé avec « ?... » (contrôle de mise à jour) ; sans « ? » c'est le chargement normal, servi par la copie
+if(url.pathname.endsWith('/version.js')&&url.search) return;
 // Démarrage instantané : on sert tout de suite la copie gardée dans le téléphone (installée avant le premier lancement),
 // et on la remet à jour en arrière-plan pour la prochaine ouverture. Sans copie, on passe par le réseau.
 e.respondWith((async()=>{
@@ -113,17 +116,6 @@ g.restore();
 const blob=await c.convertToBlob({type:'image/png'});
 return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(blob);});
 }catch(e){return null;}
-}
-
-// Pastille sur l'icône de l'application : nombre de notifications encore affichées (iPhone, et Android quand c'est possible)
-async function majPastilleApp(){
-try{
-const n=(await self.registration.getNotifications()).length;
-const nav=self.navigator;
-if(nav&&nav.setAppBadge){
-if(n>0) await nav.setAppBadge(n); else await nav.clearAppBadge();
-}
-}catch(e){}
 }
 
 // Notification reçue du serveur (même application fermée)

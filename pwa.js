@@ -1,11 +1,11 @@
 // NioHub : installation, mises à jour et actualisation de l'application.
-const VERSION_APP='e1a3e3deb7'; // remplacé automatiquement à chaque livraison
+const VERSION_APP=(typeof NIOHUB_VERSION!=='undefined')?NIOHUB_VERSION:''; // vient de version.js
 let DELAI_RETOUR=60000;  // actualiser les produits si l'application revient après plus d'1 minute
 let invitationInstall=null;
 
 // ---------- Service worker ----------
 if('serviceWorker' in navigator){
-window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});});
 }
 
 // ---------- Zoom : le pincement à deux doigts est bloqué aussi sur iPhone ----------
@@ -22,10 +22,10 @@ return ouvert||champ;
 // ---------- Nouvelle version disponible ----------
 async function verifierMiseAJour(){
 try{
-const r=await fetch('version.json?'+Date.now(),{cache:'no-store'});
+const r=await fetch('version.js?'+Date.now(),{cache:'no-store'});
 if(!r.ok) return;
-const j=await r.json();
-if(j&&j.v&&j.v!==VERSION_APP) afficherBandeauMiseAJour();
+const m=(await r.text()).match(/NIOHUB_VERSION\s*=\s*'([^']+)'/);
+if(m&&VERSION_APP&&m[1]!==VERSION_APP) afficherBandeauMiseAJour();
 }catch(e){}
 }
 
