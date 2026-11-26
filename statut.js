@@ -1,3 +1,5 @@
+// Statut des commandes : logique seulement (étapes autorisées, changement de statut).
+// L'affichage du détail : ecran-statut.js. Le clic sur un bouton de statut : ecran-liaisons.js (action « statut »).
 const STATUTS=['À préparer','Expédiée','Livrée','Annulée'];
 // Étapes autorisées : on avance, on ne revient jamais en arrière.
 const SUIVANTS={
@@ -15,12 +17,7 @@ if(!c) return;
 const statut=STATUTS.includes(c.statut)?c.statut:'À préparer';
 const tel=c.telephone||'';
 const suivants=SUIVANTS[statut]||[];
-const idSur=esc(c.id);
 const total=c.total?Number(c.total).toLocaleString('fr-FR')+' FCFA':'Non indiqué';
-const blocStatut=suivants.length
-?`<div style="margin-top:18px;font-size:13px;font-weight:bold;color:#6B6254">Changer le statut</div>
-<div style="display:flex;gap:8px;margin-top:8px">${suivants.map(x=>`<button class="${x==='Annulée'?'btn2':'btn'}" style="margin-top:0;flex:1;font-size:13px;height:44px;padding:0 4px;${x==='Annulée'?'color:#B4291A;border-color:#B4291A':''}" onclick="changerStatut('${idSur}','${x}')">${ACTIONS[x]}</button>`).join('')}</div>`
-:`<div style="margin-top:18px;font-size:13px;color:#6B6254">Cette commande est terminée : son statut ne peut plus changer.</div>`;
 ouvrirDetail('commandes-page','Commande',[
 ['Produit',c.produit],
 ['Quantité',String(c.quantite)],
@@ -32,9 +29,7 @@ ouvrirDetail('commandes-page','Commande',[
 ['Statut',statut],
 ['Date',new Date(c.created_at).toLocaleString('fr-FR')]
 ],
-`<div style="display:flex;gap:10px;margin-top:14px"><a class="btn" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block" href="${esc(lienAppel(tel))}">Appeler</a><a class="btn2" style="flex:1;text-align:center;text-decoration:none;line-height:52px;display:block;margin-top:0" href="${esc(lienWhatsapp(tel))}" target="_blank" rel="noopener">WhatsApp</a></div>
-${blocStatut}
-<div id="statut-msg" class="msg"></div>`);
+vueCommandeVendeur({id:c.id,suivants:suivants.map(x=>({statut:x,libelle:ACTIONS[x]})),appel:lienAppel(tel),whatsapp:lienWhatsapp(tel)}));
 };
 
 async function changerStatut(id,nouveau){
