@@ -1,3 +1,5 @@
+// Mes achats : logique seulement (chargement, annulation, avis, contact vendeur).
+// L'affichage : ecran-achats.js (vueAchats…). Les clics : ecran-liaisons.js (actions achatDetail, achatsListe, retourAchats, avisAchat, annulerAchat).
 const PAGE_ACHATS='achats-page';
 const PAGE_ACHAT_DETAIL='achats-detail';
 let achatsCache=[];
@@ -27,6 +29,10 @@ function afficherPageAchats(id){
   window.scrollTo(0,0);
 }
 
+function retourListeAchats(){
+  afficherPageAchats(PAGE_ACHATS);
+}
+
 function retourAchats(){
   montrer(origineAchats==='profil'?'profil':'accueil');
 }
@@ -47,24 +53,18 @@ async function voirAchats(){
   const s=await sessionValide();
   if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');montrer('profil');return;}
   const p=pageAchats(PAGE_ACHATS);
-  p.innerHTML=`<header><button class="retour" onclick="retourAchats()">←</button><span style="font-weight:bold;font-size:20px">Mes achats</span><span></span></header><div id="liste-achats" class="liste" style="margin-top:0">Chargement…</div>`;
+  p.innerHTML=vueAchats();
   afficherPageAchats(PAGE_ACHATS);
   try{
     const r=await Donnees.commandes.deAcheteur(s);
     if(!r.ok) throw new Error(r.status);
     achatsCache=await r.json();
-    document.getElementById('liste-achats').innerHTML=achatsCache.length
-      ?achatsCache.map(c=>{
-        const st=c.statut||'À préparer';
-        return `<div class="ligne" style="cursor:pointer" data-id="${esc(String(c.id))}"><div style="flex:1"><div class="name">${esc(c.produit)} × ${esc(c.quantite)}</div><div style="font-size:12px;color:#6B6254">${esc(new Date(c.created_at).toLocaleDateString('fr-FR'))}</div></div><span style="font-size:12px;font-weight:bold;color:${couleurStatut(st)}">${esc(st)}</span><span style="margin-left:6px">›</span></div>`;
-      }).join('')
-      :"Vous n'avez pas encore passé de commande.";
-    // On branche les clics sur data-id (pas de onclick inline)
-    document.querySelectorAll('#liste-achats .ligne[data-id]').forEach(el=>{
-      el.addEventListener('click',()=>voirAchatDetail(el.getAttribute('data-id')));
-    });
+    document.getElementById('liste-achats').innerHTML=vueAchatsListe({achats:achatsCache.map(c=>{
+      const st=c.statut||'À préparer';
+      return {id:c.id,produit:c.produit,quantite:c.quantite,date:new Date(c.created_at).toLocaleDateString('fr-FR'),statut:st,couleur:couleurStatut(st)};
+    })});
   }catch(e){
-    document.getElementById('liste-achats').innerHTML='Erreur de chargement. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="voirAchats()">Réessayer</button>';
+    document.getElementById('liste-achats').innerHTML=vueAchatsErreur();
   }
 }
 
@@ -116,26 +116,11 @@ function voirAchatDetail(id){
     ['Adresse de livraison',c.adresse||'Non indiquée'],
     ['Statut',st],
     ['Date',new Date(c.created_at).toLocaleString('fr-FR')]
-  ];
+  ].map(([k,v])=>({k:k,v:v,couleur:k==='Statut'?couleurStatut(st):''}));
   const p=pageAchats(PAGE_ACHAT_DETAIL);
-  p.innerHTML=`<header><button class="retour" onclick="afficherPageAchats('${PAGE_ACHATS}')">←</button><span style="font-weight:bold;font-size:18px">Achat</span><span></span></header>
-<div class="liste" style="margin-top:0">${lignes.map(([k,v])=>`<div style="padding:8px 0;border-bottom:1px solid #EDE5D3"><div style="font-size:12px;color:#6B6254">${esc(k)}</div><div style="font-size:15px;font-weight:bold;color:${k==='Statut'?couleurStatut(st):'#1E1A14'}">${esc(v)}</div></div>`).join('')}</div>
-<div style="font-size:12px;color:#6B6254;margin-top:8px">Le paiement se règle directement avec le vendeur, à la livraison ou par Wave / Orange Money.</div>
-<a id="ach-wa" class="btn2" style="display:block;text-align:center;text-decoration:none;line-height:52px;margin-top:14px" href="#" target="_blank" rel="noopener">Contacter le vendeur</a>
-${st==='Livrée'?`<button class="btn" style="margin-top:12px" onclick="donnerAvisAchat('${c.id}')">Donner un avis</button>`:''}
-${st==='À préparer'?`<button class="btn2" style="margin-top:12px;color:#B4291A;border-color:#B4291A" onclick="annulerAchat('${c.id}')">Annuler cet achat</button><div style="font-size:12px;color:#6B6254;margin-top:6px">Vous pouvez annuler tant que le vendeur n'a pas expédié la commande.</div>`:''}`;
+  p.innerHTML=vueAchatDetail({id:c.id,lignes:lignes,peutAvis:st==='Livrée',peutAnnuler:st==='À préparer'});
   afficherPageAchats(PAGE_ACHAT_DETAIL);
-  telephoneVendeur(c).then(t=>{
-    const a=document.getElementById('ach-wa');
-    if(!a) return;
-    if(t){
-      a.href=lienWhatsapp(t);
-    }else{
-      a.textContent='Numéro du vendeur indisponible';
-      a.style.opacity='.5';
-      a.removeAttribute('target');
-    }
-  });
+  telephoneVendeur(c).then(t=>vueContactVendeur(t?lienWhatsapp(t):''));
 }
 
 function donnerAvisAchat(id){
