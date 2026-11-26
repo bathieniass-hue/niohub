@@ -1,11 +1,11 @@
 // Service worker de NioHub : l'application s'ouvre même avec un réseau lent ou coupé.
 // Stratégie : réseau d'abord (toujours la dernière version), copie gardée en secours.
 // Les données (Supabase) et Google ne passent jamais par ce cache.
-const VERSION='niohub-f6d3dcde61'; // remplacé automatiquement à chaque livraison
+const VERSION='niohub-e1a3e3deb7'; // remplacé automatiquement à chaque livraison
 const FICHIERS=[
 './','index.html','style.css','manifest.json','conditions.html',
 'icones-nav.png','icones-accueil.png','icones-favoris.png','icones-boutique.png','icones-liste.png','icones-categories.png','icones-liste-clair.png','icones-categories-clair.png','icone-crayon.png','icone-retour.png','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo-n.png',
-'ecran-accueil.js','ecran-fiche.js','ecran-commande.js','ecran-ajout.js','ecran-boutique.js','ecran-boutique-form.js','ecran-mesproduits.js','ecran-profil.js','ecran-menu.js','ecran-monter.js','ecran-liaisons.js','config.js','donnees-hors-ligne.js','donnees-base.js','donnees-auth.js','donnees-produits.js','donnees-boutiques.js','donnees-commandes.js','donnees-avis.js','donnees-profils.js','donnees-messages.js','donnees-support.js','donnees-notifications.js','donnees-photos.js','bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
+'ecran-accueil.js','ecran-fiche.js','ecran-commande.js','ecran-ajout.js','ecran-boutique.js','ecran-boutique-form.js','ecran-mesproduits.js','ecran-profil.js','ecran-menu.js','ecran-monter.js','ecran-liaisons.js','diagnostic.js','config.js','donnees-hors-ligne.js','donnees-base.js','donnees-auth.js','donnees-produits.js','donnees-boutiques.js','donnees-commandes.js','donnees-avis.js','donnees-profils.js','donnees-messages.js','donnees-support.js','donnees-notifications.js','donnees-photos.js','bandeau.js','app.js','commande.js','boutique.js','compte.js','messages.js','avis.js','statut.js','achats.js',
 'vitrine.js','profil.js','parametres.js','contact.js','notifications.js','favoris.js','raccourcis.js','boutique-fiche.js','details-produit.js','ajout-produit.js','fiche-details.js','pwa.js'
 ];
 const DELAI_RESEAU=5000;
