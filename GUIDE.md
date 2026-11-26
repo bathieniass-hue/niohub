@@ -26,7 +26,7 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 
 ## Mettre en ligne
 1. Envoyer **seulement les fichiers modifiés** (Add file → Upload files, tous à plat), puis Commit.
-2. À chaque livraison, changer le numéro de version **à un seul endroit** : la ligne `NIOHUB_VERSION` de `version.js` (sw.js et pwa.js la lisent). Sans cela, les téléphones gardent d'anciennes copies. `version.json` n'est plus lu par l'application (gardé une livraison pour les anciens téléphones, à supprimer ensuite).
+2. À chaque livraison, changer le numéro de version **à un seul endroit** : la ligne `NIOHUB_VERSION` de `version.js` (sw.js et pwa.js la lisent). Sans cela, les téléphones gardent d'anciennes copies.
 3. Attendre 1 à 2 minutes, recharger deux fois.
 4. Si une barre rouge apparaît en haut : elle nomme le fichier absent ou ancien. Le renvoyer.
 
