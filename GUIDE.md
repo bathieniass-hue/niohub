@@ -13,6 +13,8 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 Étape 3 en cours : séparer, dans chaque fichier du moteur, la logique de l'affichage.
 - Fait : `favoris.js` (logique seule). Le dessin du cœur est dans `ecran-fiche.js` + `style.css`, le clic dans `ecran-liaisons.js` (action `favori`).
 - Fait : `statut.js` (logique seule). L'affichage du détail d'une commande est dans `ecran-statut.js` (fonction `vueCommandeVendeur`), le clic dans `ecran-liaisons.js` (action `statut`).
+- Fait : `vitrine.js` (logique seule). L'affichage est dans `ecran-vitrine.js` (fonctions `vueVitrine`, `vueVitrineMessage`), le style `.vitrine-…` dans `style.css`, le clic ← dans `ecran-liaisons.js` (action `fermerVitrine`).
+- Fait : `bandeau.js` (logique seule : durée, fermeture, clavier). Les éléments sont construits dans `ecran-bandeau.js` (`vueBandeau`, `vueConfirmation`, `vueZoneBandeaux`).
 - Reste : `app.js`, `messages.js`, `notifications.js` et les autres, un par un.
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
