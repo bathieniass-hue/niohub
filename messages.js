@@ -18,57 +18,6 @@ const CLE_FILE='niohub_file_messages_v1';
 let fileMessages=[];          // messages écrits mais pas encore envoyés (gardés même si on ferme l'appli)
 try{fileMessages=JSON.parse(localStorage.getItem(CLE_FILE)||'[]')||[];}catch(e){fileMessages=[];}
 
-const styleMessagerie=document.createElement('style');
-styleMessagerie.textContent=`
-.retour-carre{width:44px;height:44px;border-radius:12px;border:1px solid #E6DECB;background:#fff;font-size:22px;padding:0;flex-shrink:0;color:#1E1A14}
-.entete-ecran{display:flex;align-items:center;gap:14px;padding:14px 0 10px;position:sticky;top:0;background:#FBF7EE;z-index:20}
-.entete-ecran .titre-ecran{font-size:20px;font-weight:bold;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#chat .entete-ecran{gap:10px}
-#chat .entete-ecran .titre-ecran{font-size:17px}
-.conv{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #EDE5D3;cursor:pointer}
-.conv-img{width:52px;height:52px;border-radius:26px;flex-shrink:0;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;color:#1E1A14}
-.chat-avatar{width:40px;height:40px;border-radius:20px;flex-shrink:0;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:#1E1A14}
-.chat-actions{display:flex;gap:8px;flex-shrink:0}
-.chat-action{width:44px;height:44px;border-radius:12px;border:1px solid #E6DECB;background:#fff;display:flex;align-items:center;justify-content:center;padding:0;text-decoration:none}
-.chat-action svg{width:22px;height:22px}
-.chat-action.appel svg{fill:none;stroke:#0E6B47;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.chat-action.whatsapp svg{fill:#25A55F}
-.chat-sujet{display:flex;justify-content:center;margin:16px 0 6px}
-.chat-sujet span{font-size:12px;color:#0E6B47;background:#EAF3EE;border-radius:12px;padding:5px 12px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-sujet.cliquable span{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.conv-corps{flex:1;min-width:0}
-.conv-haut{display:flex;justify-content:space-between;gap:8px}
-.conv-nom{color:#1E1A14;font-weight:bold;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.conv-heure{font-size:12px;color:#6B6254;flex-shrink:0}
-.conv-produit{font-size:12px;color:#0E6B47;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.conv-apercu{font-size:13px;color:#6B6254;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.conv.nonlu .conv-apercu{color:#1E1A14;font-weight:bold}
-.conv:last-child{border-bottom:0}
-.conv-nonlus{min-width:22px;height:22px;border-radius:11px;background:#0E6B47;color:#fff;font-size:12px;font-weight:bold;text-align:center;line-height:22px;padding:0 6px;flex-shrink:0}
-.chat-produit{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid #EDE5D3;border-radius:18px;padding:12px;margin:4px 0 8px}
-.chat-produit.cliquable{cursor:pointer}
-.cp-img{width:56px;height:56px;border-radius:14px;flex-shrink:0;background:#D9B26F}
-.cp-txt{flex:1;min-width:0}
-.cp-nom{font-weight:bold;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cp-prix{font-weight:bold;font-size:16px;color:#0E6B47}
-.cp-voir{font-weight:bold;font-size:14px;color:#0E6B47;flex-shrink:0}
-.chat-jour{text-align:center;font-size:12px;color:#6B6254;margin:14px 0 4px}
-.bulle{max-width:80%;padding:12px 16px;border-radius:20px;margin:8px 0;font-size:16px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
-.bulle.moi{background:#0E6B47;color:#fff;margin-left:auto;border-bottom-right-radius:6px}
-.bulle.autre{background:#fff;border:1px solid #E6DECB;margin-right:auto;border-bottom-left-radius:6px}
-.bulle .heure{font-size:12px;opacity:.7;text-align:right;margin-top:4px}
-.bulle.attente{opacity:.6}
-.chat-vide{text-align:center;color:#6B6254;font-size:14px;padding:40px 20px}
-.chat-saisie{position:fixed;left:50%;transform:translateX(-50%);bottom:var(--clavier,0px);width:100%;max-width:430px;background:#FBF7EE;border-top:1px solid #E6DECB;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px;align-items:center;z-index:40}
-.chat-saisie .chat-erreur{flex:0 0 100%;color:#B4291A;font-size:13px}
-.chat-saisie .chat-erreur:empty{display:none}
-#chat .chat-saisie input{flex:1;min-width:0;width:auto;height:52px;border-radius:26px;border:1px solid #E6DECB;background:#fff;padding:0 18px;font-size:16px}
-.chat-envoyer{width:52px;height:52px;border-radius:26px;border:0;background:#0E6B47;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
-.chat-envoyer svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.chat-envoyer:disabled{opacity:.5}
-`;
-document.head.appendChild(styleMessagerie);
-
 function creerPagesMessagerie(){
 if(!document.getElementById('conversations')){
 const p=document.createElement('div');
@@ -82,14 +31,14 @@ const p=document.createElement('div');
 p.id='chat';
 p.className='page';
 p.style.display='none';
-p.innerHTML=`<div class="entete-ecran"><button class="retour-carre" onclick="fermerChat()" aria-label="Retour">←</button><div class="chat-avatar" id="chat-avatar"></div><span class="titre-ecran" id="chat-titre"></span><div class="chat-actions" id="chat-actions"></div></div>
-<div id="chat-produit"></div>
-<div id="chat-fil"></div>
-<div class="chat-saisie"><div class="chat-erreur" id="chat-erreur"></div><input id="chat-texte" type="text" placeholder="Écrire un message…" maxlength="1000" enterkeyhint="send" autocomplete="off"><button id="chat-envoyer" class="chat-envoyer" onpointerdown="event.preventDefault()" onclick="envoyerChat()" aria-label="Envoyer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>`;
+p.innerHTML=vueChatPage();
 document.body.appendChild(p);
 document.getElementById('chat-texte').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();envoyerChat();}});
+// Garde le clavier ouvert quand on touche « Envoyer »
+document.getElementById('chat-envoyer').addEventListener('pointerdown',e=>e.preventDefault());
 }
 }
+
 creerPagesMessagerie();
 
 // Le clavier ne doit pas cacher la zone de saisie (iPhone surtout)
@@ -131,11 +80,12 @@ return {nom:b.nom||'Vendeur',photo:b.logo||'',telephone:b.telephone||''};
 const p=contactsAcheteurs[c.acheteurId]||{};
 return {nom:p.nom||c.nomAcheteur||'Client',photo:p.photo||'',telephone:p.telephone||''};
 }
-function avatarHTML(classe,personne){
+// Données prêtes pour vueAvatar : fond (photo ou couleur) et initiale
+function donneesAvatar(personne){
 const img=urlSure(personne.photo);
-const initiale=(String(personne.nom||'').trim().charAt(0)||'N').toUpperCase();
-return `<div class="${classe}" style="background:${fondImage(personne.photo,'#F2B233')}">${img?'':esc(initiale)}</div>`;
+return {fond:fondImage(personne.photo,'#F2B233'),initiale:img?'':(String(personne.nom||'').trim().charAt(0)||'N').toUpperCase()};
 }
+
 // Pour le vendeur : nom, téléphone et photo des acheteurs qui lui ont écrit (fonction Supabase contacts_acheteurs)
 async function chargerContactsAcheteurs(s){
 try{
@@ -147,21 +97,20 @@ const m={};
 contactsAcheteurs=m;
 }catch(e){}
 }
-const ICONE_APPEL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
-const ICONE_WHATSAPP='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3z"/></svg>';
 function boutonsContact(personne,c){
 const n=chiffresTelephone(personne.telephone);
 if(!telephoneValide(n)) return '';
 const sujet=c&&c.produitNom?' au sujet de « '+c.produitNom+' »':'';
 const texte=encodeURIComponent('Bonjour, je vous contacte depuis NioHub'+sujet+'.');
-return `<a class="chat-action appel" href="tel:+221${n}" aria-label="Appeler">${ICONE_APPEL}</a><a class="chat-action whatsapp" href="https://wa.me/221${n}?text=${texte}" target="_blank" rel="noopener" aria-label="Continuer sur WhatsApp">${ICONE_WHATSAPP}</a>`;
+return vueBoutonsContact({tel:'tel:+221'+n,wa:'https://wa.me/221'+n+'?text='+texte});
 }
+
 function dessinerEnteteChat(){
 const c=chatCourant;
 if(!c) return;
 const pers=interlocuteur(c,chatMoi);
 document.getElementById('chat-titre').textContent=pers.nom;
-document.getElementById('chat-avatar').outerHTML=avatarHTML('chat-avatar',pers).replace('class="chat-avatar"','class="chat-avatar" id="chat-avatar"');
+document.getElementById('chat-avatar').outerHTML=vueAvatar('chat-avatar',donneesAvatar(pers),'chat-avatar');
 document.getElementById('chat-actions').innerHTML=boutonsContact(pers,c);
 }
 
@@ -216,7 +165,7 @@ const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil pour voir vos messages.');montrer('profil');return;}
 if(vueCourante!=='chat'&&vueCourante!=='conversations') origineListe=(vueCourante==='boutique')?'boutique':'accueil';
 const p=document.getElementById('conversations');
-p.innerHTML=`<div class="entete-ecran"><button class="retour-carre" onclick="fermerListe()" aria-label="Retour">←</button><span class="titre-ecran">Messages</span></div><div id="conv-corps" class="liste" style="margin-top:6px">Chargement…</div>`;
+p.innerHTML=vueConversationsPage();
 montrer('conversations');
 await rafraichirListe();
 }
@@ -242,17 +191,14 @@ afficherBadge(conversations.reduce((t,c)=>t+c.nonLus,0));
 const cible=document.getElementById('conv-corps');
 if(!cible) return;
 cible.style.padding='0 14px';
-cible.innerHTML=conversations.length
-?conversations.map((c,i)=>{
+cible.innerHTML=vueConversationsListe(conversations.map((c,i)=>{
 const pers=interlocuteur(c,s.user_id);
-const titre=pers.nom;
 const d=c.dernier;
-return `<div class="conv${c.nonLus?' nonlu':''}" onclick="ouvrirConversation(${i})">${avatarHTML('conv-img',pers)}<div class="conv-corps"><div class="conv-haut"><span class="conv-nom">${esc(titre)}</span><span class="conv-heure">${esc(quandMsg(d.created_at))}</span></div><div class="conv-produit">${c.produitNom?'À propos de : '+esc(c.produitNom):''}</div><div class="conv-apercu">${d.expediteur_id===s.user_id?'Vous : ':''}${esc(d.texte)}</div></div>${c.nonLus?`<span class="conv-nonlus">${c.nonLus}</span>`:''}</div>`;
-}).join('')
-:'<div class="chat-vide">Aucun message pour l\'instant.<br>Ouvrez un produit et touchez « Message » pour écrire au vendeur.</div>';
+return {i:i,nonLus:c.nonLus,avatar:donneesAvatar(pers),titre:pers.nom,quand:quandMsg(d.created_at),produit:c.produitNom||'',vous:d.expediteur_id===s.user_id,apercu:d.texte};
+}));
 }catch(e){
 const cible=document.getElementById('conv-corps');
-if(cible) cible.innerHTML='Impossible de charger vos messages. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="rafraichirListe()">Réessayer</button>';
+if(cible) cible.innerHTML=vueConversationsErreur();
 }
 }
 
@@ -287,7 +233,7 @@ if(ctx.vendeurId===s.user_id&&!contactsAcheteurs[ctx.acheteurId]) chargerContact
 if(!boutiquesCache.length) await chargerBoutiquesCache();
 dessinerEnteteChat();
 dessinerProduitChat();
-document.getElementById('chat-fil').innerHTML='<div class="chat-vide">Chargement…</div>';
+document.getElementById('chat-fil').innerHTML=vueChatVide('Chargement…');
 document.getElementById('chat-erreur').textContent='';
 document.getElementById('chat-texte').value='';
 montrer('chat');
@@ -305,10 +251,7 @@ const c=chatCourant;
 const p=produitDe(c);
 const zone=document.getElementById('chat-produit');
 if(!c||!zone) return;
-const nom=(p&&p.nom)||c.produitNom||'Produit';
-const prix=p?esc(p.prix):'';
-const ouvrable=!!(p&&p.id);
-zone.innerHTML=`<div class="chat-produit${ouvrable?' cliquable':''}"${ouvrable?' onclick="voirProduitDuChat()"':''}><div class="cp-img" style="background:${fondImage(urlMiniature(p&&p.photo),'#D9B26F')}"></div><div class="cp-txt"><div class="cp-nom">${esc(nom)}</div><div class="cp-prix">${prix}</div></div>${ouvrable?'<span class="cp-voir">Voir ›</span>':''}</div>`;
+zone.innerHTML=vueProduitChat({nom:(p&&p.nom)||c.produitNom||'Produit',prix:p?p.prix:'',ouvrable:!!(p&&p.id),fond:fondImage(urlMiniature(p&&p.photo),'#D9B26F')});
 }
 
 function voirProduitDuChat(){
@@ -378,7 +321,7 @@ if(initial&&c===chatCourant){
 const cache=lireCacheChat(c);
 if(cache&&cache.length) chatLignes=cache;
 if(chatLignes.length||pendingPourChat().length) recomposerChat(true);
-else document.getElementById('chat-fil').innerHTML='<div class="chat-vide">Impossible de charger la conversation. Vérifiez votre connexion.<br><button class="auth-lien" style="width:auto" onclick="chargerChat(true)">Réessayer</button></div>';
+else document.getElementById('chat-fil').innerHTML=vueChatErreur();
 }
 }
 }
@@ -398,30 +341,31 @@ function dessinerFil(descendre){
 const zone=document.getElementById('chat-fil');
 if(!zone) return;
 const proche=window.innerHeight+window.scrollY>=document.body.scrollHeight-140;
-let html='',jourPrec='',sujetPrec=null;
+const lignes=[];
+let jourPrec='',sujetPrec=null;
 chatMessages.forEach(m=>{
 const j=jourMsg(m.created_at);
-if(j!==jourPrec){html+=`<div class="chat-jour">${esc(j)}</div>`;jourPrec=j;}
+if(j!==jourPrec){lignes.push({type:'jour',texte:j});jourPrec=j;}
 const sujet=m.produit_id?'p'+m.produit_id:'n:'+(m.produit||'');
 if(sujet!==sujetPrec&&(m.produit_id||m.produit)){
 const pr=m.produit_id&&distants.find(x=>x.id===m.produit_id);
-html+=`<div class="chat-sujet${pr?' cliquable':''}"><span${pr?` onclick="ouvrirParId(${JSON.stringify(m.produit_id).replace(/"/g,'&quot;')})"`:''}>À propos de : ${esc((pr&&pr.nom)||m.produit||'Produit')}</span></div>`;
+lignes.push({type:'sujet',texte:(pr&&pr.nom)||m.produit||'Produit',produitId:pr?String(m.produit_id):''});
 }
 sujetPrec=sujet;
 const miens=m.expediteur_id===chatMoi;
 const cle=m._attente?String(m.id).replace('attente-',''):String(m.id);
-const actionnable=miens&&!m.supprime;
 if(m.supprime){
-html+=`<div class="bulle ${miens?'moi':'autre'} supprime"><i>Message supprimé</i><div class="heure">${esc(heureMsg(m.created_at))}</div></div>`;
+lignes.push({type:'supprime',miens:miens,heure:heureMsg(m.created_at)});
 }else{
-html+=`<div class="bulle ${miens?'moi':'autre'}${m._attente?' attente':''}${actionnable?' touchable':''}"${actionnable?` data-mid="${esc(cle)}" data-attente="${m._attente?'1':''}" onclick="menuMessage(this)"`:''}>${typoFr(esc(m.texte))}<div class="heure">${m._attente?(navigator.onLine?'Envoi…':'En attente de connexion'):esc(heureMsg(m.created_at))}</div></div>`;
+lignes.push({type:'bulle',miens:miens,attente:!!m._attente,actionnable:miens,mid:cle,texte:typoFr(esc(m.texte)),heure:m._attente?(navigator.onLine?'Envoi…':'En attente de connexion'):heureMsg(m.created_at)});
 }
 });
 if(!chatMessages.length){
 const moiAcheteur=chatCourant&&chatCourant.acheteurId===chatMoi;
-html='<div class="chat-vide">'+(moiAcheteur?'Écrivez votre premier message au vendeur.':'Aucun message.')+'</div>';
+zone.innerHTML=vueChatVide(moiAcheteur?'Écrivez votre premier message au vendeur.':'Aucun message.');
+}else{
+zone.innerHTML=vueFilChat(lignes);
 }
-zone.innerHTML=html;
 if(descendre||proche) window.scrollTo(0,document.body.scrollHeight);
 }
 
@@ -571,16 +515,9 @@ const deja=bulle.nextElementSibling&&bulle.nextElementSibling.classList.contains
 document.querySelectorAll('.bulle-actions').forEach(x=>x.remove());
 if(deja) return; // un second appui referme le menu
 const attente=bulle.getAttribute('data-attente')==='1';
-const bouton=document.createElement('button');
-bouton.type='button';
-bouton.className='bulle-supprimer';
-bouton.textContent=attente?'Annuler l\'envoi':'Supprimer ce message';
-bouton.onclick=()=>supprimerMessage(bulle.getAttribute('data-mid'),attente);
-const zone=document.createElement('div');
-zone.className='bulle-actions';
-zone.append(bouton);
-bulle.insertAdjacentElement('afterend',zone);
+bulle.insertAdjacentHTML('afterend',vueMenuMessage(bulle.getAttribute('data-mid'),attente));
 }
+
 async function supprimerMessage(id,attente){
 document.querySelectorAll('.bulle-actions').forEach(x=>x.remove());
 if(attente){

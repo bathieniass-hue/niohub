@@ -27,7 +27,9 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 - Fait : `compte.js` (logique seule : session, téléphone, connexion Google, profil) → affichage dans `ecran-compte.js` (`vueAuth`, `vueConnexion`, `vueErreurReseau`, `vueCompletion`, `vueProfilCarte`, `vueProfilErreur`), style `#auth`, `.auth-…`, `.btn-plein` dans `style.css`, clics dans `ecran-liaisons.js` (actions `fermerAuth`, `reessayerAcces`, `changerCompte`, `creerProfil`, `reessayerProfil`).
 - Fait : `boutique.js` (logique seule) → affichage dans `ecran-boutique-etat.js` (`vueBoutique`, `vueBoutiqueFiche`, `vueBoutiqueTuiles`, `vueCommandesListe`, `vueDetailVente`, `vueNotifsBoutique`…), clics dans `ecran-liaisons.js` (actions `messagesBoutique`, `commandes`, `commandeDetail`, `validerNumero`, `afficherPage`, `detailNio`).
 - Fait : `commande.js` : déjà logique seule (son écran est `ecran-commande.js`), rien à changer.
-- Reste : `notifications.js`, `messages.js`, `app.js` (un ou deux par livraison, testés avant livraison).
+- Fait : `messages.js` (logique seule : conversations, discussion, envoi en file, temps réel) → affichage dans `ecran-messages.js` (`vueConversationsListe`, `vueChatPage`, `vueFilChat`, `vueProduitChat`, `vueMenuMessage`…), style dans `style.css`, clics dans `ecran-liaisons.js` (actions `ouvrirConversation`, `fermerListe`, `fermerChat`, `envoyerChat`, `menuMessage`, `supprimerMessage`, `ouvrirProduitId`…).
+- Fait : `notifications.js` (logique seule : pastilles, push, calculs) → affichage dans `ecran-notifications.js` (`vueNotifications`, `vueNotifDetail`, `vueReglageNotif`, `vueDemandeNotif`), clics dans `ecran-liaisons.js` (actions `retourNotif`, `notifAller`, `toutVu`, `basculerNotif`, `demandeOui`, `demandeNon`).
+- Reste : `app.js` (seul, testé avant livraison).
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 

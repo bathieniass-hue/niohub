@@ -278,13 +278,7 @@ catch(e){bandeau('Activées quand l\'application est ouverte. Le serveur de noti
 if(typeof dessinerParametres==='function') dessinerParametres();
 }
 function blocNotificationsReglage(){
-const dispo=typeof Notification!=='undefined';
-const actif=notifSysActive();
-return '<div class="titre-section" style="margin-top:22px">Notifications</div>'
-+(dispo
-?'<button type="button" class="theme-opt'+(actif?' on':'')+'" style="width:100%" onclick="basculerNotifSysteme()">'+(actif?'Notifications du téléphone : activées':'Activer les notifications du téléphone')+'</button>'
-:'<div style="font-size:13px;color:#6B6254">Les notifications du téléphone ne sont pas disponibles sur ce navigateur.</div>')
-+'<div style="font-size:13px;color:#6B6254;margin-top:10px">'+(pushServeurActif()?'Vous êtes prévenu d\'un nouveau message, d\'un avis ou d\'une commande, même quand l\'application est fermée.':'Vous êtes prévenu d\'un nouveau message, d\'un avis ou d\'une commande quand l\'application est ouverte ou en arrière-plan.')+'</div>';
+return vueReglageNotif({dispo:typeof Notification!=='undefined',actif:notifSysActive(),serveurActif:pushServeurActif()});
 }
 
 // ---------- écran Notifications (la cloche) ----------
@@ -337,88 +331,32 @@ if(!inboxNio.some(x=>String(x.id)===String(id))) await chargerInboxNio();
 dessinerNotifications();
 marquerNioLue(id);
 }
+let autresNotif=[];   // nouveautés affichées dans la cloche (pour retrouver celle qu'on touche)
 function dessinerNotifications(){
 const page=document.getElementById('notifications');
-page.replaceChildren();
-const entete=document.createElement('header');
-const retour=document.createElement('button');
-retour.className='retour';retour.textContent='←';retour.setAttribute('aria-label','Retour');
-const titre=document.createElement('span');
-titre.style.cssText='font-weight:bold;font-size:20px';
-entete.append(retour,titre);
-page.append(entete);
 // ----- détail d'un message de NioHub -----
 if(detailNioId!==null){
 const m=inboxNio.find(x=>String(x.id)===String(detailNioId));
-retour.onclick=()=>{detailNioId=null;dessinerNotifications();};
-titre.textContent='Message de NioHub';
-if(!m){
-const v=document.createElement('div');v.className='liste';v.style.marginTop='14px';v.textContent='Ce message est introuvable.';page.append(v);
+page.innerHTML=vueNotifDetail(m?{titre:m.titre||'Message de NioHub',date:dateNio(m.created_at),texte:m.texte}:null);
 return;
 }
-const carte=document.createElement('div');
-carte.className='liste nio-detail';
-const t=document.createElement('div');t.className='nio-titre';t.textContent=m.titre||'Message de NioHub';
-const d=document.createElement('div');d.className='nio-date';d.textContent=dateNio(m.created_at);
-const x=document.createElement('div');x.className='nio-texte';x.textContent=m.texte;
-carte.append(t,d,x);
-page.append(carte);
-const contact=document.createElement('button');
-contact.className='btn2';contact.style.marginTop='12px';contact.textContent='Répondre à NioHub';
-contact.onclick=()=>{if(typeof voirContact==='function') voirContact();};
-page.append(contact);
-return;
-}
-retour.onclick=()=>voirAccueil();
-titre.textContent='Notifications';
-// ----- messages de NioHub : ils restent dans la liste -----
-const etiquette=document.createElement('div');
-etiquette.className='titre-section';etiquette.style.marginTop='6px';etiquette.textContent='Messages de NioHub';
-page.append(etiquette);
-if(!inboxNio.length){
-const v=document.createElement('div');v.className='liste';v.style.marginTop='6px';v.textContent='Aucun message pour le moment.';page.append(v);
-}
-inboxNio.forEach(m=>{
-const l=document.createElement('div');
-l.className='ligne notif-item nio-ligne'+(m.lu?'':' non-lu');
-l.style.cursor='pointer';
-const point=document.createElement('span');point.className='notif-point';
-if(m.lu) point.style.visibility='hidden';
-const corps=document.createElement('div');corps.style.cssText='flex:1;min-width:0';
-const t=document.createElement('div');t.className='name';t.textContent=m.titre||'Message de NioHub';
-const x=document.createElement('div');x.className='notif-texte';x.textContent=m.texte;
-corps.append(t,x);
-const hr=document.createElement('div');hr.className='notif-heure';hr.textContent=heureRelative(m.created_at);
-l.append(point,corps,hr);
-l.onclick=()=>ouvrirDetailNio(m.id);
-page.append(l);
-});
-// ----- nouveautés (messages, avis, commandes…) : elles disparaissent quand on les ouvre -----
-const autres=itemsNotif.filter(i=>i.cle!=='nio');
-if(autres.length){
-const e2=document.createElement('div');
-e2.className='titre-section';e2.style.marginTop='18px';e2.textContent='Nouveautés';
-page.append(e2);
-const tout=document.createElement('button');
-tout.className='notif-tout';tout.type='button';tout.textContent='Tout marquer comme lu';
-tout.onclick=marquerToutVu;
-page.append(tout);
-autres.forEach(it=>{
-const l=document.createElement('div');
-l.className='ligne notif-item';
-l.style.cursor='pointer';
-const point=document.createElement('span');point.className='notif-point';
-const corps=document.createElement('div');corps.style.cssText='flex:1;min-width:0';
-const t=document.createElement('div');t.className='name';t.textContent=it.titre;
-const x=document.createElement('div');x.className='notif-texte';x.textContent=it.texte;
-corps.append(t,x);
-const hr=document.createElement('div');hr.className='notif-heure';hr.textContent=heureRelative(it.date);
-l.append(point,corps,hr);
-l.onclick=()=>it.aller();
-page.append(l);
+// ----- liste : messages de NioHub (ils restent) + nouveautés (elles disparaissent quand on les ouvre) -----
+autresNotif=itemsNotif.filter(i=>i.cle!=='nio');
+page.innerHTML=vueNotifications({
+nio:inboxNio.map(m=>({id:m.id,lu:!!m.lu,titre:m.titre||'Message de NioHub',texte:m.texte,heure:heureRelative(m.created_at)})),
+autres:autresNotif.map((it,i)=>({i:i,titre:it.titre,texte:it.texte,heure:heureRelative(it.date)}))
 });
 }
+// Flèche ← : du détail vers la liste, de la liste vers l'accueil
+function retourNotifications(){
+if(detailNioId!==null){detailNioId=null;dessinerNotifications();}
+else voirAccueil();
 }
+function allerNotif(i){
+const it=autresNotif[i];
+if(it&&typeof it.aller==='function') it.aller();
+}
+
 async function voirNotifications(){
 detailNioId=null;
 dessinerNotifications();
@@ -464,42 +402,25 @@ if(f) f.remove();
 }
 function afficherDemandeNotif(){
 if(document.getElementById('demande-notif')) return;
-const iphoneNonInstalle=estIphone()&&!estInstallee();
 const fond=document.createElement('div');
 fond.id='demande-notif';
 fond.className='dnotif-fond';
-const carte=document.createElement('div');
-carte.className='dnotif-carte';
-carte.setAttribute('role','dialog');
-carte.setAttribute('aria-modal','true');
-const ic=document.createElement('div');ic.className='dnotif-ic';
-const t=document.createElement('h2');t.className='dnotif-titre';
-const x=document.createElement('p');x.className='dnotif-texte';
-const oui=document.createElement('button');oui.type='button';oui.className='dnotif-oui';
-const non=document.createElement('button');non.type='button';non.className='dnotif-non';
-if(iphoneNonInstalle){
-t.textContent='Recevez les notifications sur iPhone';
-x.textContent='Ajoutez d\'abord NioHub à l\'écran d\'accueil : appuyez sur le bouton Partager de Safari, puis sur « Sur l\'écran d\'accueil ». Ouvrez ensuite NioHub depuis son icône pour activer les notifications.';
-oui.textContent='J\'ai compris';
-non.style.display='none';
-oui.onclick=()=>{reporterDemande();fermerDemandeNotif();};
-}else{
-t.textContent='Activez les notifications';
-x.textContent='Soyez prévenu tout de suite d\'un nouveau message, d\'une commande ou d\'un avis, même quand l\'application est fermée.';
-oui.textContent='Activer les notifications';
-non.textContent='Plus tard';
-oui.onclick=async()=>{
-oui.disabled=true;
+fond.innerHTML=vueDemandeNotif(estIphone()&&!estInstallee());
+document.body.append(fond);
+}
+function reporterEtFermerDemande(){
+reporterDemande();
+fermerDemandeNotif();
+}
+async function accepterDemandeNotif(){
+if(estIphone()&&!estInstallee()){reporterEtFermerDemande();return;}
+const oui=document.querySelector('#demande-notif .dnotif-oui');
+if(oui) oui.disabled=true;
 try{await basculerNotifSysteme();}catch(e){}
 if(!notifSysActive()) reporterDemande();
 fermerDemandeNotif();
-};
-non.onclick=()=>{reporterDemande();fermerDemandeNotif();};
 }
-carte.append(ic,t,x,oui,non);
-fond.append(carte);
-document.body.append(fond);
-}
+
 setInterval(()=>{
 if(document.getElementById('demande-notif')) return;
 if(!demandeNecessaire()||!conditionsDemandeOk()) return;
