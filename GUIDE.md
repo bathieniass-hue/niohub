@@ -17,7 +17,10 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 - Fait : `bandeau.js` (logique seule : durée, fermeture, clavier). Les éléments sont construits dans `ecran-bandeau.js` (`vueBandeau`, `vueConfirmation`, `vueZoneBandeaux`).
 - Fait : `achats.js` (logique seule). L'affichage est dans `ecran-achats.js` (`vueAchats`, `vueAchatsListe`, `vueAchatDetail`…), les clics dans `ecran-liaisons.js` (actions `achatDetail`, `achatsListe`, `retourAchats`, `avisAchat`, `annulerAchat`).
 - Fait : `raccourcis.js` (logique seule). L'affichage (raccourcis, filtres, fenêtre Catégories, page Favoris) est dans `ecran-raccourcis.js`, le style dans `style.css`, les clics dans `ecran-liaisons.js` (actions `conversations`, `favoris`, `categories`, `categorie`, `categorieModal`).
-- Reste : `avis.js`, `app.js`, `messages.js`, `notifications.js` et les autres, un par un.
+- Fait : `avis.js` (logique seule : calcul des notes, publication, modification). L'affichage (encadré boutique, page Avis, formulaire) est dans `ecran-avis.js`, le style des étoiles dans `style.css`, les clics dans `ecran-liaisons.js` (actions `avis`, `retourAvis`, `etoile`, `avisPublier`…).
+- Fait : `parametres.js` (logique seule) → affichage dans `ecran-parametres.js` (`vueParametres`), clic action `theme`.
+- Fait : `boutique-fiche.js` (logique seule) → affichage dans `ecran-avis-recus.js` (`vueNoteBoutique`, `vueAvisRecus…`), clic action `avisRecus`.
+- Reste : `app.js`, `messages.js`, `notifications.js` et les autres, un par un.
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 

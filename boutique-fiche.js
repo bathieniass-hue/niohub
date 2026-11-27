@@ -1,3 +1,5 @@
+// Fiche boutique (vendeur) : note de la boutique et page « Avis reçus ». Logique seulement.
+// L'affichage : ecran-avis-recus.js (vue…). Les clics : ecran-liaisons.js (actions « avisRecus », « boutique »).
 VUES.push('avis-recus');
 
 function creerPageAvisRecus(){
@@ -24,7 +26,7 @@ if(boutiqueActuelle!==b) return;
 const nom=document.querySelector('#infos-boutique .nomboutique');
 const actions=document.getElementById('boutique-actions');
 if(!nom||!actions) return;
-nom.insertAdjacentHTML('afterend',`<div style="color:#F2B233;font-size:14px;margin-top:2px">${etoiles(moyenne(avis))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(avis)}</span> <span style="font-size:12px;color:#6B6254">(${avis.length} avis)</span></div>`);
+nom.insertAdjacentHTML('afterend',vueNoteBoutique({etoiles:etoiles(moyenne(avis)),texte:texteMoyenne(avis),nb:avis.length}));
 
 }
 
@@ -38,24 +40,18 @@ async function voirAvisRecus(){
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous pour voir vos avis.');return;}
 const page=document.getElementById('avis-recus');
-page.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Avis reçus</span><span></span></header><div id="ar-corps" class="liste" style="margin-top:14px">Chargement…</div>`;
+page.innerHTML=vueAvisRecus();
 montrer('avis-recus');
 const avis=await chargerAvisVendeur(s.user_id);
 const zone=document.getElementById('ar-corps');
 if(!zone) return;
 if(avis.erreur){
-zone.innerHTML='Impossible de charger vos avis. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="voirAvisRecus()">Réessayer</button>';
+zone.innerHTML=vueAvisRecusErreur();
 return;
 }
 if(!avis.length){
-zone.innerHTML='Vous n\'avez pas encore reçu d\'avis.';
+zone.innerHTML=vueAvisRecusVide();
 return;
 }
-zone.innerHTML=`
-<div style="text-align:center;padding:6px 0 12px">
-<div style="font-size:32px;font-weight:bold">${texteMoyenne(avis)}</div>
-<div style="color:#F2B233;font-size:18px">${etoiles(moyenne(avis))}</div>
-<div style="font-size:13px;color:#6B6254">${avis.length} avis reçus</div>
-</div>
-${avis.map(a=>`<div style="padding:10px 0;border-top:1px solid #EDE5D3"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">${esc(a.auteur||'Client')}</b><span style="color:#F2B233;font-size:14px">${etoiles(a.note)}</span></div>${a.commentaire?`<div style="font-size:14px;margin-top:4px">${esc(a.commentaire)}</div>`:'<div style="font-size:13px;color:#6B6254;margin-top:4px">Sans commentaire</div>'}</div>`).join('')}`;
+zone.innerHTML=vueAvisRecusListe({moyenne:texteMoyenne(avis),etoiles:etoiles(moyenne(avis)),nb:avis.length,avis:avis.map(a=>({auteur:a.auteur||'Client',etoiles:etoiles(a.note),commentaire:a.commentaire}))});
 }

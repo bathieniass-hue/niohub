@@ -1,4 +1,5 @@
-// Paramètres : pour l'instant, le choix du thème (sombre par défaut, ou clair).
+// Paramètres : pour l'instant, le choix du thème (sombre par défaut, ou clair). Logique seulement.
+// L'affichage : ecran-parametres.js (vueParametres). Les clics : ecran-liaisons.js (actions « theme », « profil »).
 // Le choix est gardé sur le téléphone (localStorage) et appliqué dès l'ouverture de la page (voir index.html).
 
 const CLE_THEME='niohub_theme';
@@ -26,16 +27,10 @@ VUES_MENU['parametres']=2;
 creerPage('parametres');
 
 function dessinerParametres(){
-const t=themeActuel();
-document.getElementById('parametres').innerHTML=
-'<header><button class="retour" onclick="voirProfil()">←</button><span style="font-weight:bold;font-size:20px">Paramètres</span><span></span></header>'
-+'<div class="titre-section" style="margin-top:6px">Apparence</div>'
-+'<div class="theme-choix">'
-+'<button type="button" class="theme-opt'+(t==='sombre'?' on':'')+'" onclick="choisirTheme(\'sombre\')">Sombre</button>'
-+'<button type="button" class="theme-opt'+(t==='clair'?' on':'')+'" onclick="choisirTheme(\'clair\')">Clair</button>'
-+'</div>'
-+'<div style="font-size:13px;color:#6B6254;margin-top:10px">Votre choix est gardé sur ce téléphone.</div>'
-+(typeof blocNotificationsReglage==='function'?blocNotificationsReglage():'');
+document.getElementById('parametres').innerHTML=vueParametres({
+theme:themeActuel(),
+notifications:typeof blocNotificationsReglage==='function'?blocNotificationsReglage():''
+});
 }
 
 function voirParametres(){
