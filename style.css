@@ -411,3 +411,16 @@ body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
 /* Avis : étoiles du formulaire */
 .av-etoile{border:0;background:none;font-size:44px;line-height:1;color:#D3C9B0;padding:0 6px}
 .av-etoile.on{color:#F2B233}
+/* Fiche produit : détails (état, couleurs) */
+#fprix{font-size:22px;font-weight:bold;line-height:1.2;margin:0 0 2px}
+#fcat{font-size:12px;color:#8A8170;line-height:1.2;margin:0}
+#fnom{font-size:19px;font-weight:bold;line-height:1.25;margin:0 0 10px}
+#fd-details{margin:0 0 14px}
+#fd-details .fd-ligne{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-top:1px solid #EDE5D3;font-size:14px;color:#1E1A14}
+#fd-details .fd-ligne:first-child{border-top:0}
+#fd-details .fd-label{color:#6B6254}
+#fd-details .fd-val{font-weight:bold}
+#fd-details .fd-pastilles{display:flex;flex-wrap:wrap;gap:6px 12px}
+#fd-details .fd-pastille{display:inline-flex;align-items:center;gap:5px;font-size:13px}
+#fd-details .fd-rond{width:14px;height:14px;border-radius:7px;border:1px solid #8A8170;display:inline-block;box-sizing:border-box;flex-shrink:0}
+#fd-desc-titre{font-size:13px;color:#6B6254;margin:0 0 4px}
