@@ -17,3 +17,23 @@
 </div>
 </div>
 `;
+
+// Page « Modifier mon profil » : uniquement du HTML, aucune logique (voir profil.js). Le style : style.css (.pm-…).
+function vueModifProfil(){
+return `
+<header><button class="retour" data-action="profil">←</button><span style="font-weight:bold;font-size:20px">Modifier mon profil</span><span></span></header>
+<div class="pm-photo-zone">
+<button type="button" class="pm-photo" id="pm-photo" data-action="ouvrir" data-arg="pm-photo-fichier" aria-label="Changer la photo de profil"></button>
+<button type="button" class="pm-photo-lien" data-action="ouvrir" data-arg="pm-photo-fichier">Changer la photo</button>
+<input id="pm-photo-fichier" type="file" accept="image/*" style="display:none" data-change="choisirPhotoProfil">
+</div>
+<label>Nom complet</label>
+<input id="pm-nom" placeholder="Ex. Fatou Diop" maxlength="80">
+<label>Téléphone</label>
+<div class="champ-tel"><span class="indicatif">+221</span><input id="pm-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
+<label>Adresse</label>
+<input id="pm-adresse" placeholder="Quartier, repère" maxlength="200">
+<div id="pm-msg" class="msg"></div>
+<button id="pm-valider" class="btn" style="margin-top:14px" data-action="enregistrerProfil">Enregistrer</button>
+`;
+}

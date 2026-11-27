@@ -61,6 +61,8 @@ mesProduits:function(){appeler('montrer','mesproduits');return appeler('voirMesP
 modifierBoutique:function(){return appeler('ouvrirFormBoutique');},
 enregistrerBoutique:function(){return appeler('enregistrerBoutique');},
 modifierProfil:function(){return appeler('modifierProfil');},
+enregistrerProfil:function(){return appeler('enregistrerProfil');},
+envoyerContact:function(){return appeler('envoyerContact');},
 deconnecter:function(){return appeler('deconnecter');},
 bandeau:function(message){return appeler('bandeau',message);},
 conditions:function(){window.open('conditions.html','_blank');},
@@ -71,7 +73,8 @@ ouvrir:function(id){var c=document.getElementById(id);if(c) c.click();}
 // Changement d'un champ (un fichier choisi, par exemple) : le moteur reçoit l'événement
 const CHANGEMENT={
 choisirPhoto:function(e){return appeler('choisirPhoto',e);},
-choisirLogo:function(e){return appeler('choisirLogo',e);}
+choisirLogo:function(e){return appeler('choisirLogo',e);},
+choisirPhotoProfil:function(e){return appeler('choisirPhotoProfil',e);}
 };
 
 document.addEventListener('click',function(e){

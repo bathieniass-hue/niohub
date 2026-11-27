@@ -424,3 +424,6 @@ body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
 #fd-details .fd-pastille{display:inline-flex;align-items:center;gap:5px;font-size:13px}
 #fd-details .fd-rond{width:14px;height:14px;border-radius:7px;border:1px solid #8A8170;display:inline-block;box-sizing:border-box;flex-shrink:0}
 #fd-desc-titre{font-size:13px;color:#6B6254;margin:0 0 4px}
+.pm-photo-zone{display:flex;flex-direction:column;align-items:center;margin:4px 0 6px}
+.pm-photo{width:96px;height:96px;border-radius:48px;border:0;background:#F2B233;font-size:34px;font-weight:bold;color:#1E1A14;padding:0;cursor:pointer}
+.pm-photo-lien{border:0;background:none;color:#0E6B47;font-size:14px;font-weight:bold;padding:10px;cursor:pointer}

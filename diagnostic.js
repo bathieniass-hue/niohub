@@ -35,7 +35,7 @@ if(r&&(r.name==='ReferenceError'||r.name==='TypeError')) noter('Erreur : '+r.mes
 const ATTENDUS=[
 ['apresAccueil','app.js'],['envoyerCommande','commande.js'],['telephonesBoutique','boutique.js'],
 ['lireSession','compte.js'],['heureMsg','messages.js'],['texteMoyenne','avis.js'],
-['changerStatut','statut.js'],['vueCommandeVendeur','ecran-statut.js'],['afficherPageAchats','achats.js'],['voirVitrine','vitrine.js'],['vueVitrine','ecran-vitrine.js'],['vueBandeau','ecran-bandeau.js'],['vueAchats','ecran-achats.js'],['vueRaccourcis','ecran-raccourcis.js'],['vueAvis','ecran-avis.js'],['vueParametres','ecran-parametres.js'],['vueAvisRecus','ecran-avis-recus.js'],['vueDetailsFiche','ecran-fiche-details.js'],
+['changerStatut','statut.js'],['vueCommandeVendeur','ecran-statut.js'],['afficherPageAchats','achats.js'],['voirVitrine','vitrine.js'],['vueVitrine','ecran-vitrine.js'],['vueBandeau','ecran-bandeau.js'],['vueAchats','ecran-achats.js'],['vueRaccourcis','ecran-raccourcis.js'],['vueAvis','ecran-avis.js'],['vueParametres','ecran-parametres.js'],['vueAvisRecus','ecran-avis-recus.js'],['vueDetailsFiche','ecran-fiche-details.js'],['vueContact','ecran-contact.js'],['vueModifProfil','ecran-profil.js'],
 ['dessinerPhotoProfil','profil.js'],['themeActuel','parametres.js'],['chargerContact','contact.js'],
 ['notifUid','notifications.js'],['lireFavoris','favoris.js'],['afficherRaccourcis','raccourcis.js'],
 ['completerFicheBoutique','boutique-fiche.js'],['creerChampsDetails','details-produit.js'],

@@ -1,4 +1,6 @@
-// Page "Modifier mon profil" enregistrée comme une vraie vue : le menu du bas la ferme correctement
+// Modifier mon profil : logique seulement.
+// L'affichage : ecran-profil.js (vueModifProfil). Les clics : ecran-liaisons.js (actions « profil », « ouvrir », « enregistrerProfil », changement « choisirPhotoProfil »). Le style : style.css (.pm-…).
+// Page enregistrée comme une vraie vue : le menu du bas la ferme correctement
 VUES.push('profil-modif');
 VUES_MENU['profil-modif']=2;
 
@@ -8,28 +10,8 @@ const p=document.createElement('div');
 p.id='profil-modif';
 p.className='page';
 p.style.display='none';
-p.innerHTML=`
-<header><button class="retour" onclick="retourProfilModif()">←</button><span style="font-weight:bold;font-size:20px">Modifier mon profil</span><span></span></header>
-<div class="pm-photo-zone">
-<button type="button" class="pm-photo" id="pm-photo" onclick="document.getElementById('pm-photo-fichier').click()" aria-label="Changer la photo de profil"></button>
-<button type="button" class="pm-photo-lien" onclick="document.getElementById('pm-photo-fichier').click()">Changer la photo</button>
-<input id="pm-photo-fichier" type="file" accept="image/*" style="display:none" onchange="choisirPhotoProfil(event)">
-</div>
-<label>Nom complet</label>
-<input id="pm-nom" placeholder="Ex. Fatou Diop" maxlength="80">
-<label>Téléphone</label>
-<div class="champ-tel"><span class="indicatif">+221</span><input id="pm-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
-<label>Adresse</label>
-<input id="pm-adresse" placeholder="Quartier, repère" maxlength="200">
-<div id="pm-msg" class="msg"></div>
-<button id="pm-valider" class="btn" style="margin-top:14px" onclick="enregistrerProfil()">Enregistrer</button>
-`;
+p.innerHTML=vueModifProfil();
 document.body.appendChild(p);
-const st=document.createElement('style');
-st.textContent=`.pm-photo-zone{display:flex;flex-direction:column;align-items:center;margin:4px 0 6px}
-.pm-photo{width:96px;height:96px;border-radius:48px;border:0;background:#F2B233;font-size:34px;font-weight:bold;color:#1E1A14;padding:0;cursor:pointer}
-.pm-photo-lien{border:0;background:none;color:#0E6B47;font-size:14px;font-weight:bold;padding:10px;cursor:pointer}`;
-document.head.appendChild(st);
 }
 creerPageModifProfil();
 
@@ -117,10 +99,6 @@ const el=document.getElementById(id);
 if(el.value===avant[id]) el.value=serveur[id];
 });
 }
-}
-
-function retourProfilModif(){
-voirProfil();
 }
 
 async function enregistrerProfil(){

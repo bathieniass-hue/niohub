@@ -1,4 +1,5 @@
-// Service client : écrire à l'équipe NioHub. Les messages arrivent dans l'application d'administration, où la réponse s'écrit.
+// Service client : écrire à l'équipe NioHub. Les messages arrivent dans l'application d'administration, où la réponse s'écrit. Logique seulement.
+// L'affichage : ecran-contact.js (vueContact…). Les clics : ecran-liaisons.js (actions « profil », « envoyerContact »).
 
 VUES.push('contact');
 VUES_MENU['contact']=2;
@@ -19,12 +20,9 @@ contactMoi=s.user_id;
 contactLignes=[];
 contactSignature='';
 const page=document.getElementById('contact');
-page.innerHTML='<header><button class="retour" onclick="voirProfil()" aria-label="Retour">←</button><span style="font-weight:bold;font-size:20px">Nous contacter</span></header>'
-+'<div class="chat-vide" id="contact-intro">Une question, un problème, une idée ? Écrivez-nous : notre équipe vous répond ici.</div>'
-+'<div id="contact-fil"></div>'
-+'<div class="chat-saisie"><div class="chat-erreur" id="contact-erreur"></div>'
-+'<input id="contact-texte" type="text" placeholder="Écrire à NioHub…" maxlength="1000" enterkeyhint="send" autocomplete="off">'
-+'<button id="contact-envoyer" class="chat-envoyer" onpointerdown="event.preventDefault()" onclick="envoyerContact()" aria-label="Envoyer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>';
+page.innerHTML=vueContact();
+// Garde le clavier ouvert quand on touche « Envoyer »
+document.getElementById('contact-envoyer').addEventListener('pointerdown',e=>e.preventDefault());
 document.getElementById('contact-texte').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();envoyerContact();}});
 montrer('contact');
 await chargerContact(true);
@@ -39,14 +37,14 @@ function dessinerContact(descendre){
 const zone=document.getElementById('contact-fil');
 if(!zone) return;
 const proche=window.innerHeight+window.scrollY>=document.body.scrollHeight-140;
-let html='',jourPrec='';
-contactLignes.forEach(m=>{
+let jourPrec='';
+const lignes=contactLignes.map(m=>{
 const j=jourMsg(m.created_at);
-if(j!==jourPrec){html+=`<div class="chat-jour">${esc(j)}</div>`;jourPrec=j;}
-const miens=!m.expediteur_admin;
-html+=`<div class="bulle ${miens?'moi':'autre'}">${miens?'':'<div class="contact-qui">Service client NioHub</div>'}${typoFr(esc(m.texte))}<div class="heure">${esc(heureMsg(m.created_at))}</div></div>`;
+const nouveau=j!==jourPrec;
+jourPrec=j;
+return {jour:nouveau?j:'',miens:!m.expediteur_admin,texte:typoFr(esc(m.texte)),heure:heureMsg(m.created_at)};
 });
-zone.innerHTML=html;
+zone.innerHTML=vueContactFil(lignes);
 const intro=document.getElementById('contact-intro');
 if(intro) intro.style.display=contactLignes.length?'none':'block';
 if(descendre||proche) window.scrollTo(0,document.body.scrollHeight);
@@ -74,7 +72,7 @@ Donnees.support.marquerLus(s).then(()=>{if(typeof majCompteurs==='function') maj
 }
 }catch(e){
 if(initial){
-document.getElementById('contact-fil').innerHTML='<div class="chat-vide">Impossible de charger la conversation. Vérifiez votre connexion.</div>';
+document.getElementById('contact-fil').innerHTML=vueContactErreurChargement();
 }
 }
 }
