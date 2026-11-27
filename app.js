@@ -2,7 +2,7 @@ const VUES=['accueil','fiche','commande','ajout','mesproduits','boutique','bouti
 const VUES_MENU={accueil:0,boutique:1,'boutique-form':1,profil:2};
 
 const cats=[["Mode","#F2D9A3"],["Tech","#BFD8E3"],["Maison","#E3C4B3"],["Beauté","#C8DDBE"]];
-document.getElementById('cats').innerHTML=cats.map(([n,c])=>`<div class="cat" style="background:${c}">${n}</div>`).join('');
+document.getElementById('cats').innerHTML=vueCategories(cats.map(([n,c])=>({nom:n,fond:c})));
 
 const defauts=[
 {nom:"Boubou brodé",prix:"25 000 FCFA",couleur:"#D9B26F",desc:"Bazin riche, broderie faite main. Tailles M à XXL."},
@@ -384,26 +384,18 @@ return m;
 }catch(e){return null;}
 }
 
-const ICONE_LIEU='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
-
 function blocVendeurCarte(p){
 const b=p.user_id?boutiquesCache.find(x=>x.user_id===p.user_id):null;
 if(!b) return '';
 const n=notesVendeurs[b.user_id];
-const note=n&&n.nb
-?`<span class="v-etoiles">★</span> <b>${n.moyenne.toFixed(1).replace('.',',')}</b>`
-:'<span class="v-nouveau">Nouveau</span>';
-const lieu=b.adresse?`<div class="v-lieu">${ICONE_LIEU}<span>${esc(b.adresse)}</span></div>`:'';
-const ini=esc((b.nom||'N').charAt(0).toUpperCase());
-return `<div class="vendeur"><div class="v-avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':ini}</div><div class="v-txt"><div class="v-ligne"><span class="v-nom">${esc(b.nom)}</span><span class="v-note">${note}</span></div>${lieu}</div></div>`;
+return vueVendeurCarte({fond:fondImage(b.logo,'#F2B233'),initiale:urlSure(b.logo)?'':(b.nom||'N').charAt(0).toUpperCase(),nom:b.nom,note:(n&&n.nb)?n.moyenne.toFixed(1).replace('.',','):'',lieu:b.adresse||''});
 }
 
 function carteProduitHTML(p,i){
-const clic=p.id?'ouvrirParId('+Number(p.id)+')':'ouvrir('+i+')';
 // Le prix rétrécit un peu quand il est long, pour toujours tenir sur une seule ligne (jusqu'à 100 000 000 FCFA)
 const L=String(p.prix||'').length;
 const taillePrix=L<=11?'':L<=13?' p18':L<=14?' p17':L<=16?' p15':' p13';
-return `<div class="card" onclick="${clic}"><div class="img" style="background:${fondMini(p)}"></div><div class="info"><div class="name">${esc(p.nom)}</div><div class="price${taillePrix}">${esc(p.prix)}</div>${blocVendeurCarte(p)}</div></div>`;
+return vueCarteProduit({action:p.id?'ouvrirProduitId':'ouvrirDemo',arg:p.id?Number(p.id):i,fond:fondMini(p),nom:p.nom,prix:p.prix,classePrix:taillePrix,vendeur:blocVendeurCarte(p)});
 }
 
 function requeteRecherche(){
@@ -428,9 +420,7 @@ const grille=document.getElementById('grid');
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
 const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includes(q)):[];
-bloc.innerHTML=trouvees.length
-?`<div class="titre-section">Boutiques</div><div class="liste" style="margin-top:0">${trouvees.map(b=>`<div class="ligne" style="cursor:pointer" onclick="voirVitrine('${esc(b.user_id)}')"><div class="vignette" style="border-radius:28px;background:${fondImage(b.logo,'#F2B233').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(b.nom)}</div><div style="font-size:12px;color:#6B6254">${esc(b.adresse||'')}</div></div><span>›</span></div>`).join('')}</div>`
-:'';
+bloc.innerHTML=vueBoutiquesTrouvees(trouvees.map(b=>({userId:b.user_id,fond:fondImage(b.logo,'#F2B233').replace('no-repeat','').trim(),nom:b.nom,adresse:b.adresse||''})));
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
 const horsLigne=!navigator.onLine||chargementEchoue;
 const cleFiltre=q+'|'+(categorieActive||'');
@@ -442,26 +432,20 @@ const quelques=(horsLigne&&!q&&!categorieActive)?liste.slice(0,PRODUITS_HORS_LIG
 listeCourante=quelques;
 const affiche=quelques.slice(0,nbAffiches);
 let fin='';
-if(horsLigne) fin='<div class="fin-liste">'+(navigator.onLine?'La connexion est lente. Les autres produits arriveront dès qu\'elle reviendra.':'Vous êtes hors ligne. Reconnectez-vous pour voir tous les produits.')+'</div>';
-else if(chargementLent) fin='<div class="fin-liste"><span class="roue"></span>Chargement des produits…</div>';
+if(horsLigne) fin=vueFinListe(navigator.onLine?'La connexion est lente. Les autres produits arriveront dès qu\'elle reviendra.':'Vous êtes hors ligne. Reconnectez-vous pour voir tous les produits.');
+else if(chargementLent) fin=vueFinChargement();
 grille.innerHTML=affiche.map(x=>carteProduitHTML(x.p,x.i)).join('')+fin;
 if(affiche.length<Math.min(plafondAffichage,quelques.length)) demarrerRevelation();
 }else if(chargementEnCours&&!q&&!categorieActive){
-grille.innerHTML=Array(6).fill('<div class="sk-carte"></div>').join('');
+grille.innerHTML=vueSqueletteGrille();
 }else if(q){
-grille.innerHTML=`<div class="vide">Aucun produit trouvé pour « ${esc(q)} »</div>`;
+grille.innerHTML=vueMessageVide('Aucun produit trouvé pour « '+q+' »');
 }else if(chargementEchoue&&!distants.length){
-grille.innerHTML=`<div class="vide">Impossible de charger les produits. Vérifiez votre connexion et rouvrez l'application.</div>`;
+grille.innerHTML=vueMessageVide('Impossible de charger les produits. Vérifiez votre connexion et rouvrez l\'application.');
 }else if(categorieActive){
-grille.innerHTML=`<div class="vide">Aucun produit dans la catégorie « ${esc(categorieActive)} »</div>`;
+grille.innerHTML=vueMessageVide('Aucun produit dans la catégorie « '+categorieActive+' »');
 }else{
-grille.innerHTML=`<div class="accueil-vide">
-<img src="logo-n.png" alt="" class="accueil-vide-logo">
-<div class="accueil-vide-titre">Bienvenue sur NioHub</div>
-<div class="accueil-vide-texte">Aucun produit n'est encore en vente près de chez vous. Lancez le marché : publiez le premier article, il sera vu par tous les visiteurs.</div>
-<button class="btn" type="button" onclick="voirAjout('accueil')">Publier un produit</button>
-<button class="accueil-vide-lien" type="button" onclick="voirBoutique()">Créer ma boutique</button>
-</div>`;
+grille.innerHTML=vueAccueilVide();
 }
 }
 
@@ -543,11 +527,10 @@ const zone=document.getElementById('suggest');
 if(!zone) return;
 if(!q){zone.innerHTML='';suggestionsEnCours=[];return;}
 suggestionsEnCours=suggestions(q);
-zone.innerHTML=suggestionsEnCours.map((s,k)=>{
+zone.innerHTML=vueSuggestions(suggestionsEnCours.map((s,k)=>{
 const i=s.nom.toLowerCase().indexOf(q);
-const tag=s.type==='boutique'?'<span class="tag-b">Boutique</span>':'<span class="tag-p">Produit</span>';
-return `<button onclick="choisirSuggestion(${k})">${esc(s.nom.slice(0,i))}<b>${esc(s.nom.slice(i,i+q.length))}</b>${esc(s.nom.slice(i+q.length))}${tag}</button>`;
-}).join('');
+return {k:k,avant:s.nom.slice(0,i),milieu:s.nom.slice(i,i+q.length),apres:s.nom.slice(i+q.length),boutique:s.type==='boutique'};
+}));
 }
 
 function choisirSuggestion(k){
@@ -569,7 +552,7 @@ const ancien=document.querySelector('#accueil .search');
 if(!ancien||document.getElementById('q')) return;
 const zone=document.createElement('div');
 zone.className='recherche';
-zone.innerHTML='<input id="q" type="search" placeholder="Rechercher un produit ou une boutique" autocomplete="off"><div id="suggest"></div>';
+zone.innerHTML=vueRecherche();
 ancien.replaceWith(zone);
 const champ=document.getElementById('q');
 champ.addEventListener('input',()=>{afficherSuggestions();afficherGrille();});
@@ -580,26 +563,6 @@ afficherGrille();
 champ.blur();
 }
 });
-}
-
-function styleAccueil(){
-const st=document.createElement('style');
-st.textContent=`
-.recherche{position:relative;margin:0 20px}
-#q{width:100%;padding:12px 14px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif;outline:none}
-#q:focus{border-color:#0E6B47}
-#suggest{position:absolute;left:0;right:0;top:100%;margin-top:6px;background:#fff;border:1px solid #EDE5D3;border-radius:14px;box-shadow:0 10px 24px rgba(30,26,20,.12);z-index:20;overflow:hidden}
-#suggest button{display:block;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid #F3EEE2;background:#fff;font-size:14px;color:#1E1A14}
-#suggest button:last-child{border-bottom:0}
-#suggest b{color:#0E6B47}
-.tag-b,.tag-p{font-size:11px;font-weight:bold;padding:2px 6px;border-radius:8px;margin-left:6px}
-.tag-b{background:#E1F1E8;color:#0E6B47}
-.tag-p{background:#FFF1CC;color:#8A5A00}
-.titre-section{font-size:14px;font-weight:bold;margin:8px 0 6px;color:#6B6254}
-.vide{grid-column:1/-1;text-align:center;color:#6B6254;padding:30px 0;font-size:14px}
-#bandeau-reseau-supprime{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;display:none;padding:10px 14px;border-radius:14px;background:#8A5A00;color:#fff;font-size:13px;font-weight:bold;box-shadow:0 8px 20px rgba(30,26,20,.2)}
-`;
-document.head.appendChild(st);
 }
 
 // Le bandeau « hors ligne / connexion lente » n'existe plus : l'état est montré à la fin de la liste des produits.
@@ -658,9 +621,8 @@ await chargerProduits();
 await assurerCatalogueComplet();
 if(!s||!s.user_id){zone.textContent='Connectez-vous dans Profil pour voir vos produits.';return;}
 const mes=distants.filter(l=>l.user_id===s.user_id);
-zone.innerHTML=mes.length
-?mes.map(l=>`<div class="ligne"><div class="vignette" style="background:${fondImage(urlMiniature(l.photo),'#D9B26F').replace('no-repeat','').trim()}"></div><div style="flex:1"><div class="name">${esc(l.nom)}</div><div class="price">${esc(l.prix)}</div></div><button onclick="modifierProduit(${Number(l.id)})" style="border:0;background:none;color:#0E6B47;font-weight:bold;font-size:13px">Modifier</button><button onclick="supprimerProduit(${Number(l.id)})" style="border:0;background:none;color:#B4291A;font-weight:bold;font-size:13px">Supprimer</button></div>`).join('')
-:"Vous n'avez pas encore de produit publié.";
+if(mes.length) zone.innerHTML=vueMesProduits(mes.map(l=>({id:Number(l.id),fond:fondImage(urlMiniature(l.photo),'#D9B26F').replace('no-repeat','').trim(),nom:l.nom,prix:l.prix})));
+else zone.textContent="Vous n'avez pas encore de produit publié.";
 }
 
 function remettreApercu(photo){
@@ -744,7 +706,6 @@ apercuUrl=URL.createObjectURL(photoBlob);
 remettreApercu(apercuUrl);
 }
 
-styleAccueil();
 installerRecherche();
 installerDefilement();
 (function(){
