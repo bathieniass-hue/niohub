@@ -70,6 +70,10 @@ installer:function(){return appeler('installerApp');},
 installMasquer:function(){return appeler('masquerInstallation');},
 majRecharger:function(){return appeler('rechargerApp');},
 majFermer:function(){return appeler('fermerBandeauMiseAJour');},
+optionOuvrir:function(n,el,e){return appeler('ouvrirOption',n,e);},
+optionChoisir:function(arg){var k=String(arg).indexOf('|');return appeler('choisirOption',String(arg).slice(0,k),String(arg).slice(k+1));},
+optionFermer:function(a,el,e){if(e.target===el) return appeler('fermerOption');},
+couleur:function(a,el){return appeler('basculerCouleur',el);},
 // Ouvre le sélecteur de fichier d'un champ (arg = id du champ)
 ouvrir:function(id){var c=document.getElementById(id);if(c) c.click();}
 };

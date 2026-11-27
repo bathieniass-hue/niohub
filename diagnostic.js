@@ -38,7 +38,7 @@ const ATTENDUS=[
 ['changerStatut','statut.js'],['vueCommandeVendeur','ecran-statut.js'],['afficherPageAchats','achats.js'],['voirVitrine','vitrine.js'],['vueVitrine','ecran-vitrine.js'],['vueBandeau','ecran-bandeau.js'],['vueAchats','ecran-achats.js'],['vueRaccourcis','ecran-raccourcis.js'],['vueAvis','ecran-avis.js'],['vueParametres','ecran-parametres.js'],['vueAvisRecus','ecran-avis-recus.js'],['vueDetailsFiche','ecran-fiche-details.js'],['vueContact','ecran-contact.js'],['vueModifProfil','ecran-profil.js'],
 ['dessinerPhotoProfil','profil.js'],['themeActuel','parametres.js'],['chargerContact','contact.js'],
 ['notifUid','notifications.js'],['lireFavoris','favoris.js'],['afficherRaccourcis','raccourcis.js'],
-['completerFicheBoutique','boutique-fiche.js'],['creerChampsDetails','details-produit.js'],
+['completerFicheBoutique','boutique-fiche.js'],['creerChampsDetails','details-produit.js'],['vueCarteDetails','ecran-details-produit.js'],
 ['televerserNouvellesPhotos','ajout-produit.js'],['arrangerFiche','fiche-details.js'],
 ['bandeau','bandeau.js'],['verifierMiseAJour','pwa.js'],['vueBandeauInstall','ecran-pwa.js']
 ];

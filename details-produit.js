@@ -1,3 +1,5 @@
+// Détails du produit et publication : logique seulement.
+// L'affichage (carte, menu de choix) : ecran-details-produit.js. Le style : style.css (.dp-…). Les clics : ecran-liaisons.js.
 const CATEGORIES_PRODUIT=["Mode & accessoires","Téléphone & high-tech","Maison & décoration","Beauté & hygiène","Alimentation","Sport et loisir","Électroménager","Bébé & enfants","École & bureau","Auto & moto","Autres"];
 const ETATS_PRODUIT=["Neuf","Comme neuf","Bon état","Occasion"];
 const COULEURS_PRODUIT=[
@@ -37,31 +39,6 @@ let choixDetails={categorie:'',etat:''};
 let couleursChoisies=[];
 let publicationEnCours=false;
 
-const styleDetails=document.createElement('style');
-styleDetails.textContent=`
-#dp-card{background:#fff;border:1px solid #E6DECB;border-radius:12px;overflow:hidden;margin-top:8px}
-.dp-row{display:grid;grid-template-columns:${LARGEUR_LIBELLE}px minmax(0,1fr) 14px;align-items:center;padding:6px 12px;border-top:1px solid #EDE5D3;font-family:sans-serif;color:#1E1A14;line-height:1.2;box-sizing:border-box}
-#dp-card .dp-row > *{grid-column:auto !important;grid-row:auto !important;margin:0 !important;text-align:left !important}
-#dp-card .dp-chev{text-align:right !important}
-.dp-cliquable{cursor:pointer}
-#dp-card > .dp-row:first-child{border-top:0}
-.dp-label{color:#6B6254;font-size:13px;line-height:1.2}
-.dp-valeur{font-weight:bold;font-size:13px;line-height:1.2;min-width:0;padding-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1E1A14}
-.dp-valeur.dp-vide{font-weight:bold;color:#9A9080}
-.dp-chev{font-size:16px;line-height:1;color:#1E1A14}
-.dp-couleurs{display:flex;align-items:flex-start;min-width:0;overflow-x:auto;gap:6px;padding:2px 2px 2px 0;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent)}
-.dp-couleurs::-webkit-scrollbar{display:none}
-.dp-sw{flex-shrink:0;width:36px;min-height:0;height:auto;text-align:center;background:none;border:0;padding:0;margin:0;font-family:sans-serif;color:#1E1A14;font-size:10px;line-height:1}
-.dp-pastille{width:26px;height:26px;border-radius:13px;border:1px solid #8A8170;margin:0 auto 2px;box-sizing:border-box}
-.dp-sw.on .dp-pastille{box-shadow:0 0 0 2px #fff,0 0 0 3px #0E6B47}
-.dp-choix{display:block;width:100%;padding:12px 14px;border:0;border-top:1px solid #F3EEE2;background:#fff;font-size:15px;color:#1E1A14;font-family:sans-serif;text-align:left;box-sizing:border-box}
-.dp-choix:first-child{border-top:0}
-.dp-choix.on{color:#0E6B47;font-weight:bold}
-@keyframes dpPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
-#dp-card #desc{display:block;width:100%;box-sizing:border-box;border:0;border-top:1px solid #EDE5D3;border-radius:0;margin:0;padding:8px 12px;min-height:56px;font-size:13px;line-height:1.3;font-family:sans-serif;background:#fff;outline:none;resize:vertical;color:#1E1A14}
-`;
-document.head.appendChild(styleDetails);
-
 function creerChampsDetails(){
 const bouton=document.getElementById('ajout-publier');
 const desc=document.getElementById('desc');
@@ -72,23 +49,7 @@ desc.placeholder='description et détails';
 
 const carte=document.createElement('div');
 carte.id='dp-card';
-carte.innerHTML=`
-<div class="dp-row dp-cliquable" id="dp-row-categorie" onclick="ouvrirOption('categorie',event)">
-<span class="dp-label">Catégorie</span>
-<span class="dp-valeur dp-vide" id="dp-val-categorie">Choisir</span>
-<span class="dp-chev">›</span>
-</div>
-<div class="dp-row dp-cliquable" id="dp-row-etat" onclick="ouvrirOption('etat',event)">
-<span class="dp-label">État</span>
-<span class="dp-valeur dp-vide" id="dp-val-etat">Choisir</span>
-<span class="dp-chev">›</span>
-</div>
-<div class="dp-row">
-<span class="dp-label">Couleur</span>
-<div class="dp-couleurs">${COULEURS_PRODUIT.map(c=>`<button type="button" class="dp-sw" data-c="${c.nom}" onclick="basculerCouleur(this)"><div class="dp-pastille" style="background:${c.hex}"></div>${c.nom.toLowerCase()}</button>`).join('')}</div>
-<span class="dp-chev">›</span>
-</div>
-`;
+carte.innerHTML=vueCarteDetails(COULEURS_PRODUIT);
 carte.appendChild(desc);
 bouton.insertAdjacentElement('beforebegin',carte);
 }
@@ -96,15 +57,7 @@ creerChampsDetails();
 
 function creerPopover(){
 if(document.getElementById('dp-fond')) return;
-const fond=document.createElement('div');
-fond.id='dp-fond';
-fond.style.cssText='display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:transparent;z-index:999';
-fond.onclick=fermerOption;
-const box=document.createElement('div');
-box.id='dp-pop';
-box.style.cssText='position:fixed;background:#fff;border:1px solid #E6DECB;border-radius:12px;box-shadow:0 8px 24px rgba(30,26,20,.18);padding:4px 0;max-height:280px;overflow-y:auto;z-index:1001;box-sizing:border-box;font-family:sans-serif';
-box.onclick=e=>e.stopPropagation();
-fond.appendChild(box);
+const fond=vueFondOption();
 document.body.appendChild(fond);
 }
 creerPopover();
@@ -127,7 +80,7 @@ const r=ligne.getBoundingClientRect();
 const x=ev&&ev.clientX?ev.clientX:r.left+r.width/2;
 const y=ev&&ev.clientY?ev.clientY:r.top+r.height/2;
 const box=document.getElementById('dp-pop');
-box.innerHTML=`<div style="font-weight:bold;font-size:12px;color:#6B6254;padding:8px 14px 4px">${titre}</div>`+liste.map(v=>`<button type="button" class="dp-choix${choixDetails[n]===v?' on':''}" onclick="choisirOption('${n}','${v}')">${v}</button>`).join('');
+box.innerHTML=vueListeOption(n,titre,liste,choixDetails[n]);
 const colonneValeur=r.left+12+LARGEUR_LIBELLE;
 const largeur=Math.max(180,Math.min(240,window.innerWidth-colonneValeur-12));
 const gauche=Math.max(12,Math.min(colonneValeur,window.innerWidth-largeur-12));

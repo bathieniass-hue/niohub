@@ -22,7 +22,8 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 - Fait : `boutique-fiche.js` (logique seule) → affichage dans `ecran-avis-recus.js` (`vueNoteBoutique`, `vueAvisRecus…`), clic action `avisRecus`.
 - Fait : `fiche-details.js` (logique seule) → affichage dans `ecran-fiche-details.js` (`vueDetailsFiche`), style `#fd-details…` dans `style.css`.
 - Fait : `pwa.js` (logique seule : service worker, mise à jour, installation) → affichage dans `ecran-pwa.js` (`vueBandeauMiseAJour`, `vueBandeauInstall`, `vueLigneInstaller`), style dans `style.css`, clics dans `ecran-liaisons.js` (actions `installer`, `installMasquer`, `majRecharger`, `majFermer`).
-- Reste : `details-produit.js`, `ajout-produit.js`, `boutique.js`, `compte.js`, `commande.js`, puis `notifications.js`, `messages.js`, `app.js` (un par un, testés avant livraison).
+- Fait : `details-produit.js` (logique seule : choix, menu, publication) → affichage dans `ecran-details-produit.js` (`vueCarteDetails`, `vueFondOption`, `vueListeOption`), style `.dp-…` dans `style.css`, clics dans `ecran-liaisons.js` (actions `optionOuvrir`, `optionChoisir`, `optionFermer`, `couleur`).
+- Reste : `ajout-produit.js`, `boutique.js`, `compte.js`, `commande.js`, puis `notifications.js`, `messages.js`, `app.js` (un par un, testés avant livraison).
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 
