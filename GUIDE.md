@@ -21,8 +21,8 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 - Fait : `parametres.js` (logique seule) → affichage dans `ecran-parametres.js` (`vueParametres`), clic action `theme`.
 - Fait : `boutique-fiche.js` (logique seule) → affichage dans `ecran-avis-recus.js` (`vueNoteBoutique`, `vueAvisRecus…`), clic action `avisRecus`.
 - Fait : `fiche-details.js` (logique seule) → affichage dans `ecran-fiche-details.js` (`vueDetailsFiche`), style `#fd-details…` dans `style.css`.
-- À supprimer à la main : `monter.js` et `liaisons.js` (anciens doublons inutilisés ; les vrais sont `ecran-monter.js` et `ecran-liaisons.js`).
-- Reste : `app.js`, `messages.js`, `notifications.js` et les autres, un par un.
+- Fait : `pwa.js` (logique seule : service worker, mise à jour, installation) → affichage dans `ecran-pwa.js` (`vueBandeauMiseAJour`, `vueBandeauInstall`, `vueLigneInstaller`), style dans `style.css`, clics dans `ecran-liaisons.js` (actions `installer`, `installMasquer`, `majRecharger`, `majFermer`).
+- Reste : `details-produit.js`, `ajout-produit.js`, `boutique.js`, `compte.js`, `commande.js`, puis `notifications.js`, `messages.js`, `app.js` (un par un, testés avant livraison).
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 

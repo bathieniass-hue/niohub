@@ -66,6 +66,10 @@ envoyerContact:function(){return appeler('envoyerContact');},
 deconnecter:function(){return appeler('deconnecter');},
 bandeau:function(message){return appeler('bandeau',message);},
 conditions:function(){window.open('conditions.html','_blank');},
+installer:function(){return appeler('installerApp');},
+installMasquer:function(){return appeler('masquerInstallation');},
+majRecharger:function(){return appeler('rechargerApp');},
+majFermer:function(){return appeler('fermerBandeauMiseAJour');},
 // Ouvre le sélecteur de fichier d'un champ (arg = id du champ)
 ouvrir:function(id){var c=document.getElementById(id);if(c) c.click();}
 };

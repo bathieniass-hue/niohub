@@ -1,4 +1,5 @@
-// NioHub : installation, mises à jour et actualisation de l'application.
+// NioHub : installation, mises à jour et actualisation de l'application. Logique seulement.
+// L'affichage (bandeaux, ligne « Installer ») : ecran-pwa.js. Le style : style.css. Les clics : ecran-liaisons.js.
 const VERSION_APP=(typeof NIOHUB_VERSION!=='undefined')?NIOHUB_VERSION:''; // vient de version.js
 let DELAI_RETOUR=60000;  // actualiser les produits si l'application revient après plus d'1 minute
 let invitationInstall=null;
@@ -31,11 +32,12 @@ if(m&&VERSION_APP&&m[1]!==VERSION_APP) afficherBandeauMiseAJour();
 
 function afficherBandeauMiseAJour(){
 if(document.getElementById('bandeau-maj')) return;
-const b=document.createElement('div');
-b.id='bandeau-maj';
-b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:0;width:100%;max-width:430px;z-index:200;background:#0E6B47;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;font:14px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)';
-b.innerHTML='<span style="flex:1"><b>Nouvelle version disponible</b></span><button type="button" style="border:0;border-radius:10px;background:#F2B233;color:#1E1A14;font-weight:bold;padding:8px 14px;font-size:14px" onclick="location.reload()">Mettre à jour</button><button type="button" aria-label="Plus tard" style="border:0;background:none;color:#fff;font-size:20px;line-height:1" onclick="document.getElementById(\'bandeau-maj\').remove()">✕</button>';
-document.body.appendChild(b);
+document.body.appendChild(vueBandeauMiseAJour());
+}
+function rechargerApp(){location.reload();}
+function fermerBandeauMiseAJour(){
+const b=document.getElementById('bandeau-maj');
+if(b) b.remove();
 }
 setTimeout(verifierMiseAJour,4000);
 
@@ -86,22 +88,6 @@ try{localStorage.setItem('niohub_install_masque',String(Date.now()));}catch(e){}
 document.querySelectorAll('.bandeau-install').forEach(b=>b.remove());
 }
 
-const styleInstall=document.createElement('style');
-styleInstall.textContent='.bandeau-install{display:flex;gap:10px;align-items:center;margin:10px 20px;padding:12px 14px;background:#E1F1E8;border:1px solid #BFDCCB;border-radius:14px}#bandeau-install-auth{margin:16px 0 0}';
-document.head.appendChild(styleInstall);
-
-function htmlBandeau(mode){
-const textes={
-android:'Accès direct depuis votre écran d’accueil, en plein écran.',
-ios:'Touchez Partager (le carré avec une flèche), puis « Sur l’écran d’accueil ».',
-webview:'Ouvrez cette page dans Chrome ou Safari (menu ⋮ puis « Ouvrir dans le navigateur ») pour pouvoir l’installer.'
-};
-const titre=mode==='ios'?'Installer NioHub sur iPhone':'Installer NioHub';
-return '<div style="flex:1;min-width:0;font-size:13px;color:#0A4D33;line-height:1.4"><b style="font-size:14px">'+titre+'</b><br>'+textes[mode]+'</div>'
-+(mode==='android'?'<button type="button" class="petit" onclick="installerApp()">Installer</button>':'')
-+'<button type="button" aria-label="Fermer" onclick="masquerInstallation()" style="border:0;background:none;font-size:20px;line-height:1;color:#6B6254;padding:4px">✕</button>';
-}
-
 function placerBandeau(id,ancre,position,mode){
 let b=document.getElementById(id);
 if(!b){
@@ -110,7 +96,7 @@ b.id=id;
 b.className='bandeau-install';
 ancre.insertAdjacentElement(position,b);
 }
-b.innerHTML=htmlBandeau(mode);
+b.innerHTML=vueBandeauInstall(mode);
 }
 
 function majLigneInstaller(mode){
@@ -119,11 +105,7 @@ if(!liste) return;
 let ligne=document.getElementById('ligne-installer');
 if(!mode){if(ligne) ligne.remove();return;}
 if(ligne) return;
-ligne=document.createElement('div');
-ligne.id='ligne-installer';
-ligne.className='ligne';
-ligne.onclick=installerApp;
-ligne.innerHTML='<b style="flex:1;color:#0E6B47">Installer l\'application</b><span>›</span>';
+ligne=vueLigneInstaller();
 liste.insertBefore(ligne,liste.firstChild);
 }
 

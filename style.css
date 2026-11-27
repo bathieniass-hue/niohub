@@ -427,3 +427,14 @@ body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
 .pm-photo-zone{display:flex;flex-direction:column;align-items:center;margin:4px 0 6px}
 .pm-photo{width:96px;height:96px;border-radius:48px;border:0;background:#F2B233;font-size:34px;font-weight:bold;color:#1E1A14;padding:0;cursor:pointer}
 .pm-photo-lien{border:0;background:none;color:#0E6B47;font-size:14px;font-weight:bold;padding:10px;cursor:pointer}
+/* Installation et mise à jour (ecran-pwa.js) */
+.bandeau-install{display:flex;gap:10px;align-items:center;margin:10px 20px;padding:12px 14px;background:#E1F1E8;border:1px solid #BFDCCB;border-radius:14px}
+#bandeau-install-auth{margin:16px 0 0}
+.bandeau-install .bi-texte{flex:1;min-width:0;font-size:13px;color:#0A4D33;line-height:1.4}
+.bandeau-install .bi-texte b{font-size:14px}
+.bandeau-install .bi-fermer{border:0;background:none;font-size:20px;line-height:1;color:#6B6254;padding:4px}
+#bandeau-maj{position:fixed;left:50%;transform:translateX(-50%);top:0;width:100%;max-width:430px;z-index:200;background:#0E6B47;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;font:14px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#bandeau-maj .bm-texte{flex:1}
+#bandeau-maj .bm-bouton{border:0;border-radius:10px;background:#F2B233;color:#1E1A14;font-weight:bold;padding:8px 14px;font-size:14px}
+#bandeau-maj .bm-fermer{border:0;background:none;color:#fff;font-size:20px;line-height:1}
+#ligne-installer .li-titre{flex:1;color:#0E6B47}
