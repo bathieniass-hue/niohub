@@ -1,3 +1,5 @@
+// Avis : logique seulement (chargement, calcul des notes, publication, modification, suppression).
+// L'affichage : ecran-avis.js (vue…). Les clics : ecran-liaisons.js (actions avis, retourAvis, etoile, avisPublier…).
 const PAGE_AVIS='avis-page';
 let avisVendeurCourant=null;
 let avisNoteChoisie=0;
@@ -63,7 +65,7 @@ async function afficherBoutiqueFiche(userId){
 avisVendeurCourant=userId||null;
 const zone=document.querySelector('#fiche .boutique');
 if(!zone) return;
-if(!userId){zone.innerHTML='<b>Produit de démonstration</b>';return;}
+if(!userId){zone.innerHTML=vueBoutiqueFicheMessage('Produit de démonstration');return;}
 try{
 const [r,lignes]=await Promise.all([
 Donnees.boutiques.deVendeur(userId),
@@ -73,18 +75,18 @@ chargerAvisVendeur(userId,'note')
 if(avisVendeurCourant!==userId) return;
 if(!r.ok) throw new Error(r.status);
 const b=(await r.json())[0];
-if(!b){zone.innerHTML='<b>Boutique non ouverte</b>';return;}
-const note=lignes.erreur?'':`<span style="color:#F2B233;font-size:14px">${etoiles(moyenne(lignes))} <span style="color:#1E1A14;font-weight:bold">${texteMoyenne(lignes)}</span></span>`;
-const initiale=esc((b.nom||'N').charAt(0).toUpperCase());
-zone.innerHTML=`<div style="display:flex;gap:12px;align-items:center">`+
-`<div class="avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0;background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':initiale}</div>`+
-`<div style="flex:1;min-width:0">`+
-`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${esc(b.nom)}</b>${note}</div>`+
-`<div style="font-size:12px;color:#6B6254;margin-top:2px">${esc(b.adresse||'Adresse non indiquée')} · ${telephonesBoutique(b)}</div>`+
-`</div></div>`+
-`<button class="btn2" style="margin-top:12px" onclick="voirAvis()">Voir les avis</button>`;
+if(!b){zone.innerHTML=vueBoutiqueFicheMessage('Boutique non ouverte');return;}
+zone.innerHTML=vueBoutiqueFiche({
+nom:b.nom||'',
+initiale:(b.nom||'N').charAt(0).toUpperCase(),
+fond:fondImage(b.logo,'#F2B233'),
+aLogo:!!urlSure(b.logo),
+adresse:b.adresse||'Adresse non indiquée',
+telephones:telephonesBoutique(b),
+note:lignes.erreur?null:{etoiles:etoiles(moyenne(lignes)),texte:texteMoyenne(lignes)}
+});
 }catch(e){
-if(avisVendeurCourant===userId) zone.innerHTML='<b>Boutique</b>';
+if(avisVendeurCourant===userId) zone.innerHTML=vueBoutiqueFicheMessage('Boutique');
 }
 }
 
@@ -103,13 +105,19 @@ async function voirAvis(){
 if(!avisVendeurCourant){bandeau('Ce produit de démonstration ne peut pas recevoir d\'avis.');return;}
 // Retour : vers "Mes achats" si on vient de là, sinon vers la fiche produit
 const ach=document.getElementById('achats-detail');
-const retour=(ach&&ach.style.display==='block')?"afficherPageAchats('achats-detail')":"montrer('fiche')";
+const origine=(ach&&ach.style.display==='block')?'achats':'fiche';
 const p=creerPageAvis();
-p.innerHTML=`<header><button class="retour" onclick="${retour}">←</button><span style="font-weight:bold;font-size:20px">Avis</span><span></span></header><div id="avis-resume"></div><label>Avis des clients</label><div id="avis-liste" class="liste" style="margin-top:0">Chargement…</div><div id="avis-moi"></div>`;
+p.innerHTML=vueAvis({origine:origine});
 montrer(PAGE_AVIS);
 p.style.display='block';
 window.scrollTo(0,0);
 await rafraichirAvis();
+}
+
+// Retour du bouton ← de la page Avis
+function retourAvis(origine){
+if(origine==='achats') afficherPageAchats(PAGE_ACHAT_DETAIL);
+else montrer('fiche');
 }
 
 async function rafraichirAvis(){
@@ -119,14 +127,12 @@ const liste=document.getElementById('avis-liste');
 if(!resume||!liste) return;
 if(lignes.erreur){
 resume.innerHTML='';
-liste.innerHTML='Impossible de charger les avis. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="rafraichirAvis()">Réessayer</button>';
+liste.innerHTML=vueAvisErreur();
 document.getElementById('avis-moi').innerHTML='';
 return;
 }
-resume.innerHTML=`<div class="boutique" style="margin-top:0;text-align:center"><div style="font-size:36px;font-weight:800;color:#0E6B47">${texteMoyenne(lignes)}</div><div style="color:#F2B233;font-size:20px">${etoiles(moyenne(lignes))}</div><div style="font-size:13px;color:#6B6254">${resumeTexte(lignes)}</div></div>`;
-liste.innerHTML=lignes.length
-?lignes.map(a=>`<div class="ligne" style="display:block"><div class="name">${esc(a.auteur)} <span style="color:#F2B233;font-weight:normal">${etoiles(a.note)}</span></div>${a.commentaire?`<div style="font-size:14px;margin-top:4px">${esc(a.commentaire)}</div>`:''}</div>`).join('')
-:"Aucun avis pour l'instant.";
+resume.innerHTML=vueAvisResume({moyenne:texteMoyenne(lignes),etoiles:etoiles(moyenne(lignes)),resume:resumeTexte(lignes)});
+liste.innerHTML=vueAvisListe({avis:lignes.map(a=>({auteur:a.auteur,etoiles:etoiles(a.note),commentaire:a.commentaire}))});
 await afficherMonAvis();
 }
 
@@ -137,46 +143,39 @@ const zone=document.getElementById('avis-moi');
 if(!zone) return;
 const s=await sessionValide();
 if(!s||!s.user_id){
-zone.innerHTML='<label>Votre avis</label><div class="liste" style="margin-top:0">Connectez-vous pour donner votre avis.</div><button class="btn" onclick="afficherConnexion()">Se connecter</button>';
+zone.innerHTML=vueMonAvisConnexion();
 return;
 }
 if(s.user_id===avisVendeurCourant){
-zone.innerHTML='<label>Votre avis</label><div class="liste" style="margin-top:0">Vous ne pouvez pas noter votre propre boutique.</div>';
+zone.innerHTML=vueMonAvisTexte('Vous ne pouvez pas noter votre propre boutique.');
 return;
 }
 const [moi,livre]=await Promise.all([chargerMonAvis(s),commandeLivreeChez(s)]);
 if(moi.erreur||livre===null){
-zone.innerHTML='<label>Votre avis</label><div class="liste" style="margin-top:0">Impossible de vérifier votre avis. Vérifiez votre connexion.</div><button class="btn2" onclick="afficherMonAvis()">Réessayer</button>';
+zone.innerHTML=vueMonAvisErreur();
 return;
 }
 const mien=moi.avis;
 if(mien){
-zone.innerHTML=`<label>Votre avis</label><div class="liste" style="margin-top:0"><div style="color:#F2B233;font-size:18px">${etoiles(mien.note)}</div>${mien.commentaire?`<div style="font-size:14px;margin-top:6px">${esc(mien.commentaire)}</div>`:''}<div style="font-size:12px;color:#6B6254;margin-top:6px">Vous avez déjà donné votre avis à ce vendeur.</div></div>
-<div style="display:flex;gap:10px;margin-top:10px"><button class="btn2" style="flex:1;margin:0" onclick="modifierMonAvis()">Modifier mon avis</button><button class="btn2" style="flex:1;margin:0;color:#B4291A;border-color:#B4291A" onclick="supprimerMonAvis()">Supprimer</button></div>`;
+zone.innerHTML=vueMonAvisExistant({etoiles:etoiles(mien.note),commentaire:mien.commentaire});
 avisActuel=mien;
 return;
 }
 if(!livre){
-zone.innerHTML='<label>Votre avis</label><div class="liste" style="margin-top:0">Vous pourrez donner votre avis après la livraison d\'une commande auprès de cette boutique.</div>';
+zone.innerHTML=vueMonAvisTexte('Vous pourrez donner votre avis après la livraison d\'une commande auprès de cette boutique.');
 return;
 }
-zone.innerHTML=formulaireAvis();
+zone.innerHTML=formulaireAvis(false);
 }
 
-function formulaireAvis(){
+function formulaireAvis(modif){
 avisNoteChoisie=0;
-const boutons=[1,2,3,4,5].map(n=>`<button data-n="${n}" onclick="choisirEtoile(${n})" style="border:0;background:none;font-size:44px;line-height:1;color:#D3C9B0;padding:0 6px">★</button>`).join('');
-return `<label>Votre avis</label>
-<div id="av-etoiles" style="display:flex;justify-content:center;margin:4px 0 8px">${boutons}</div>
-<label>Commentaire (facultatif)</label>
-<textarea id="av-texte" maxlength="500" style="width:100%;height:90px;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif"></textarea>
-<div id="av-msg" class="msg"></div>
-<button class="btn" style="margin-top:14px" onclick="envoyerAvis()">Publier mon avis</button>`;
+return vueFormulaireAvis({modif:!!modif});
 }
 
 function choisirEtoile(n){
 avisNoteChoisie=n;
-document.querySelectorAll('#av-etoiles button').forEach(b=>{b.style.color=Number(b.dataset.n)<=n?'#F2B233':'#D3C9B0';});
+document.querySelectorAll('#av-etoiles button').forEach(b=>{b.classList.toggle('on',Number(b.dataset.n)<=n);});
 }
 
 async function envoyerAvis(){
@@ -212,16 +211,9 @@ afficherBoutiqueFiche(avisVendeurCourant);
 function modifierMonAvis(){
 const zone=document.getElementById('avis-moi');
 if(!zone||!avisActuel) return;
-zone.innerHTML=formulaireAvis();
+zone.innerHTML=formulaireAvis(true);
 choisirEtoile(avisActuel.note);
 document.getElementById('av-texte').value=avisActuel.commentaire||'';
-const bouton=zone.querySelector('.btn');
-bouton.textContent='Enregistrer les modifications';
-bouton.setAttribute('onclick','enregistrerModifAvis()');
-const annuler=document.createElement('button');
-annuler.className='btn2';annuler.textContent='Annuler';annuler.style.marginTop='8px';
-annuler.setAttribute('onclick','afficherMonAvis()');
-zone.append(annuler);
 }
 async function enregistrerModifAvis(){
 if(avisEnCours) return;
