@@ -49,16 +49,13 @@ function ajouterChampTel2(){
 const tel=document.getElementById('bt-tel');
 if(!tel||document.getElementById('bt-tel2')) return;
 const bloc=document.createElement('div');
-bloc.innerHTML='<label>Autre numéro (facultatif)</label><div class="champ-tel"><span class="indicatif">+221</span><input id="bt-tel2" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>';
+bloc.innerHTML=vueChampTel2();
 (tel.closest('.champ-tel')||tel).insertAdjacentElement('afterend',bloc);
 }
 ajouterChampTel2();
 
 function construireBoutique(){
-document.getElementById('boutique').innerHTML=`
-<header><span style="font-weight:bold;font-size:20px">Ma boutique</span><button id="bt-action" class="btn-modif" style="display:none" onclick="ouvrirFormBoutique()"><span class="crayon" aria-hidden="true"></span>Modifier</button></header>
-<div id="infos-boutique">Chargement…</div>
-<div id="boutique-actions"></div>`;
+document.getElementById('boutique').innerHTML=vueBoutique();
 }
 
 // Distingue "pas de boutique" d'une "erreur réseau" pour ne jamais proposer d'en recréer une qui existe déjà
@@ -78,42 +75,35 @@ const bouton=document.getElementById('bt-action');
 const b=boutiqueActuelle;
 if(!connecte){
 bouton.style.display='none';
-zone.innerHTML='<div class="liste" style="margin-top:0">Connectez-vous dans Profil pour gérer votre boutique.</div>';
+zone.innerHTML=vueBoutiqueMessage('Connectez-vous dans Profil pour gérer votre boutique.');
 actions.innerHTML='';
 return;
 }
 if(erreur){
 bouton.style.display='none';
-zone.innerHTML='<div class="liste" style="margin-top:0">Impossible de charger votre boutique. Vérifiez votre connexion.</div>';
-actions.innerHTML='<button class="btn" onclick="voirBoutique()">Réessayer</button>';
+zone.innerHTML=vueBoutiqueMessage('Impossible de charger votre boutique. Vérifiez votre connexion.');
+actions.innerHTML=vueBoutiqueBouton('Réessayer','boutique');
 return;
 }
 if(!b){
 bouton.style.display='none';
-zone.innerHTML='<div class="liste" style="margin-top:0">Vous n\'avez pas encore de boutique.</div>';
-actions.innerHTML='<button class="btn" onclick="ouvrirFormBoutique()">Ouvrir ma boutique</button>';
+zone.innerHTML=vueBoutiqueMessage('Vous n\'avez pas encore de boutique.');
+actions.innerHTML=vueBoutiqueBouton('Ouvrir ma boutique','modifierBoutique');
 return;
 }
 bouton.style.display='';
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="background:${fondImage(b.logo,'#F2B233')}">${urlSure(b.logo)?'':'N'}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(b.nom)}</div><div style="font-size:13px;color:#6B6254">${telephonesBoutique(b)}</div><div style="font-size:13px;color:#6B6254">${esc(b.adresse||'Adresse non indiquée')}</div></div></div><div class="liste" style="margin-top:10px">${esc(b.description||'Pas de description.')}</div>`;
+zone.innerHTML=vueBoutiqueFiche({fond:fondImage(b.logo,'#F2B233'),initiale:urlSure(b.logo)?'':'N',nom:b.nom,telephones:telephonesBoutique(b),adresse:b.adresse||'Adresse non indiquée',description:b.description||'Pas de description.'});
 if(b.statut==='en_attente'){
-zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#E0A52E"><b>Boutique non validée</b><br>Pour valider votre boutique, vérifiez votre numéro de téléphone avec NioHub sur WhatsApp. Vos produits seront visibles dès la validation.<button class="btn" style="margin-top:10px" onclick="validerMonNumero()">Valider mon numéro de téléphone</button></div>');
+zone.insertAdjacentHTML('beforeend',vueBoutiqueNonValidee());
 chargerNumeroVerification();
 }else if(b.statut==='validee'&&b.telephone_verifie){
-zone.insertAdjacentHTML('beforeend','<div class="verifie" style="margin-top:8px">✓ Numéro de téléphone vérifié</div>');
+zone.insertAdjacentHTML('beforeend',vueBoutiqueVerifiee());
 }
 if(b.statut&&b.statut!=='validee'&&b.statut!=='en_attente'){
-const susp=b.statut==='suspendue';
-zone.insertAdjacentHTML('beforeend','<div class="liste" style="margin-top:12px;border-color:#B4291A"><b>'+(susp?'Votre boutique est suspendue.':'Votre boutique est en attente de validation.')+'</b><br>'+(susp?'Vos produits ne sont plus visibles par les acheteurs. Contactez NioHub pour en savoir plus.':'Vos produits seront visibles dès qu\'elle sera validée.')+'</div>');
+zone.insertAdjacentHTML('beforeend',vueBoutiqueBloquee(b.statut==='suspendue'));
 }
 afficherNotifsBoutique(b);
-actions.innerHTML=`<div class="tuiles">
-<button class="tuile" onclick="voirMessages()"><span class="gb-ic" style="--i:0" aria-hidden="true"></span>Messages<span class="pastille" data-compteur="messages" style="display:none"></span></button>
-<button id="tuile-avis" class="tuile" onclick="voirAvisRecus()"><span class="gb-ic" style="--i:1" aria-hidden="true"></span>Avis reçus<span class="pastille" data-compteur="avis" style="display:none"></span></button>
-<button class="tuile" onclick="voirCommandes()"><span class="gb-ic" style="--i:2" aria-hidden="true"></span>Commandes<span class="pastille" data-compteur="commandes" style="display:none"></span></button>
-<button class="tuile" onclick="voirAjout('boutique')"><span class="gb-ic" style="--i:4" aria-hidden="true"></span>Ajouter</button>
-<button class="tuile large" onclick="voirMesProduits()"><span class="gb-ic" style="--i:3" aria-hidden="true"></span>Mes produits</button>
-</div>`;
+actions.innerHTML=vueBoutiqueTuiles();
 }
 
 async function voirBoutique(){
@@ -133,7 +123,7 @@ afficherBoutiqueEtat(connecte,erreur);
 function ouvrirDetail(origine,titre,lignes,actions){
 origineDetail=origine;
 const p=creerPage('detail-vente');
-p.innerHTML=`<header><button class="retour" onclick="afficherPage('${origine}')">←</button><span style="font-weight:bold;font-size:18px">${esc(titre)}</span><span></span></header><div class="liste" style="margin-top:0">${lignes.map(([k,v])=>`<div style="padding:8px 0;border-bottom:1px solid #EDE5D3"><div style="font-size:12px;color:#6B6254">${esc(k)}</div><div style="font-size:15px;font-weight:bold">${esc(v)}</div></div>`).join('')}</div>${actions||''}`;
+p.innerHTML=vueDetailVente(origine,titre,lignes,actions);
 afficherPage('detail-vente');
 }
 
@@ -141,19 +131,16 @@ async function voirCommandes(){
 const s=await sessionValide();
 if(!s||!s.user_id){bandeau('Connectez-vous dans Profil.');montrer('profil');return;}
 const p=creerPage('commandes-page');
-p.innerHTML=`<header><button class="retour" onclick="voirBoutique()">←</button><span style="font-weight:bold;font-size:20px">Commandes</span><span></span></header><div id="liste-commandes" class="liste" style="margin-top:0">Chargement…</div>`;
+p.innerHTML=vueCommandesPage();
 afficherPage('commandes-page');
 try{
 const r=await Donnees.commandes.deVendeur(s);
 if(!r.ok) throw new Error(r.status);
 commandesCache=await r.json();
-document.getElementById('liste-commandes').innerHTML=commandesCache.length
-?commandesCache.map((c,i)=>{
+document.getElementById('liste-commandes').innerHTML=vueCommandesListe(commandesCache.map(c=>{
 const st=c.statut||'À préparer';
-const total=c.total?' · '+Number(c.total).toLocaleString('fr-FR')+' FCFA':'';
-return `<div class="ligne" style="cursor:pointer" onclick="voirCommandeDetail(${i})"><div style="flex:1"><div class="name">${esc(c.produit)} × ${esc(c.quantite)}</div><div style="font-size:13px;color:#6B6254">${esc(c.nom_client)}${esc(total)}</div></div><span style="font-size:12px;font-weight:bold;color:${couleurStatut(st)}">${esc(st)}</span><span style="margin-left:6px">›</span></div>`;
-}).join('')
-:"Aucune commande pour l'instant.";
+return {produit:c.produit,quantite:c.quantite,client:c.nom_client,total:c.total?' · '+Number(c.total).toLocaleString('fr-FR')+' FCFA':'',statut:st,couleur:couleurStatut(st)};
+}));
 }catch(e){document.getElementById('liste-commandes').textContent='Erreur de chargement. Vérifiez votre connexion.';}
 }
 
@@ -356,17 +343,9 @@ if(!s||!s.user_id) return;
 const r=await Donnees.notifications.liste(s,30);
 if(!r.ok) return;
 const liste=notifsPourBoutique(await r.json(),b);
-liste.forEach(m=>{
-const c=document.createElement('div');
-c.className='liste nio-boutique'+(m.lu?'':' non-lu');
-const t=document.createElement('b');t.textContent=m.titre||'Message de NioHub';
-const x=document.createElement('div');x.className='nio-resume';
+cadre.innerHTML=vueNotifsBoutique(liste.map(m=>{
 const texte=String(m.texte||'').replace(/\s+/g,' ').trim();
-x.textContent=texte.length>110?texte.slice(0,109)+'…':texte;
-const v=document.createElement('button');v.className='btn2';v.type='button';v.textContent='Voir plus';
-v.onclick=()=>{if(typeof ouvrirDetailNio==='function') ouvrirDetailNio(m.id);};
-c.append(t,x,v);
-cadre.append(c);
-});
+return {id:m.id,lu:!!m.lu,titre:m.titre||'Message de NioHub',resume:texte.length>110?texte.slice(0,109)+'…':texte};
+}));
 }catch(e){}
 }

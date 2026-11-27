@@ -40,6 +40,7 @@ const ATTENDUS=[
 ['notifUid','notifications.js'],['lireFavoris','favoris.js'],['afficherRaccourcis','raccourcis.js'],
 ['completerFicheBoutique','boutique-fiche.js'],['creerChampsDetails','details-produit.js'],['vueCarteDetails','ecran-details-produit.js'],
 ['televerserNouvellesPhotos','ajout-produit.js'],['vueMiniaturesAjout','ecran-ajout.js'],['arrangerFiche','fiche-details.js'],
+['vueConnexion','ecran-compte.js'],['vueBoutiqueFiche','ecran-boutique-etat.js'],
 ['bandeau','bandeau.js'],['verifierMiseAJour','pwa.js'],['vueBandeauInstall','ecran-pwa.js']
 ];
 // [module de la couche données, fichier]

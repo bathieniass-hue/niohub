@@ -98,32 +98,12 @@ s.photo=res.profil.photo||null;
 enregistrerSession(s);
 return 'ok';
 }
-function injecterStyle(){
-const st=document.createElement('style');
-st.textContent=`
-#auth{display:none;position:fixed;top:0;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;overflow-y:auto;background:#FBF7EE;z-index:50}
-.auth-haut{position:relative;background:linear-gradient(160deg,#0E6B47 0%,#0A4D33 100%);color:#fff;padding:60px 24px 90px;text-align:center;border-radius:0 0 32px 32px}
-.auth-retour{position:absolute;top:16px;left:16px;width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14);color:#fff;font-size:22px;line-height:1;padding:0;cursor:pointer}
-.auth-logo{display:block;width:96px;height:96px;margin:0 auto 10px;object-fit:contain}
-.auth-titre{margin:0;font-size:28px;font-weight:800;color:#fff}
-.auth-sous{margin-top:8px;font-size:14px;line-height:1.5;opacity:.92}
-.auth-carte{background:#fff;margin:-60px 20px 30px;padding:24px 20px;border-radius:24px;border:1px solid #EDE5D3;box-shadow:0 12px 32px rgba(30,26,20,.12)}
-.auth-carte h2{margin:0 0 6px;font-size:20px;color:#1E1A14}
-.auth-carte p{margin:0 0 16px;font-size:14px;line-height:1.5;color:#6B6254}
-.g-enveloppe{display:flex;justify-content:center;padding:16px 10px;border-radius:18px;background:#F7F4EC;border:1px solid #EDE5D3}
-.auth-pied{margin-top:16px;text-align:center;font-size:12px;line-height:1.5;color:#8A8170}
-.auth-champs label{display:block;margin:12px 0 6px;font-size:13px;font-weight:bold}
-.auth-champs input{width:100%;padding:12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;font-size:15px;font-family:sans-serif}
-.btn-plein{width:100%;height:52px;margin-top:16px;border:0;border-radius:14px;background:#0E6B47;color:#fff;font-size:15px;font-weight:bold;box-shadow:0 6px 16px rgba(14,107,71,.3)}
-.auth-lien{width:100%;margin-top:12px;border:0;background:none;color:#0E6B47;font-size:13px;font-weight:bold}
-`;
-document.head.appendChild(st);
-}
+
 function fermerAuth(){voirAccueil();}
 function construireAuth(){
 const a=document.createElement('div');
 a.id='auth';
-a.innerHTML=`<div class="auth-haut"><button type="button" class="auth-retour" onclick="fermerAuth()" aria-label="Retour à l'accueil">←</button><img class="auth-logo" src="logo-n.png" alt="NioHub"><h1 class="auth-titre">NioHub</h1><div class="auth-sous">Achetez et vendez près de chez vous, en toute confiance.</div></div><div class="auth-carte" id="auth-corps"><p>Chargement…</p></div>`;
+a.innerHTML=vueAuth();
 document.body.appendChild(a);
 }
 function construireZoneProfil(){
@@ -168,38 +148,16 @@ zone.textContent='Connexion Google indisponible pour le moment.';
 }
 }
 function afficherConnexion(){
-document.getElementById('auth-corps').innerHTML=`
-<h2>Bienvenue</h2>
-<p>Connectez-vous pour acheter, vendre et gérer votre boutique en toute sécurité.</p>
-<div class="g-enveloppe"><div id="g-bouton"></div></div>
-<div id="c-msg" class="msg"></div>
-<button type="button" class="auth-lien" onclick="fermerAuth()">Continuer sans compte</button>
-<div class="auth-pied">En continuant, vous acceptez les <a href="conditions.html" target="_blank" rel="noopener" style="color:#0E6B47;font-weight:bold">conditions d'utilisation et la politique de confidentialité</a> de NioHub.</div>`;
+document.getElementById('auth-corps').innerHTML=vueConnexion();
 montrer('auth');
 rendrerBoutonGoogle();
 }
 function afficherErreurReseau(){
-document.getElementById('auth-corps').innerHTML=`
-<h2>Connexion impossible</h2>
-<p>Nous n'arrivons pas à joindre le serveur. Vérifiez votre connexion internet puis réessayez.</p>
-<button class="btn-plein" onclick="verifierAcces()">Réessayer</button>
-<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>
-<button type="button" class="auth-lien" onclick="fermerAuth()">Retour à l'accueil</button>`;
+document.getElementById('auth-corps').innerHTML=vueErreurReseau();
 montrer('auth');
 }
 function afficherCompletion(){
-document.getElementById('auth-corps').innerHTML=`
-<h2>Presque terminé</h2>
-<p>Complétez votre profil pour commencer. Ces informations serviront à vos achats et à votre boutique.</p>
-<div class="auth-champs">
-<label>Prénom</label><input id="p-prenom" placeholder="Ex. Fatou" maxlength="40">
-<label>Nom</label><input id="p-nom" placeholder="Ex. Diop" maxlength="40">
-<label>Téléphone</label><div class="champ-tel"><span class="indicatif">+221</span><input id="p-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="77 123 45 67" maxlength="20"></div>
-<label>Adresse (facultatif)</label><input id="p-adresse" placeholder="Quartier, repère" maxlength="200">
-</div>
-<div id="c-msg" class="msg"></div>
-<button id="p-valider" class="btn-plein" onclick="creerProfil()">Enregistrer mon profil</button>
-<button class="auth-lien" onclick="seDeconnecter()">Changer de compte</button>`;
+document.getElementById('auth-corps').innerHTML=vueCompletion();
 montrer('auth');
 }
 async function connexionGoogle(reponse){
@@ -286,14 +244,10 @@ if(!s||!s.user_id){afficherConnexion();return;}
 const zone=document.getElementById('compte-zone');
 const etat=await assurerProfil(s);
 if(etat==='creer'){afficherCompletion();return;}
-if(etat==='erreur'){
-zone.innerHTML='<div class="liste" style="margin-top:0">Impossible de charger votre profil. Vérifiez votre connexion. <button class="auth-lien" style="width:auto;margin:0 0 0 6px" onclick="afficherProfilCarte()">Réessayer</button></div>';
-return;
-}
-const initiale=(s.nom.trim().charAt(0)||'N').toUpperCase();
+if(etat==='erreur'){zone.innerHTML=vueProfilErreur();return;}
 const photo=urlSure(s.photo);
 if(s.photo===undefined) chargerProfil(s).then(res=>{if(res.profil){mettreAJourSession({photo:res.profil.photo||null});if(res.profil.photo&&vueCourante==='profil') afficherProfilCarte();}});
-zone.innerHTML=`<div class="boutique" style="margin-top:0;display:flex;gap:14px;align-items:center"><div class="avatar" style="${photo?'background:url('+photo+') center/cover no-repeat':''}">${photo?'':esc(initiale)}</div><div style="flex:1"><div class="nomboutique" style="font-size:18px">${esc(s.nom)}</div><div style="font-size:13px;color:#6B6254">${esc(s.adresse||'Adresse non indiquée')}</div><div style="font-size:13px;color:#6B6254">${esc(s.telephone?formaterTelephone(s.telephone):'')}</div></div></div>`;
+zone.innerHTML=vueProfilCarte({initiale:(s.nom.trim().charAt(0)||'N').toUpperCase(),photo:photo,nom:s.nom,adresse:s.adresse||'Adresse non indiquée',telephone:s.telephone?formaterTelephone(s.telephone):''});
 }
 function seDeconnecter(){
 oublierSession();
@@ -320,7 +274,6 @@ return enregistrerBoutiqueAvant();
 };
 const voirProfilAvant=voirProfil;
 voirProfil=function(){voirProfilAvant();afficherProfilCarte();};
-injecterStyle();
 construireAuth();
 construireZoneProfil();
 verifierAccesSilencieux();
