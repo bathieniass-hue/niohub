@@ -51,6 +51,10 @@ commander:function(){return appeler('voirCommande');},
 confirmerCommande:function(){return appeler('envoyerCommande');},
 ajouterProduit:function(origine){return appeler('voirAjout',origine);},
 retourAjout:function(){return appeler('retourAjout');},
+ajoutGauche:function(){return appeler('ajoutGauche');},
+ajoutSuivant:function(){return appeler('ajoutSuivant');},
+ajoutRetirer:function(i){return appeler('ajoutRetirer',i);},
+fichePhoto:function(src,el){return appeler('choisirPhotoFiche',src,el);},
 retourFiche:function(){return appeler('retourFiche');},
 fermerFiche:function(){return appeler('fermerFiche');},
 fermerVitrine:function(){return appeler('fermerVitrine');},
@@ -97,10 +101,4 @@ if(!el) return;
 const f=CHANGEMENT[el.getAttribute('data-change')];
 if(f) f(e);
 });
-
-// Cas particulier : ajout-produit.js réassigne lui-même le onclick de cet aperçu
-// (il l'active et le coupe selon qu'une photo est choisie). On garde donc ici une
-// propriété onclick, pas une data-action, pour ne pas doubler le clic.
-const apercu=document.getElementById('apercu');
-if(apercu) apercu.onclick=function(){var c=document.getElementById('photo');if(c) c.click();};
 })();
