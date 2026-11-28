@@ -388,7 +388,7 @@ function blocVendeurCarte(p){
 const b=p.user_id?boutiquesCache.find(x=>x.user_id===p.user_id):null;
 if(!b) return '';
 const n=notesVendeurs[b.user_id];
-return vueVendeurCarte({fond:fondImage(b.logo,'#F2B233'),initiale:urlSure(b.logo)?'':(b.nom||'N').charAt(0).toUpperCase(),nom:b.nom,note:(n&&n.nb)?n.moyenne.toFixed(1).replace('.',','):'',lieu:b.adresse||''});
+return vueVendeurCarte({userId:b.user_id,fond:fondImage(b.logo,'#F2B233'),initiale:urlSure(b.logo)?'':(b.nom||'N').charAt(0).toUpperCase(),nom:b.nom,note:(n&&n.nb)?n.moyenne.toFixed(1).replace('.',','):'',lieu:b.adresse||''});
 }
 
 function carteProduitHTML(p,i){

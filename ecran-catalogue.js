@@ -9,11 +9,11 @@ return l.map(c=>'<div class="cat" style="background:'+c.fond+'">'+esc(c.nom)+'</
 
 const ICONE_LIEU='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
 
-// Le vendeur sous une carte. d = { fond (valeur CSS prête), initiale, nom, note ('4,5' ou '' si nouveau), lieu }
+// Le vendeur sous une carte (un clic dessus ouvre la boutique). d = { userId, fond (valeur CSS prête), initiale, nom, note ('4,5' ou '' si nouveau), lieu }
 function vueVendeurCarte(d){
 const note=d.note?`<span class="v-etoiles">★</span> <b>${esc(d.note)}</b>`:'<span class="v-nouveau">Nouveau</span>';
 const lieu=d.lieu?`<div class="v-lieu">${ICONE_LIEU}<span>${esc(d.lieu)}</span></div>`:'';
-return `<div class="vendeur"><div class="v-avatar" style="background:${d.fond}">${esc(d.initiale)}</div><div class="v-txt"><div class="v-ligne"><span class="v-nom">${esc(d.nom)}</span><span class="v-note">${note}</span></div>${lieu}</div></div>`;
+return `<div class="vendeur"${d.userId?` data-action="vitrine" data-arg="${esc(d.userId)}"`:''}><div class="v-avatar" style="background:${d.fond}">${esc(d.initiale)}</div><div class="v-txt"><div class="v-ligne"><span class="v-nom">${esc(d.nom)}</span><span class="v-note">${note}</span></div>${lieu}</div></div>`;
 }
 
 // Une carte produit. d = { action ('ouvrirProduitId' ou 'ouvrirDemo'), arg, fond, nom, prix, classePrix, vendeur (HTML prêt) }

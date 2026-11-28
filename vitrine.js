@@ -6,6 +6,7 @@ let vitrineOrigine='accueil';
 let vitrineId=null;
 // Si la vitrine a été ouverte depuis une fiche produit : { produit, origine } pour y revenir avec ←
 let vitrineRetourFiche=null;
+let vitrineY=0; // défilement de la page d'origine, pour la retrouver au retour
 
 creerPage('vitrine');
 
@@ -28,7 +29,7 @@ return {appel:'tel:+221'+chiffresTelephone(tel),whatsapp:lienWhatsapp(tel)};
 
 async function voirVitrine(userId){
 if(!userId) return;
-if(vueCourante!=='vitrine'&&vueCourante!=='fiche') vitrineOrigine=vueCourante;
+if(vueCourante!=='vitrine'&&vueCourante!=='fiche'){vitrineOrigine=vueCourante;vitrineY=window.scrollY;}
 vitrineId=userId;
 const page=document.getElementById('vitrine');
 page.innerHTML=vueVitrineMessage('Chargement…');
@@ -86,4 +87,12 @@ if(r){vitrineId=null;retourFicheDepuisVitrine(r);return;}
 const cible=(vitrineOrigine&&vitrineOrigine!=='vitrine'&&vitrineOrigine!=='fiche')?vitrineOrigine:'accueil';
 vitrineId=null;
 montrer(cible);
+const y=vitrineY;
+vitrineY=0;
+if(y>0&&cible===vitrineOrigine){
+window.scrollTo(0,y);
+requestAnimationFrame(()=>window.scrollTo(0,y));
+setTimeout(()=>window.scrollTo(0,y),80);
+setTimeout(()=>window.scrollTo(0,y),250);
+}
 }
