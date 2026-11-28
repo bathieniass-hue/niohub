@@ -76,6 +76,9 @@ body .page>header.rch-entete{gap:8px}
 .rch-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .rch-btn-go{border:0;background:#0E6B47;color:#fff}
 .rch-btn-filtre{border:1.5px solid #0E6B47;background:#fff;color:#0E6B47}
+/* Un seul bouton à la fois à droite de la barre : Rechercher avant la recherche, Filtre une fois les résultats affichés */
+#recherche.rch-r .rch-btn-go{display:none}
+#recherche:not(.rch-r) #rch-filtre{display:none}
 .rch-btn-filtre.actif::after{content:'';position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:5px;background:#E0A52E}
 body.sombre .rch-btn-go{background:#0F2418;box-shadow:inset 0 0 0 1.5px #3BBF4B;color:#3BBF4B}
 body.sombre .rch-btn-filtre{background:#0F2418;border-color:#24472F;color:#EAF3EC}
