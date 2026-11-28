@@ -76,7 +76,7 @@ if(avisVendeurCourant!==userId) return;
 if(!r.ok) throw new Error(r.status);
 const b=(await r.json())[0];
 if(!b){zone.innerHTML=vueBoutiqueFicheMessage('Boutique non ouverte');return;}
-zone.innerHTML=vueBoutiqueFiche({
+zone.innerHTML=vueBoutiqueFicheProduit({
 nom:b.nom||'',
 initiale:(b.nom||'N').charAt(0).toUpperCase(),
 fond:fondImage(b.logo,'#F2B233'),

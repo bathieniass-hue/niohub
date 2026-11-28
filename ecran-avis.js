@@ -7,8 +7,9 @@ function vueBoutiqueFicheMessage(texte){
 return '<b>'+esc(texte)+'</b>';
 }
 
+// Nom propre à cet écran : la page Boutique a sa propre vueBoutiqueFiche (ecran-boutique-etat.js). Ne jamais réutiliser ce nom.
 // d = { nom, initiale, fond, aLogo, adresse, telephones (HTML prêt), note:{etoiles,texte}|null }
-function vueBoutiqueFiche(d){
+function vueBoutiqueFicheProduit(d){
 const note=d.note?`<span style="color:#F2B233;font-size:14px">${esc(d.note.etoiles)} <span style="color:#1E1A14;font-weight:bold">${esc(d.note.texte)}</span></span>`:'';
 return `<div style="display:flex;gap:12px;align-items:center">`+
 `<div class="avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0;background:${d.fond}">${d.aLogo?'':esc(d.initiale)}</div>`+

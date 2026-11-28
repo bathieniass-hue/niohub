@@ -10,14 +10,14 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 | Données | `donnees-*.js`, `config.js` | tous les échanges avec Supabase | d'affichage |
 | Moteur | `app.js`, `commande.js`, `boutique.js`, ... | les règles et le déroulement | d'appel direct à Supabase |
 
-Étape 3 en cours : séparer, dans chaque fichier du moteur, la logique de l'affichage.
+Étape 3 terminée : séparer, dans chaque fichier du moteur, la logique de l'affichage.
 - Fait : `favoris.js` (logique seule). Le dessin du cœur est dans `ecran-fiche.js` + `style.css`, le clic dans `ecran-liaisons.js` (action `favori`).
 - Fait : `statut.js` (logique seule). L'affichage du détail d'une commande est dans `ecran-statut.js` (fonction `vueCommandeVendeur`), le clic dans `ecran-liaisons.js` (action `statut`).
 - Fait : `vitrine.js` (logique seule). L'affichage est dans `ecran-vitrine.js` (fonctions `vueVitrine`, `vueVitrineMessage`), le style `.vitrine-…` dans `style.css`, le clic ← dans `ecran-liaisons.js` (action `fermerVitrine`).
 - Fait : `bandeau.js` (logique seule : durée, fermeture, clavier). Les éléments sont construits dans `ecran-bandeau.js` (`vueBandeau`, `vueConfirmation`, `vueZoneBandeaux`).
 - Fait : `achats.js` (logique seule). L'affichage est dans `ecran-achats.js` (`vueAchats`, `vueAchatsListe`, `vueAchatDetail`…), les clics dans `ecran-liaisons.js` (actions `achatDetail`, `achatsListe`, `retourAchats`, `avisAchat`, `annulerAchat`).
 - Fait : `raccourcis.js` (logique seule). L'affichage (raccourcis, filtres, fenêtre Catégories, page Favoris) est dans `ecran-raccourcis.js`, le style dans `style.css`, les clics dans `ecran-liaisons.js` (actions `conversations`, `favoris`, `categories`, `categorie`, `categorieModal`).
-- Fait : `avis.js` (logique seule : calcul des notes, publication, modification). L'affichage (encadré boutique, page Avis, formulaire) est dans `ecran-avis.js`, le style des étoiles dans `style.css`, les clics dans `ecran-liaisons.js` (actions `avis`, `retourAvis`, `etoile`, `avisPublier`…).
+- Fait : `avis.js` (logique seule : calcul des notes, publication, modification). L'affichage (encadré boutique de la fiche produit : `vueBoutiqueFicheProduit`, page Avis, formulaire) est dans `ecran-avis.js`, le style des étoiles dans `style.css`, les clics dans `ecran-liaisons.js` (actions `avis`, `retourAvis`, `etoile`, `avisPublier`…).
 - Fait : `parametres.js` (logique seule) → affichage dans `ecran-parametres.js` (`vueParametres`), clic action `theme`.
 - Fait : `boutique-fiche.js` (logique seule) → affichage dans `ecran-avis-recus.js` (`vueNoteBoutique`, `vueAvisRecus…`), clic action `avisRecus`.
 - Fait : `fiche-details.js` (logique seule) → affichage dans `ecran-fiche-details.js` (`vueDetailsFiche`), style `#fd-details…` dans `style.css`.
@@ -30,7 +30,7 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 - Fait : `messages.js` (logique seule : conversations, discussion, envoi en file, temps réel) → affichage dans `ecran-messages.js` (`vueConversationsListe`, `vueChatPage`, `vueFilChat`, `vueProduitChat`, `vueMenuMessage`…), style dans `style.css`, clics dans `ecran-liaisons.js` (actions `ouvrirConversation`, `fermerListe`, `fermerChat`, `envoyerChat`, `menuMessage`, `supprimerMessage`, `ouvrirProduitId`…).
 - Fait : `notifications.js` (logique seule : pastilles, push, calculs) → affichage dans `ecran-notifications.js` (`vueNotifications`, `vueNotifDetail`, `vueReglageNotif`, `vueDemandeNotif`), clics dans `ecran-liaisons.js` (actions `retourNotif`, `notifAller`, `toutVu`, `basculerNotif`, `demandeOui`, `demandeNon`).
 - Fait : `app.js` (logique seule : chargement du catalogue, images, recherche, défilement, fiche, Mes produits) → affichage dans `ecran-catalogue.js` (`vueCarteProduit`, `vueVendeurCarte`, `vueBoutiquesTrouvees`, `vueSuggestions`, `vueRecherche`, `vueMesProduits`, `vueAccueilVide`…), style de la recherche dans `style.css`, clics dans `ecran-liaisons.js` (actions `ouvrirProduitId`, `ouvrirDemo`, `vitrine`, `suggestion`, `modifierProduit`, `supprimerProduit`).
-- Séparation terminée pour tout le moteur. Reste à vérifier : `admin.js` (application d'administration, hors plan) et le doublon possible `base.js` / `donnees-base.js`.
+- Séparation terminée pour tout le moteur. `admin.js` (application d'administration) reste tel quel, hors plan. `base.js` (doublon inutilisé) est supprimé : `donnees-base.js` est le seul fichier de base.
 - Écran qui dépend de données : une fonction `vue…` dans `ecran-<nom>.js` reçoit des données prêtes et rend le HTML (elle peut utiliser `esc`). Le moteur l'appelle.
 - Méthode : le moteur ne fabrique plus de HTML ni de style ; il change seulement des classes (ex. `actif`) ou du texte, et le style est dans `style.css`.
 
@@ -45,6 +45,7 @@ Trois couches, chacune dans ses propres fichiers. On peut changer l'une sans tou
 2. **Deux fichiers ne portent jamais le même nom.**
 3. **Un nouveau fichier JS** se déclare à trois endroits : `index.html` (balise script), `sw.js` (liste FICHIERS) et, s'il définit une fonction importante, `diagnostic.js` (liste ATTENDUS).
 4. **Une modification à la fois**, puis test, puis envoi suivant.
+5. **Deux fonctions ne portent jamais le même nom** : la dernière chargée écrase l'autre, sans aucune erreur. Seule exception voulue : envelopper une fonction existante (ex. `ouvrirChat` dans `notifications.js`).
 
 ## Mettre en ligne
 1. Envoyer **seulement les fichiers modifiés** (Add file → Upload files, tous à plat), puis Commit.
