@@ -12,12 +12,18 @@ if(p.getAttribute('data-prete')) return p;
 p.setAttribute('data-prete','1');
 p.innerHTML=vueRechercheEcran();
 const champ=document.getElementById('q');
-champ.addEventListener('input',()=>{afficherSuggestions();afficherGrille();majEtatRecherche();});
-champ.addEventListener('keydown',e=>{
-if(e.key==='Enter'){
-document.getElementById('suggest').innerHTML='';
-afficherGrille();
+// Pendant la frappe : seulement des suggestions (les produits n'apparaissent qu'une fois la recherche lancée)
+champ.addEventListener('input',()=>{
+rechercheValidee=false;
+afficherSuggestions();
 majEtatRecherche();
+afficherGrille();
+});
+champ.addEventListener('keydown',e=>{
+if(e.key==='Enter'&&requeteRecherche()){
+document.getElementById('suggest').innerHTML='';
+validerRecherche();
+afficherGrille();
 champ.blur();
 }
 });
@@ -26,13 +32,22 @@ return p;
 }
 creerPageRecherche();
 
-// Panneau d'accueil (rien tapé, aucune catégorie) ou résultats
+// Trois états : panneau d'accueil (rien tapé, aucune catégorie), suggestions (on tape), résultats (recherche lancée ou catégorie choisie)
 function majEtatRecherche(){
 const p=document.getElementById('recherche');
 if(!p) return;
-p.classList.toggle('avec-resultats',!!(requeteRecherche()||categorieActive));
+const q=requeteRecherche();
+const etat=(!q&&!categorieActive)?'panneau':(q&&!rechercheValidee)?'suggestions':'resultats';
+p.classList.toggle('rch-s',etat==='suggestions');
+p.classList.toggle('rch-r',etat==='resultats');
 const actif=document.getElementById('rch-actif');
 if(actif) actif.innerHTML=vueRechercheActive(categorieActive);
+}
+
+// La recherche est lancée : les produits s'affichent
+function validerRecherche(){
+rechercheValidee=true;
+majEtatRecherche();
 }
 
 function dessinerPanneauRecherche(){
@@ -48,6 +63,7 @@ creerPageRecherche();
 rechercheAvant={categorie:categorieActive,nb:nbAffiches,plafond:plafondAffichage,cle:derniereCleFiltre,y:window.scrollY};
 categorieActive='';
 rechercheActive=true;
+rechercheValidee=false;
 const champ=document.getElementById('q');
 champ.value='';
 document.getElementById('suggest').innerHTML='';
@@ -64,6 +80,7 @@ if(!rechercheActive) return null;
 const av=rechercheAvant;
 rechercheAvant=null;
 rechercheActive=false;
+rechercheValidee=false;
 const champ=document.getElementById('q');
 if(champ){champ.value='';champ.blur();}
 const s=document.getElementById('suggest');
@@ -105,7 +122,7 @@ const champ=document.getElementById('q');
 if(!champ) return;
 champ.value=String(texte||'');
 document.getElementById('suggest').innerHTML='';
-majEtatRecherche();
+validerRecherche();
 afficherGrille();
 champ.blur();
 window.scrollTo(0,0);
@@ -113,7 +130,7 @@ window.scrollTo(0,0);
 
 function choisirCategorieRecherche(c){
 categorieActive=c||'';
-majEtatRecherche();
+validerRecherche();
 afficherGrille();
 window.scrollTo(0,0);
 }

@@ -57,6 +57,7 @@ let rechercheServeurFaite='';
 let minuteurRechercheServeur=null;
 let categorieActive='';
 let rechercheActive=false; // vrai tant que l'écran Recherche est ouvert (voir recherche.js)
+let rechercheValidee=false; // faux tant qu'on tape (suggestions seulement), vrai une fois la recherche lancée (produits affichés)
 let notesVendeurs={};
 let signatureCatalogue='';
 let vueCourante='accueil';
@@ -426,8 +427,8 @@ const q=requeteRecherche();
 const grille=zoneGrille();
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
-if(rechercheActive&&!q&&!categorieActive){
-// Écran Recherche encore vide : rien à lister (c'est le panneau de recherches rapides qui est affiché)
+if(rechercheActive&&((!q&&!categorieActive)||(q&&!rechercheValidee))){
+// Écran Recherche sans recherche lancée (panneau de recherches rapides, ou suggestions pendant la frappe) : aucun produit à lister
 clearInterval(minuteurRevelation);
 listeCourante=null;
 bloc.innerHTML='';
@@ -521,14 +522,14 @@ const nom=String(b.nom||'').trim();
 const cle='b:'+nom.toLowerCase();
 if(!nom||vus.has(cle)||!nom.toLowerCase().includes(q)) return;
 vus.add(cle);
-res.push({type:'boutique',nom:nom,userId:b.user_id});
+res.push({type:'boutique',nom:nom,userId:b.user_id,fond:fondImage(b.logo,'#F2B233'),initiale:urlSure(b.logo)?'':nom.charAt(0).toUpperCase()});
 });
 tous().forEach(p=>{
 const nom=String(p.nom||'').trim();
 const cle='p:'+nom.toLowerCase();
 if(!nom||vus.has(cle)||!nom.toLowerCase().includes(q)) return;
 vus.add(cle);
-res.push({type:'produit',nom:nom});
+res.push({type:'produit',nom:nom,fond:fondMini(p),initiale:''});
 });
 res.sort((a,b)=>{
 const sa=a.nom.toLowerCase().startsWith(q)?0:1;
@@ -544,10 +545,10 @@ const zone=document.getElementById('suggest');
 if(!zone) return;
 if(!q){zone.innerHTML='';suggestionsEnCours=[];return;}
 suggestionsEnCours=suggestions(q);
-zone.innerHTML=vueSuggestions(suggestionsEnCours.map((s,k)=>{
+zone.innerHTML=suggestionsEnCours.length?vueSuggestions(suggestionsEnCours.map((s,k)=>{
 const i=s.nom.toLowerCase().indexOf(q);
-return {k:k,avant:s.nom.slice(0,i),milieu:s.nom.slice(i,i+q.length),apres:s.nom.slice(i+q.length),boutique:s.type==='boutique'};
-}));
+return {k:k,avant:s.nom.slice(0,i),milieu:s.nom.slice(i,i+q.length),apres:s.nom.slice(i+q.length),boutique:s.type==='boutique',fond:s.fond,initiale:s.initiale||''};
+})):vueSuggestionsVide(q);
 }
 
 function choisirSuggestion(k){
@@ -562,6 +563,7 @@ voirVitrine(s.userId);
 return;
 }
 document.getElementById('q').value=s.nom;
+if(typeof validerRecherche==='function') validerRecherche();
 afficherGrille();
 }
 

@@ -56,9 +56,9 @@ function vueRecherche(){
 return '<input id="q" type="search" placeholder="Rechercher un produit ou une boutique" autocomplete="off"><div id="suggest"></div>';
 }
 
-// Suggestions. l = [{ k, avant, milieu, apres, boutique (true/false) }]
+// Suggestions. l = [{ k, avant, milieu, apres, boutique (true/false), fond (valeur CSS prête : photo du produit ou logo), initiale ('' si photo) }]
 function vueSuggestions(l){
-return l.map(s=>`<button data-action="suggestion" data-arg="${s.k}">${esc(s.avant)}<b>${esc(s.milieu)}</b>${esc(s.apres)}${s.boutique?'<span class="tag-b">Boutique</span>':'<span class="tag-p">Produit</span>'}</button>`).join('');
+return l.map(s=>`<button data-action="suggestion" data-arg="${s.k}"><span class="sug-txt">${esc(s.avant)}<b>${esc(s.milieu)}</b>${esc(s.apres)}</span>${s.boutique?'<span class="tag-b">Boutique</span>':'<span class="tag-p">Produit</span>'}<span class="sug-photo${s.boutique?' rond':''}" style="background:${s.fond}">${esc(s.initiale||'')}</span></button>`).join('');
 }
 
 // « Mes produits ». l = [{ id, fond (valeur CSS prête), nom, prix }]
