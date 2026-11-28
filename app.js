@@ -427,7 +427,7 @@ const q=requeteRecherche();
 const grille=zoneGrille();
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
-if(rechercheActive&&((!q&&!categorieActive)||(q&&!rechercheValidee))){
+if(rechercheActive&&((!q&&!categorieActive&&!filtresRechercheActifs())||(q&&!rechercheValidee))){
 // Écran Recherche sans recherche lancée (panneau de recherches rapides, ou suggestions pendant la frappe) : aucun produit à lister
 clearInterval(minuteurRevelation);
 listeCourante=null;
@@ -437,9 +437,10 @@ return;
 }
 const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includes(q)):[];
 bloc.innerHTML=vueBoutiquesTrouvees(trouvees.map(b=>({userId:b.user_id,fond:fondImage(b.logo,'#F2B233').replace('no-repeat','').trim(),nom:b.nom,adresse:b.adresse||''})));
-const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
+const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive)&&(!rechercheActive||produitPasseFiltres(x.p)));
+if(rechercheActive) trierResultats(liste);
 const horsLigne=!navigator.onLine||chargementEchoue;
-const cleFiltre=q+'|'+(categorieActive||'');
+const cleFiltre=q+'|'+(categorieActive||'')+(rechercheActive?'|'+cleFiltresRecherche():'');
 if(cleFiltre!==derniereCleFiltre){derniereCleFiltre=cleFiltre;nbAffiches=2;plafondAffichage=20;}
 listeCourante=null;
 if((q||categorieActive)&&!finCatalogue&&navigator.onLine) chargerRechercheServeur(q,categorieActive);
@@ -454,8 +455,8 @@ grille.innerHTML=affiche.map(x=>carteProduitHTML(x.p,x.i)).join('')+fin;
 if(affiche.length<Math.min(plafondAffichage,quelques.length)) demarrerRevelation();
 }else if(chargementEnCours&&!q&&!categorieActive){
 grille.innerHTML=vueSqueletteGrille();
-}else if(q){
-grille.innerHTML=vueMessageVide('Aucun produit trouvé pour « '+q+' »');
+}else if(q||(rechercheActive&&filtresRechercheActifs())){
+grille.innerHTML=vueMessageVide(q?'Aucun produit trouvé pour « '+q+' »':'Aucun produit ne correspond à ces filtres');
 }else if(chargementEchoue&&!distants.length){
 grille.innerHTML=vueMessageVide('Impossible de charger les produits. Vérifiez votre connexion et rouvrez l\'application.');
 }else if(categorieActive){

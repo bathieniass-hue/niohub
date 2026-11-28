@@ -71,7 +71,28 @@ html,body{overflow-anchor:none}
 /* ===== Écran Recherche ===== */
 .rch-entete{display:flex;align-items:center;gap:10px}
 .rch-entete .recherche{position:static;margin:0;flex:1;min-width:0}
-#rch-filtre:empty{display:none}
+body .page>header.rch-entete{gap:8px}
+.rch-btn{width:44px;height:44px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0;position:relative}
+.rch-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rch-btn-go{border:0;background:#0E6B47;color:#fff}
+.rch-btn-filtre{border:1.5px solid #0E6B47;background:#fff;color:#0E6B47}
+.rch-btn-filtre.actif::after{content:'';position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:5px;background:#E0A52E}
+body.sombre .rch-btn-go{background:#0F2418;box-shadow:inset 0 0 0 1.5px #3BBF4B;color:#3BBF4B}
+body.sombre .rch-btn-filtre{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+/* Fenêtre « Filtrer » */
+#filtre-fond{position:fixed;inset:0;z-index:1002;background:rgba(30,26,20,.45);display:none;align-items:flex-end;justify-content:center}
+#filtre-boite{width:100%;max-width:430px;max-height:88vh;overflow-y:auto;background:#FBF7EE;border-radius:24px 24px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(30,26,20,.25)}
+#filtre-entete{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#filtre-titre{font-size:18px;font-weight:bold;color:#1E1A14}
+.filtre-prix{display:flex;align-items:center;gap:8px;margin:8px 0 18px}
+.filtre-prix input{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid #E6DECB;border-radius:12px;background:#fff;color:#1E1A14;font-family:sans-serif}
+.filtre-actions{display:flex;gap:10px}
+.filtre-actions .btn,.filtre-actions .btn2{flex:1;width:auto;margin:0}
+body.sombre #filtre-fond{background:rgba(0,0,0,.6)}
+body.sombre #filtre-boite{background:#07130C;box-shadow:0 -12px 40px rgba(0,0,0,.6)}
+body.sombre #filtre-titre{color:#EAF3EC}
+body.sombre .filtre-prix input{background:#0F2418;border-color:#24472F;color:#EAF3EC}
+body.sombre .filtre-prix{color:#EAF3EC}
 .rch-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 18px}
 #rch-actif:empty{display:none}
 #rch-actif .rch-chips{margin:4px 0 8px}
