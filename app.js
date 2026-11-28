@@ -56,6 +56,7 @@ let derniereCleFiltre='';
 let rechercheServeurFaite='';
 let minuteurRechercheServeur=null;
 let categorieActive='';
+let rechercheActive=false; // vrai tant que l'écran Recherche est ouvert (voir recherche.js)
 let notesVendeurs={};
 let signatureCatalogue='';
 let vueCourante='accueil';
@@ -398,6 +399,11 @@ const taillePrix=L<=11?'':L<=13?' p18':L<=14?' p17':L<=16?' p15':' p13';
 return vueCarteProduit({action:p.id?'ouvrirProduitId':'ouvrirDemo',arg:p.id?Number(p.id):i,fond:fondMini(p),nom:p.nom,prix:p.prix,classePrix:taillePrix,vendeur:blocVendeurCarte(p)});
 }
 
+// La grille qui affiche les produits : celle de l'écran Recherche s'il est ouvert, sinon celle de l'accueil
+function zoneGrille(){
+return document.getElementById(rechercheActive?'rch-grid':'grid');
+}
+
 function requeteRecherche(){
 const el=document.getElementById('q');
 return el?el.value.trim().toLowerCase():'';
@@ -408,17 +414,26 @@ let bloc=document.getElementById('boutiques-trouvees');
 if(!bloc){
 bloc=document.createElement('div');
 bloc.id='boutiques-trouvees';
-bloc.style.padding='0 20px';
-document.getElementById('grid').insertAdjacentElement('beforebegin',bloc);
 }
+const g=zoneGrille();
+bloc.style.padding=rechercheActive?'0':'0 20px';
+if(g&&g.previousElementSibling!==bloc) g.insertAdjacentElement('beforebegin',bloc);
 return bloc;
 }
 
 function afficherGrille(){
 const q=requeteRecherche();
-const grille=document.getElementById('grid');
+const grille=zoneGrille();
 if(!grille) return;
 const bloc=garantirBlocBoutiques();
+if(rechercheActive&&!q&&!categorieActive){
+// Écran Recherche encore vide : rien à lister (c'est le panneau de recherches rapides qui est affiché)
+clearInterval(minuteurRevelation);
+listeCourante=null;
+bloc.innerHTML='';
+grille.innerHTML='';
+return;
+}
 const trouvees=q?boutiquesCache.filter(b=>String(b.nom||'').toLowerCase().includes(q)):[];
 bloc.innerHTML=vueBoutiquesTrouvees(trouvees.map(b=>({userId:b.user_id,fond:fondImage(b.logo,'#F2B233').replace('no-repeat','').trim(),nom:b.nom,adresse:b.adresse||''})));
 const liste=tous().map((p,i)=>({p,i})).filter(x=>(!q||x.p.nom.toLowerCase().includes(q))&&(!categorieActive||(x.p.categorie||'Autres')===categorieActive));
@@ -451,7 +466,7 @@ grille.innerHTML=vueAccueilVide();
 
 // Les produits apparaissent 2 par 2 (jusqu'à 20) ; en défilant, 20 de plus, et ainsi de suite
 function revelerSuite(){
-const grille=document.getElementById('grid');
+const grille=zoneGrille();
 if(!grille||!listeCourante) return false;
 const maxi=Math.min(plafondAffichage,listeCourante.length);
 if(nbAffiches>=maxi) return false;
@@ -469,7 +484,7 @@ if(!revelerSuite()){clearInterval(minuteurRevelation);verifierSentinelle();}
 },110);
 }
 async function produitsSuivants(){
-if(vueCourante!=='accueil'||!listeCourante) return;
+if(vueCourante!==(rechercheActive?'recherche':'accueil')||!listeCourante) return;
 const maxi=Math.min(plafondAffichage,listeCourante.length);
 if(nbAffiches<maxi){demarrerRevelation();return;}
 // tout ce qui était prévu est affiché : on en prévoit 20 de plus
@@ -479,16 +494,18 @@ await chargerPlusDuServeur();
 if(listeCourante&&listeCourante.length>plafondAffichage){plafondAffichage+=20;demarrerRevelation();}
 }
 function verifierSentinelle(){
-const s=document.getElementById('sentinelle');
+const s=document.getElementById(rechercheActive?'sentinelle-rch':'sentinelle');
 if(!s) return;
 const r=s.getBoundingClientRect();
 if(r.top<window.innerHeight+400) produitsSuivants();
 }
-function installerDefilement(){
-const grille=document.getElementById('grid');
-if(!grille||document.getElementById('sentinelle')) return;
+function installerDefilement(idGrille,idSentinelle){
+idGrille=idGrille||'grid';
+idSentinelle=idSentinelle||'sentinelle';
+const grille=document.getElementById(idGrille);
+if(!grille||document.getElementById(idSentinelle)) return;
 const s=document.createElement('div');
-s.id='sentinelle';
+s.id=idSentinelle;
 s.style.cssText='height:2px;margin-top:30px';
 grille.insertAdjacentElement('afterend',s);
 if('IntersectionObserver' in window){
@@ -540,29 +557,12 @@ document.getElementById('suggest').innerHTML='';
 if(s.type==='boutique'){
 document.getElementById('q').value='';
 afficherGrille();
+if(typeof majEtatRecherche==='function') majEtatRecherche();
 voirVitrine(s.userId);
 return;
 }
 document.getElementById('q').value=s.nom;
 afficherGrille();
-}
-
-function installerRecherche(){
-const ancien=document.querySelector('#accueil .search');
-if(!ancien||document.getElementById('q')) return;
-const zone=document.createElement('div');
-zone.className='recherche';
-zone.innerHTML=vueRecherche();
-ancien.replaceWith(zone);
-const champ=document.getElementById('q');
-champ.addEventListener('input',()=>{afficherSuggestions();afficherGrille();});
-champ.addEventListener('keydown',e=>{
-if(e.key==='Enter'){
-document.getElementById('suggest').innerHTML='';
-afficherGrille();
-champ.blur();
-}
-});
 }
 
 // Le bandeau « hors ligne / connexion lente » n'existe plus : l'état est montré à la fin de la liste des produits.
@@ -706,7 +706,6 @@ apercuUrl=URL.createObjectURL(photoBlob);
 remettreApercu(apercuUrl);
 }
 
-installerRecherche();
 installerDefilement();
 (function(){
 try{

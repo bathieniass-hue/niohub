@@ -67,6 +67,18 @@ html,body{overflow-anchor:none}
 
 /* ===== La boutique sur les cartes produits : logo, nom, étoiles et note, adresse ===== */
 .vendeur{display:flex;gap:8px;align-items:center;margin-top:8px}
+#accueil .search{cursor:pointer}
+/* ===== Écran Recherche ===== */
+.rch-entete{display:flex;align-items:center;gap:10px}
+.rch-entete .recherche{position:static;margin:0;flex:1;min-width:0}
+.rch-entete #suggest{left:20px;right:20px}
+#rch-filtre:empty{display:none}
+.rch-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 18px}
+#rch-actif:empty{display:none}
+#rch-actif .rch-chips{margin:4px 0 8px}
+#rch-grid{padding:6px 0 110px}
+#recherche.avec-resultats #rch-panneau{display:none}
+#recherche:not(.avec-resultats) #rch-resultats{display:none}
 .vendeur[data-action]{cursor:pointer}
 .v-avatar{width:30px;height:30px;border-radius:15px;flex-shrink:0;background:#F2B233;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px}
 .v-txt{min-width:0;flex:1;display:flex;align-items:baseline;gap:6px}

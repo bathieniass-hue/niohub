@@ -10,3 +10,6 @@ const PREFIXE_PHOTOS=SUPABASE_URL+'/storage/v1/object/public/photos/';
 
 // Mettre true pour revoir les 4 produits de démonstration
 const AFFICHER_DEMO=false;
+
+// Recherches rapides proposées sur l'écran Recherche (modifier cette liste librement)
+const RECHERCHES_RAPIDES=['Téléphone','Chaussures','Robe','Sac','Ordinateur','Télévision','Parfum','Casque'];
