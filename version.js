@@ -1,4 +1,4 @@
 // NioHub : numéro de version, SEULE source.
 // À chaque livraison, changer uniquement la ligne ci-dessous (n'importe quelle suite de lettres/chiffres différente).
 // Lu par sw.js (cache), pwa.js (bandeau « Nouvelle version ») et le diagnostic.
-var NIOHUB_VERSION='88341fe6c6';
+var NIOHUB_VERSION='b7d52a41f9';

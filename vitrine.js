@@ -4,6 +4,8 @@
 
 let vitrineOrigine='accueil';
 let vitrineId=null;
+// Si la vitrine a été ouverte depuis une fiche produit : { produit, origine } pour y revenir avec ←
+let vitrineRetourFiche=null;
 
 creerPage('vitrine');
 
@@ -59,7 +61,28 @@ cartes:produits.map(p=>carteProduitHTML(p,0))
 });
 }
 
+// Bouton « Voir la boutique » (ou clic sur la carte boutique) de la fiche produit
+function voirVitrineDepuisFiche(){
+if(!document.querySelector('#fiche .boutique.cliquable')) return;
+if(!produitOuvert||!produitOuvert.user_id) return;
+const dejaDepuisVitrine=vitrineRetourFiche&&origineFiche&&origineFiche.vue==='vitrine';
+if(!dejaDepuisVitrine) vitrineRetourFiche={produit:produitOuvert,origine:origineFiche};
+voirVitrine(produitOuvert.user_id);
+}
+
+// ← de la vitrine ouverte depuis une fiche : on retrouve le même produit
+function retourFicheDepuisVitrine(r){
+if(produitOuvert===r.produit){montrer('fiche');return;}
+const i=tous().findIndex(x=>x.id===r.produit.id);
+if(i<0){montrer('accueil');return;}
+ouvrir(i);
+origineFiche=r.origine;
+}
+
 function fermerVitrine(){
+const r=vitrineRetourFiche;
+vitrineRetourFiche=null;
+if(r){vitrineId=null;retourFicheDepuisVitrine(r);return;}
 const cible=(vitrineOrigine&&vitrineOrigine!=='vitrine'&&vitrineOrigine!=='fiche')?vitrineOrigine:'accueil';
 vitrineId=null;
 montrer(cible);

@@ -65,6 +65,7 @@ async function afficherBoutiqueFiche(userId){
 avisVendeurCourant=userId||null;
 const zone=document.querySelector('#fiche .boutique');
 if(!zone) return;
+zone.classList.remove('cliquable');
 if(!userId){zone.innerHTML=vueBoutiqueFicheMessage('Produit de démonstration');return;}
 try{
 const [r,lignes]=await Promise.all([
@@ -76,6 +77,7 @@ if(avisVendeurCourant!==userId) return;
 if(!r.ok) throw new Error(r.status);
 const b=(await r.json())[0];
 if(!b){zone.innerHTML=vueBoutiqueFicheMessage('Boutique non ouverte');return;}
+zone.classList.add('cliquable');
 zone.innerHTML=vueBoutiqueFicheProduit({
 nom:b.nom||'',
 initiale:(b.nom||'N').charAt(0).toUpperCase(),

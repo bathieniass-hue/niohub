@@ -17,7 +17,7 @@ return `<div style="display:flex;gap:12px;align-items:center">`+
 `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${esc(d.nom)}</b>${note}</div>`+
 `<div style="font-size:12px;color:#6B6254;margin-top:2px">${esc(d.adresse)} · ${d.telephones}</div>`+
 `</div></div>`+
-`<button class="btn2" style="margin-top:12px" data-action="avis">Voir les avis</button>`;
+`<div class="bf-boutons"><button class="btn2" data-action="vitrineFiche">Voir la boutique</button><button class="btn2" data-action="avis">Voir les avis</button></div>`;
 }
 
 // Page « Avis » (cadre) : d = { origine:'achats'|'fiche' } (où revenir avec ←)

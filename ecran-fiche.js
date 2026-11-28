@@ -9,7 +9,7 @@
 <div class="prix" id="fprix"></div>
 <div class="titre" id="fnom"></div>
 <div class="desc" id="fdesc"></div>
-<div class="boutique"><b>Boutique</b></div>
+<div class="boutique" data-action="vitrineFiche"><b>Boutique</b></div>
 </div>
 <div class="bar" style="display:flex;gap:10px">
 <button class="btn2" style="margin-top:0;flex:1" data-action="message">Message</button>

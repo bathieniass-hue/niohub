@@ -386,6 +386,9 @@ body.sombre .nio-boutique .nio-resume{color:#9DB5A5}
 #fphoto .btn-favori.actif path{fill:#D7263D}
 /* Vitrine d'une boutique */
 .vitrine-grille .vendeur,.vitrine-grille .v-lieu{display:none}
+.boutique.cliquable{cursor:pointer}
+.bf-boutons{display:flex;gap:8px;margin-top:12px}
+.bf-boutons .btn2{flex:1;width:auto;margin:0;height:38px;font-size:13px;border-radius:10px}
 .vitrine-contact{display:flex;gap:8px;margin-top:12px}
 .vitrine-contact a{flex:1;text-align:center;text-decoration:none;padding:12px 0;border-radius:14px;border:1.5px solid #0E6B47;color:#0E6B47;font-weight:bold;font-size:14px}
 /* Accueil : raccourcis, filtres, fenêtre Catégories */
